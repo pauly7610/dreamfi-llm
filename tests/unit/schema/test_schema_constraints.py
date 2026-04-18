@@ -44,18 +44,23 @@ class TestSchemaConstraints:
         """skill_registry.skill_name must be unique."""
         cursor = db_connection.cursor()
         
-        # Try inserting duplicate skill_name
-        cursor.execute("INSERT INTO skill_registry (skill_name, skill_family, status) VALUES (%s, %s, %s)",
-                      ('test_skill_unique', 'test', 'active'))
-        db_connection.commit()
-        
         try:
+            # Try inserting duplicate skill_name
             cursor.execute("INSERT INTO skill_registry (skill_name, skill_family, status) VALUES (%s, %s, %s)",
                           ('test_skill_unique', 'test', 'active'))
             db_connection.commit()
-            assert False, "Should have raised unique constraint violation"
-        except psycopg2.IntegrityError:
-            db_connection.rollback()
+            
+            try:
+                cursor.execute("INSERT INTO skill_registry (skill_name, skill_family, status) VALUES (%s, %s, %s)",
+                              ('test_skill_unique', 'test', 'active'))
+                db_connection.commit()
+                assert False, "Should have raised unique constraint violation"
+            except psycopg2.IntegrityError:
+                db_connection.rollback()
+        finally:
+            # Cleanup: remove test data
+            cursor.execute("DELETE FROM skill_registry WHERE skill_name = %s", ('test_skill_unique',))
+            db_connection.commit()
 
     def test_foreign_key_enforcement(self, db_connection):
         """Foreign keys must enforce referential integrity."""
