@@ -252,8 +252,8 @@ VALUES
 INSERT INTO evaluation_criteria_catalog (skill_id, criterion_key, criterion_text, criterion_type, is_hard_gate, weight) VALUES
     ('a1000000-0000-0000-0000-000000000001', 'role_definition',     'Prompt defines a clear agent role and persona',                      'binary', true,  1.5),
     ('a1000000-0000-0000-0000-000000000001', 'guardrails',          'Prompt includes safety guardrails and boundaries',                   'binary', true,  1.5),
-    ('a1000000-0000-0000-0000-000000000001', 'output_format',       'Prompt specifies expected output format',                            'binary', false, 1.0),
-    ('a1000000-0000-0000-0000-000000000001', 'context_handling',    'Prompt instructs how to handle missing or ambiguous context',        'binary', false, 1.0),
+    ('a1000000-0000-0000-0000-000000000001', 'output_format',       'Prompt specifies expected output format',                            'binary', true, 1.0),
+    ('a1000000-0000-0000-0000-000000000001', 'context_handling',    'Prompt instructs how to handle missing or ambiguous context',        'binary', true, 1.0),
     ('a1000000-0000-0000-0000-000000000001', 'word_limit',          'Output is within the word limit range',                              'binary', true,  1.0);
 
 -- support_agent criteria
@@ -261,7 +261,7 @@ INSERT INTO evaluation_criteria_catalog (skill_id, criterion_key, criterion_text
     ('a1000000-0000-0000-0000-000000000002', 'empathy_tone',        'Response opens with empathy and acknowledges the customer issue',    'binary', true,  1.5),
     ('a1000000-0000-0000-0000-000000000002', 'accurate_resolution', 'Resolution is factually correct and addresses the stated problem',   'binary', true,  2.0),
     ('a1000000-0000-0000-0000-000000000002', 'no_hallucination',    'Response does not fabricate product features or policies',            'binary', true,  2.0),
-    ('a1000000-0000-0000-0000-000000000002', 'escalation_path',     'Response includes escalation path when unable to resolve',            'binary', false, 1.0),
+    ('a1000000-0000-0000-0000-000000000002', 'escalation_path',     'Response includes escalation path when unable to resolve',            'binary', true, 1.0),
     ('a1000000-0000-0000-0000-000000000002', 'word_limit',          'Output is within the word limit range',                              'binary', true,  1.0);
 
 -- meeting_summary criteria
@@ -269,7 +269,7 @@ INSERT INTO evaluation_criteria_catalog (skill_id, criterion_key, criterion_text
     ('a1000000-0000-0000-0000-000000000003', 'key_decisions',       'Summary captures all key decisions made in the meeting',              'binary', true,  2.0),
     ('a1000000-0000-0000-0000-000000000003', 'action_items',        'Summary lists action items with owners and deadlines',               'binary', true,  1.5),
     ('a1000000-0000-0000-0000-000000000003', 'no_fabrication',      'Summary does not include topics not discussed in the meeting',        'binary', true,  2.0),
-    ('a1000000-0000-0000-0000-000000000003', 'conciseness',         'Summary is concise without losing critical information',              'binary', false, 1.0),
+    ('a1000000-0000-0000-0000-000000000003', 'conciseness',         'Summary is concise without losing critical information',              'binary', true, 1.0),
     ('a1000000-0000-0000-0000-000000000003', 'word_limit',          'Output is within the word limit range',                              'binary', true,  1.0);
 
 -- cold_email criteria

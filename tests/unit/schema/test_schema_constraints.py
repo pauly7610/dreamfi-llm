@@ -15,8 +15,8 @@ class TestSchemaConstraints:
         """All tables must have primary keys."""
         cursor = db_connection.cursor()
         cursor.execute("""
-            SELECT table_name, column_name 
-            FROM information_schema.key_column_usage 
+            SELECT table_name
+            FROM information_schema.table_constraints
             WHERE constraint_type = 'PRIMARY KEY'
             AND table_schema = 'public'
             ORDER BY table_name
