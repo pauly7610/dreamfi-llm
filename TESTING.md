@@ -9,6 +9,7 @@ This document defines the strict TDD approach for building DreamFi. It serves as
 Build in this exact sequence to maximize impact and unblock downstream work:
 
 ### Phase 1 Core Vertical Slice (Foundation)
+
 1. Schema validation and seed data integrity
 2. Jira connector with watermarking
 3. Confluence connector with pagination
@@ -16,22 +17,26 @@ Build in this exact sequence to maximize impact and unblock downstream work:
 5. Gold example retrieval
 
 ### Phase 2 Tier 1 Skills (First AI Layer)
+
 1. agent_system_prompt generator and evaluator
 2. support_agent generator and evaluator
 3. meeting_summary generator and evaluator
 
 ### Phase 3 Trust-Based Reporting (First Downstream)
+
 1. Jira/Dragonboat field mapping validation
 2. Report summary generation
 3. Escalation detection
 
 ### Phase 4 Metrics Trust (Data Trust Layer)
+
 1. Metabase connector (metrics source)
 2. PostHog connector (product analytics)
 3. Google Analytics connector (traffic)
 4. Metric snapshot generation with trust scoring
 
 ### Phase 5 UI Support (Last, After Phase 1-2 Live)
+
 1. Minimalist fintech style validation
 2. Export readiness checking
 3. Artifact-to-skill mapping
@@ -70,20 +75,21 @@ All code must pass before merge:
 
 Every ADR must have corresponding test(s) that verify the decision is enforced:
 
-| ADR | Required Test |
-|-----|---|
-| 003 (Eval Locking) | tests/integration/evals/test_eval_runner_locking.py |
-| 004 (Keep/Revert Loop) | tests/integration/evals/test_prompt_promotion.py |
-| 005 (Confidence Model) | tests/unit/knowledge/test_score_confidence.py |
-| 006 (Hard-Gate Publishing) | tests/unit/publish/test_publish_guards.py |
-| 007 (Freshness Policy) | tests/unit/connectors/test_freshness_scoring.py |
-| 008 (Skill Promotion) | tests/integration/evals/test_promotion_policy.py |
+| ADR                        | Required Test                                       |
+| -------------------------- | --------------------------------------------------- |
+| 003 (Eval Locking)         | tests/integration/evals/test_eval_runner_locking.py |
+| 004 (Keep/Revert Loop)     | tests/integration/evals/test_prompt_promotion.py    |
+| 005 (Confidence Model)     | tests/unit/knowledge/test_score_confidence.py       |
+| 006 (Hard-Gate Publishing) | tests/unit/publish/test_publish_guards.py           |
+| 007 (Freshness Policy)     | tests/unit/connectors/test_freshness_scoring.py     |
+| 008 (Skill Promotion)      | tests/integration/evals/test_promotion_policy.py    |
 
 ## Critical Area 1: Schema and Canonical Data Integrity
 
 **Importance:** This is the foundation. Everything depends on correct schema.
 
 **Files Under Test**
+
 - services/knowledge-hub/db/schema.sql
 - Migration files (when created)
 - Seed data files
@@ -102,6 +108,7 @@ tests/unit/schema/test_eval_contract_alignment.py
 ### Strict Acceptance Criteria
 
 All 11 canonical tables must exist:
+
 - core_entities
 - relationships
 - citations
@@ -115,17 +122,20 @@ All 11 canonical tables must exist:
 - skill_failure_patterns
 
 **Constraints:**
+
 - All primary keys exist and are UUID type
 - Required unique constraints exist (e.g., skill_name is unique)
 - Foreign keys enforce referential integrity on DELETE CASCADE
 - Seed skills (9 total) are inserted correctly with no duplicates
 
 **Indexes:**
+
 - Retrieval-critical tables have indexes (core_entities on type, status, freshness; evaluation_outputs on round_id, pass_fail)
 - Uniqueness constraints have corresponding indexes
 - Full-text search indexes exist on description fields
 
 **Seed Data:**
+
 - All 9 skills inserted successfully
 - Every seeded skill has at least one evaluation_criteria_catalog row
 - Evaluation criteria match locked eval file definitions
@@ -134,6 +144,7 @@ All 11 canonical tables must exist:
 **HIGH-PRIORITY FAILING TEST:**
 
 Create test_eval_contract_alignment.py that fails if:
+
 - Schema references .md file path but repo truth is .yaml (or vice versa)
 - Seeded evaluation_criteria_catalog entries do not match locked eval file criteria for Tier 1 skills
 - Criterion count mismatch for any Tier 1 skill
@@ -154,6 +165,7 @@ This test is critical because the repo currently has inconsistencies here.
 **Importance:** Without connectors, the platform is useless. Start here after schema.
 
 **Implementation Priority Order**
+
 1. Jira (highest priority, used by Phase 3)
 2. Confluence (used by Phase 1)
 3. Dragonboat (used by Phase 3)
@@ -163,6 +175,7 @@ This test is critical because the repo currently has inconsistencies here.
 7. Klaviyo, NetXD, Sardine, Socure, Lucidchart (lower priority)
 
 **Files Under Test**
+
 - services/knowledge-hub/src/connectors/base_connector.ts
 - services/knowledge-hub/src/connectors/jira_connector.ts
 - services/knowledge-hub/src/connectors/confluence_connector.ts
@@ -250,6 +263,7 @@ Every connector must handle:
 **Importance:** This is the first thing downstream systems use. Must be reliable.
 
 **Files Under Test**
+
 - services/knowledge-hub/src/retrieval/retrieve_context.ts
 - services/knowledge-hub/src/confidence/score_confidence.ts
 - services/knowledge-hub/src/api/query.ts
@@ -332,17 +346,20 @@ For ambiguous or impossible requests:
 **Importance:** Skills are where value is generated. Start with top 3 only.
 
 **In Scope (First)**
+
 - agent_system_prompt
 - support_agent
 - meeting_summary
 
 **Out of Scope (For Now)**
+
 - cold_email, landing_page_copy, newsletter_headline, product_description, resume_bullet, short_form_script
 
 **Files Under Test**
+
 - services/generators/src/generate/generate_output.ts
 - services/generators/src/evals/run_skill_round.ts
-- evals/runners/run_{skill}_eval.py (for each skill)
+- evals/runners/run\_{skill}\_eval.py (for each skill)
 
 ### Test Files
 
@@ -431,9 +448,10 @@ For every skill round:
 **Importance:** High. The repo currently has eval path inconsistencies (.yaml vs .md).
 
 **Files Under Test**
+
 - services/knowledge-hub/db/schema.sql (seed data section)
-- evals/*.md (locked files)
-- evals/runners/*.py (immutable runners)
+- evals/\*.md (locked files)
+- evals/runners/\*.py (immutable runners)
 
 ### Test Files
 
@@ -472,8 +490,9 @@ tests/unit/evals/test_eval_path_consistency.py
 **Importance:** Prevents bad outputs from escaping.
 
 **Files Under Test**
-- services/*/publish_to_confluence.ts
-- services/*/publish_to_jira.ts
+
+- services/\*/publish_to_confluence.ts
+- services/\*/publish_to_jira.ts
 
 ### Test Files
 
@@ -511,6 +530,7 @@ Publish MUST include:
 **Importance:** First reporting layer worth making real.
 
 **Files Under Test**
+
 - services/planning-sync/src/hierarchy_rules.ts
 - services/planning-sync/src/field_map.ts
 - services/planning-sync/src/validate_taxonomy.ts
@@ -560,16 +580,19 @@ tests/e2e/test_phase3_sync_to_report.py
 **Importance:** Data trust foundation for Phase 4.
 
 **In Scope (First)**
+
 - Metabase
 - PostHog
 - Google Analytics
 
 **Out of Scope (For Now)**
+
 - Klaviyo, NetXD, Sardine, Socure
 
 **Files Under Test**
+
 - services/metrics/src/metric_catalog.ts
-- services/metrics/src/normalization/*.ts
+- services/metrics/src/normalization/\*.ts
 - services/metrics/src/create_snapshot.ts
 - services/metrics/src/render_internal_summary.ts
 - services/metrics/src/render_exec_subject.ts
@@ -618,7 +641,8 @@ tests/e2e/test_phase4_metric_to_narrative.py
 **Importance:** What makes optimization loops real.
 
 **Files Under Test**
-- autoresearch-toolkit/autoresearch-toolkit/results-analyzer/*.py (when integrated)
+
+- autoresearch-toolkit/autoresearch-toolkit/results-analyzer/\*.py (when integrated)
 - scripts/analyze_results.py (new file)
 
 ### Test Files
@@ -660,6 +684,7 @@ tests/integration/results/test_full_results_artifacts.py
 **Importance:** High-impact later, not first.
 
 **Files Under Test**
+
 - services/ui-support/src/style/minimalist_fintech_rules.ts
 - services/ui-support/src/evals/validate_export_readiness.ts
 - services/ui-support/src/mapping/map_artifact_skill.ts
@@ -783,11 +808,13 @@ After CI passes:
 ### Test Naming Convention
 
 Bad names:
+
 - `test_thing_works`
 - `test_api`
 - `test_stuff`
 
 Good names:
+
 - `test_confidence_score_reduces_when_freshness_below_threshold`
 - `test_publish_blocks_when_hard_gate_fails`
 - `test_connector_retry_with_exponential_backoff`
