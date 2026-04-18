@@ -156,18 +156,10 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
       - name: Install Python dependencies
         run: |
           pip install -e .
           pip install pytest psycopg2-binary
-
-      - name: Install Node dependencies
-        run: npm install
 
       - name: Apply schema
         run: |
@@ -338,16 +330,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
+      - name: Install Python dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Apply schema fixes for linting
-        run: echo "TypeScript linting would run here"
+      - name: Run E2E tests
+        run: pytest tests/e2e/ -v --tb=short
 
   # =========================================================================
   # MERGE GATE - All critical tests must pass
