@@ -11,15 +11,18 @@
 ## Scope (ONLY)
 
 ### Data Sources
+
 - ✅ Jira connector (operational source)
 - ✅ Confluence connector (documentation source)
 
 ### Knowledge Hub
+
 - ✅ Schema + migrations
 - ✅ Seeded canonical data
 - ✅ Query API with retrieval + confidence
 
 ### Tier 1 Skill
+
 - ✅ **meeting_summary** (chosen for: structure, scoring, storage value)
   - Takes synced Confluence pages, Jira issues → meeting-style summary
   - Sections: Decisions, Action Items, Open Questions
@@ -29,6 +32,7 @@
   - Max 300 words
 
 ### Evaluation & Publishing
+
 - ✅ Locked eval with hard gates
 - ✅ Round scoring (10 outputs per 3 test inputs)
 - ✅ Results artifacts (results.log, analysis.md, learnings.md, changelog.md)
@@ -37,11 +41,13 @@
 - ✅ Failure pattern storage
 
 ### Observability
+
 - ✅ Eval history endpoint
 - ✅ Connector health checks
 - ✅ Query confidence visibility
 
 ### NOT in scope yet
+
 - ❌ Agent system prompt (different logic flow)
 - ❌ Support agent (requires message threading)
 - ❌ All 11 connectors (only Jira + Confluence)
@@ -156,6 +162,7 @@
 ### Deliverables
 
 #### Jira Connector
+
 - `services/knowledge-hub/src/connectors/jira_connector.ts`
   - Auth (API token)
   - Full sync (query all issues since start_date)
@@ -166,6 +173,7 @@
   - Retry/backoff
 
 #### Confluence Connector
+
 - `services/knowledge-hub/src/connectors/confluence_connector.ts`
   - Auth (API token)
   - Full sync (query all pages since start_date)
@@ -176,6 +184,7 @@
   - Retry/backoff
 
 #### Canonical Schema
+
 ```sql
 CREATE TABLE normalized_sources (
   id UUID PRIMARY KEY,
@@ -197,6 +206,7 @@ CREATE TABLE normalized_sources (
 ### Tests to Write First
 
 #### Jira Tests
+
 ```python
 # tests/unit/connectors/test_jira_connector.py
 - test_auth_config_parsed_correctly()
@@ -218,6 +228,7 @@ CREATE TABLE normalized_sources (
 ```
 
 #### Confluence Tests
+
 ```python
 # tests/unit/connectors/test_confluence_connector.py
 - test_auth_config_parsed_correctly()
@@ -241,6 +252,7 @@ CREATE TABLE normalized_sources (
 ### Strict Acceptance Criteria
 
 **For each connector:**
+
 - ✅ Auth config parsed correctly and validates
 - ✅ Real fixture payload normalizes into canonical schema
 - ✅ source_system, source_object_id, last_synced_at, freshness_score populated
@@ -518,9 +530,11 @@ CREATE TABLE normalized_sources (
 ## The 5 Commits
 
 ### Commit 1: Eval Contract Truth
+
 **Purpose:** Lock the truth so contracts, schema, docs, code never drift.
 
 **Include:**
+
 - `tests/unit/contracts/test_tier1_alignment.py` ← FAILING
 - `docs/contracts/tier1_skill_contracts.md` (canonical definitions)
 - Fixes to `services/knowledge-hub/db/schemas.ts` (seed data)
@@ -530,9 +544,11 @@ CREATE TABLE normalized_sources (
 **Exit criteria:** All tests GREEN
 
 ### Commit 2: Jira Connector
+
 **Purpose:** Get real operational data into canonical schema.
 
 **Include:**
+
 - `services/knowledge-hub/src/connectors/jira_connector.ts` (full impl)
 - `tests/unit/connectors/test_jira_connector.py` ← FAILING, then PASSING
 - `tests/integration/connectors/test_jira_sync.py` ← FAILING, then PASSING
@@ -540,26 +556,32 @@ CREATE TABLE normalized_sources (
 - Jira unit + integration tests GREEN
 
 **Exit criteria:**
+
 - You can inspect DB and see Jira issues in canonical format
 - Both test files GREEN.
 
 ### Commit 3: Confluence Connector
+
 **Purpose:** Get real documentation data into canonical schema.
 
 **Include:**
+
 - `services/knowledge-hub/src/connectors/confluence_connector.ts` (full impl)
 - `tests/unit/connectors/test_confluence_connector.py` ← FAILING, then PASSING
 - `tests/integration/connectors/test_confluence_sync.py` ← FAILING, then PASSING
 - Confluence unit + integration tests GREEN
 
 **Exit criteria:**
+
 - You can inspect DB and see Confluence pages in canonical format
 - Both test files GREEN.
 
 ### Commit 4: Query API + Confidence
+
 **Purpose:** Prove knowledge hub works with real synced data.
 
 **Include:**
+
 - `services/knowledge-hub/src/retrieval/retrieve_context.ts` (full impl)
 - `services/knowledge-hub/src/confidence/score_confidence.ts` (full impl)
 - `services/knowledge-hub/src/api/query.ts` (endpoint)
@@ -570,12 +592,15 @@ CREATE TABLE normalized_sources (
 - Phase 1 E2E GREEN
 
 **Exit criteria:**
+
 - Demo: sync Jira/Confluence → ask question → get answered with citations
 
 ### Commit 5: Meeting Summary Complete Loop
+
 **Purpose:** One Tier 1 skill fully working: generate → eval → score → publish → learn.
 
 **Include:**
+
 - `services/generators/src/prompts/meeting_summary.md` (locked)
 - `services/generators/src/generate/generate_meeting_summary.ts`
 - `services/generators/src/evals/run_skill_round.ts`
@@ -597,6 +622,7 @@ CREATE TABLE normalized_sources (
 - Phase 2 E2E GREEN
 
 **Exit criteria:**
+
 - Demo: sync → query → generate → score → publish → inspect gold examples
 - DreamFi stops being "great architecture" and becomes "real product"
 
@@ -616,6 +642,7 @@ At the end, you should be able to demo:
 8. ✅ Inspect eval history, connector health, active prompt
 
 If you can do that:
+
 - DreamFi proves the model works end-to-end
 - The rest becomes repetition (more connectors, more skills, more UX)
 - You have a foundation to scale from
@@ -625,6 +652,7 @@ If you can do that:
 ## What NOT to Do
 
 Do NOT expand into:
+
 - ❌ All 11 connectors (do 2, the rest scale)
 - ❌ Tier 2/3 skills (do 1, the rest copy the pattern)
 - ❌ Phase 3 planning sync (prove Phase 1-2 first)
@@ -638,4 +666,3 @@ Do NOT expand into:
 This vertical slice is achievable in ~2 weeks if focused.
 
 Next: implement in order (Commit 1 → 2 → 3 → 4 → 5) and do not branch.
-
