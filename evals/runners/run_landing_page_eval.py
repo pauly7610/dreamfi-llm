@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Locked eval runner for landing_page_copy skill. IMMUTABLE."""
+"""Locked eval runner for landing_page_copy skill. IMMUTABLE: This file must NEVER modify."""
 
 from typing import List, Dict, Any
 

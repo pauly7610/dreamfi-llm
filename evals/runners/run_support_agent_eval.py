@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Locked eval runner for support_agent skill.
-RULE: This file is IMMUTABLE after creation. Scoring logic never changes.
+IMMUTABLE: This file must NEVER modify after creation.
 """
 
 from typing import List, Dict, Any

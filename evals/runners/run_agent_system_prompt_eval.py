@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Locked eval runner for agent_system_prompt skill.
-RULE: This file is IMMUTABLE after creation. Scoring logic never changes.
+IMMUTABLE: This file must NEVER modify after creation.
+RULE: Scoring logic is immutable and defines success criteria.
 RULE: Score improvements are the ONLY signal for keeping prompt changes.
 """
 
