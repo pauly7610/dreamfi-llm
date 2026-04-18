@@ -233,15 +233,15 @@ ALTER TABLE skill_failure_patterns
 
 INSERT INTO skill_registry (skill_id, skill_name, skill_family, evaluation_file_path, primary_output_type, word_limit_rule, status, owner)
 VALUES
-    ('a1000000-0000-0000-0000-000000000001', 'agent_system_prompt',   'agent',      'evals/agent_system_prompt.yaml',   'system_prompt',       '{"min": 200, "max": 800}',  'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000002', 'support_agent',         'agent',      'evals/support_agent.yaml',         'agent_response',      '{"min": 50, "max": 500}',   'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000003', 'meeting_summary',       'summarization', 'evals/meeting_summary.yaml',    'summary',             '{"min": 100, "max": 400}',  'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000004', 'cold_email',            'outreach',   'evals/cold_email.yaml',            'email',               '{"min": 50, "max": 250}',   'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000005', 'landing_page_copy',     'copywriting','evals/landing_page_copy.yaml',     'landing_page',        '{"min": 100, "max": 600}',  'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000006', 'newsletter_headline',   'copywriting','evals/newsletter_headline.yaml',   'headline',            '{"min": 5, "max": 20}',     'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000007', 'product_description',   'copywriting','evals/product_description.yaml',   'product_description', '{"min": 50, "max": 300}',   'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000008', 'resume_bullet',         'professional','evals/resume_bullet.yaml',        'bullet_point',        '{"min": 10, "max": 50}',    'active', 'platform-team'),
-    ('a1000000-0000-0000-0000-000000000009', 'short_form_script',     'video',      'evals/short_form_script.yaml',     'video_script',        '{"min": 50, "max": 200}',   'active', 'platform-team');
+    ('a1000000-0000-0000-0000-000000000001', 'agent_system_prompt',   'agent',      'evals/agent-system-prompt.md',   'system_prompt',       '{"min": 200, "max": 800}',  'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000002', 'support_agent',         'agent',      'evals/support-agent.md',         'agent_response',      '{"min": 50, "max": 500}',   'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000003', 'meeting_summary',       'summarization', 'evals/meeting-summary.md',    'summary',             '{"min": 100, "max": 400}',  'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000004', 'cold_email',            'outreach',   'evals/cold-email.md',            'email',               '{"min": 50, "max": 250}',   'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000005', 'landing_page_copy',     'copywriting','evals/landing-page-copy.md',     'landing_page',        '{"min": 100, "max": 600}',  'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000006', 'newsletter_headline',   'copywriting','evals/newsletter-headline.md',   'headline',            '{"min": 5, "max": 20}',     'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000007', 'product_description',   'copywriting','evals/product-description.md',   'product_description', '{"min": 50, "max": 300}',   'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000008', 'resume_bullet',         'professional','evals/resume-bullet.md',        'bullet_point',        '{"min": 10, "max": 50}',    'active', 'platform-team'),
+    ('a1000000-0000-0000-0000-000000000009', 'short_form_script',     'video',      'evals/short-form-script.md',     'video_script',        '{"min": 50, "max": 200}',   'active', 'platform-team');
 
 
 -- ============================================================

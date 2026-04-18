@@ -88,18 +88,18 @@ npm run dev  # Starts all 5 services concurrently
 
 ## Key Files and Directories
 
-| Path | Purpose |
-|------|---------|
-| `services/knowledge-hub/db/schema.sql` | Canonical data schema with 11 tables |
-| `docs/architecture/connector-specs.md` | Connector implementation guide |
-| `docs/architecture/skill-registry.md` | All 9 skills with hard gates |
-| `docs/architecture/system-overview.md` | High-level architecture overview |
-| `evals/runners/` | Locked evaluation scorers (immutable) |
-| `evals/` | Evaluation templates for all 9 skills |
-| `docs/adr/` | Architecture decision records (001-008) |
-| `services/*/README.md` | Service-specific architecture (5 phases) |
-| `GETTING_STARTED.md` | Developer onboarding guide |
-| `STATUS.md` | Detailed completion status by phase |
+| Path                                   | Purpose                                  |
+| -------------------------------------- | ---------------------------------------- |
+| `services/knowledge-hub/db/schema.sql` | Canonical data schema with 11 tables     |
+| `docs/architecture/connector-specs.md` | Connector implementation guide           |
+| `docs/architecture/skill-registry.md`  | All 9 skills with hard gates             |
+| `docs/architecture/system-overview.md` | High-level architecture overview         |
+| `evals/runners/`                       | Locked evaluation scorers (immutable)    |
+| `evals/`                               | Evaluation templates for all 9 skills    |
+| `docs/adr/`                            | Architecture decision records (001-008)  |
+| `services/*/README.md`                 | Service-specific architecture (5 phases) |
+| `GETTING_STARTED.md`                   | Developer onboarding guide               |
+| `STATUS.md`                            | Detailed completion status by phase      |
 
 ## How Evaluation Works
 
@@ -149,13 +149,13 @@ All 9 skills use hard-gate criteria that must pass for an output to be publishab
 
 ## Implementation Priorities
 
-| Phase | Status | Priority | Description |
-|-------|--------|----------|-------------|
-| Phase 1 | Scaffolded | Highest | Connector implementations (foundation) |
-| Phase 2 | Scaffolded | High | Generator service with locked evals |
-| Phase 3 | Scaffolded | Medium | Planning data normalization and reporting |
-| Phase 4 | Scaffolded | Medium | Metrics aggregation and audience narratives |
-| Phase 5 | Scaffolded | Lower | UI artifact copy generation |
+| Phase   | Status     | Priority | Description                                 |
+| ------- | ---------- | -------- | ------------------------------------------- |
+| Phase 1 | Scaffolded | Highest  | Connector implementations (foundation)      |
+| Phase 2 | Scaffolded | High     | Generator service with locked evals         |
+| Phase 3 | Scaffolded | Medium   | Planning data normalization and reporting   |
+| Phase 4 | Scaffolded | Medium   | Metrics aggregation and audience narratives |
+| Phase 5 | Scaffolded | Lower    | UI artifact copy generation                 |
 
 ## Project Statistics
 
