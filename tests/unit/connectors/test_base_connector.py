@@ -22,6 +22,11 @@ class NormalizedEntity:
     freshness_score: float
     name: str
     description: str = ""
+    owner: str = None
+    status: str = "active"
+    source_url: str = None
+    last_synced_at: str = None
+    eligible_skill_families_json: List[str] = None
 
 
 class MockConnector:
@@ -30,7 +35,8 @@ class MockConnector:
     This shows the expected behavior that all connectors should implement.
     """
     
-    def __init__(self):
+    def __init__(self, config: Dict[str, Any] = None):
+        self.config = config or {}
         self.connected = False
     
     async def connect(self):
@@ -51,6 +57,7 @@ class MockConnector:
     
     def normalize(self, raw_payload):
         return NormalizedEntity(
+            entity_id=raw_payload['id'],
             source_system='test_connector',
             source_object_id=raw_payload['id'],
             entity_type='test_object',
@@ -63,6 +70,18 @@ class MockConnector:
             freshness_score=1.0,
             eligible_skill_families_json=['test'],
         )
+    
+    async def sync(self, watermark: str):
+        """Sync and return normalized entities."""
+        await self.connect()
+        entities = []
+        async for raw in self.fetchRaw(watermark):
+            entities.append(self.normalize(raw))
+        await self.disconnect()
+        return {
+            'entities': entities,
+            'result': {'entitiesSynced': len(entities)}
+        }
 
 
 class TestBaseConnector:
