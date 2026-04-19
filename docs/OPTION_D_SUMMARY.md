@@ -1,6 +1,7 @@
 # Option D: Production Hardening - Implementation Summary
 
 ## Overview
+
 Completed comprehensive production hardening layer enabling safe, monitored deployments with guaranteed reversibility, timeout management, and system health monitoring.
 
 **Status:** ✅ COMPLETE | **Tests:** 33/33 passing | **Commit:** 05fbee8
@@ -10,15 +11,18 @@ Completed comprehensive production hardening layer enabling safe, monitored depl
 ## Implemented Components
 
 ### 1. Migration Rollback System (`MigrationRollback`)
+
 **Purpose:** Enable safe database schema rollbacks with transaction guarantees
 
 **Features:**
+
 - Reversible migrations (1:1 mapping of migration → rollback SQL)
 - Rollback to specific migration point
 - Migration history tracking
 - Executor pattern for DB transactions
 
 **Key Methods:**
+
 ```python
 rollback_migration(migration_name)           # Rollback single migration
 rollback_to_migration(target_migration)      # Rollback to target (inclusive)
@@ -26,6 +30,7 @@ get_migration_status()                       # Current migration state
 ```
 
 **Usage Example:**
+
 ```python
 rollback = MigrationRollback()
 rollback.applied_migrations = ["001_initial.sql", "002_add_users.sql"]
@@ -34,20 +39,24 @@ result = rollback.rollback_to_migration("001_initial.sql")  # Rolls back to init
 ```
 
 **Rollback Files Created:**
+
 - `services/knowledge_hub/db/migrations/001_initial.rollback.sql` - Drops all tables and types
 
 ---
 
 ### 2. LLM Call Handler (`LLMCallHandler`)
+
 **Purpose:** Reliable LLM API calls with timeout enforcement and exponential backoff
 
 **Features:**
+
 - Configurable timeout per call (default 30s)
 - Exponential backoff retry logic (default 3 retries)
 - Call history and statistics tracking
 - Thread-based timeout implementation
 
 **Configuration:**
+
 ```python
 handler = LLMCallHandler(
     timeout_seconds=30,        # Timeout per API call
@@ -57,6 +66,7 @@ handler = LLMCallHandler(
 ```
 
 **Key Methods:**
+
 ```python
 execute_with_timeout(func, args, kwargs)     # Single call with timeout
 execute_with_retry(func, args, kwargs, exceptions)  # Retry with backoff
@@ -64,11 +74,13 @@ get_call_statistics()                         # Performance metrics
 ```
 
 **Backoff Strategy:**
+
 - Attempt 1: Immediate
 - Attempt 2: timeout × 1.5 = 45s (default)
 - Attempt 3: timeout × 2.25 = 67.5s (default)
 
 **Reliability Metrics:**
+
 - Success rate tracking
 - Average response time
 - Timeout count monitoring
@@ -76,15 +88,18 @@ get_call_statistics()                         # Performance metrics
 ---
 
 ### 3. Eval Runner Integration (`EvalRunnerIntegration`)
+
 **Purpose:** Hook evaluation system with caching and callback support
 
 **Features:**
+
 - Result caching (prevent duplicate evals)
 - Callback registration for eval events
 - Eval statistics collection
 - Error handling with graceful fallback
 
 **Key Methods:**
+
 ```python
 register_eval_callback(callback)       # Register eval completion handler
 execute_eval_runner(func, output, skill_id, config)  # Execute with cache
@@ -92,11 +107,13 @@ get_eval_statistics()                  # Pass rate and score tracking
 ```
 
 **Caching Strategy:**
+
 - Key: `{skill_id}:{hash(variant_output)}`
 - Prevents re-evaluation of identical outputs
 - Transparent fallback on cache miss
 
 **Evaluation Result Structure:**
+
 ```python
 {
     "skill_id": str,
@@ -110,21 +127,25 @@ get_eval_statistics()                  # Pass rate and score tracking
 ---
 
 ### 4. Production Health Check (`ProductionHealthCheck`)
+
 **Purpose:** System-wide health monitoring and diagnostics
 
 **Features:**
+
 - Pluggable health check registration
 - Batch health assessment
 - Per-component error reporting
 - Timestamp tracking of last check
 
 **Key Methods:**
+
 ```python
 register_health_check(name, check_func)  # Register custom health check
 run_all_checks()                         # Execute all checks
 ```
 
 **Return Structure:**
+
 ```python
 {
     "healthy": bool,
@@ -139,6 +160,7 @@ run_all_checks()                         # Execute all checks
 ```
 
 **Usage Example:**
+
 ```python
 health = ProductionHealthCheck()
 health.register_health_check("database", lambda: db.ping())
@@ -156,6 +178,7 @@ result = health.run_all_checks()
 ### Test Distribution:
 
 **Migration Rollback (8 tests):**
+
 - ✅ Initialization
 - ✅ Track applied migrations
 - ✅ Rollback without executor (SQL generation)
@@ -166,6 +189,7 @@ result = health.run_all_checks()
 - ✅ Get migration status
 
 **LLM Call Handler (9 tests):**
+
 - ✅ Initialization with defaults
 - ✅ Custom initialization
 - ✅ Execute with timeout (success)
@@ -177,6 +201,7 @@ result = health.run_all_checks()
 - ✅ Exponential backoff timing
 
 **Eval Runner Integration (9 tests):**
+
 - ✅ Initialization
 - ✅ Register callbacks
 - ✅ Register multiple callbacks
@@ -187,6 +212,7 @@ result = health.run_all_checks()
 - ✅ Eval statistics collection
 
 **Production Health Check (5 tests):**
+
 - ✅ Initialization
 - ✅ Register health checks
 - ✅ All healthy checks
@@ -195,6 +221,7 @@ result = health.run_all_checks()
 - ✅ Health check timestamps
 
 **Integration Tests (2 tests):**
+
 - ✅ Migration with LLM call handling
 - ✅ Eval integration with health check
 
@@ -205,6 +232,7 @@ result = health.run_all_checks()
 ## Files Created/Modified
 
 **New Files:**
+
 1. `services/knowledge_hub/src/production.py` (440 LOC)
    - All 4 production hardening classes
    - Comprehensive docstrings
@@ -251,26 +279,31 @@ result = health.run_all_checks()
 ## Production Readiness Checklist
 
 ✅ **Migration Reversibility**
+
 - Rollback SQL for all migrations
 - Tested rollback paths
 - Transaction guarantees
 
 ✅ **API Reliability**
+
 - Timeout enforcement (prevents hanging)
 - Exponential backoff (reduces server strain)
 - Retry statistics (monitoring)
 
 ✅ **System Monitoring**
+
 - Health check framework
 - Per-component diagnostics
 - Timestamp tracking
 
 ✅ **Error Handling**
+
 - Graceful degradation
 - Exception tracking
 - Silent callback failures
 
 ✅ **Testing**
+
 - 33/33 tests passing
 - Edge case coverage (zero retries, timeout, failures)
 - Integration test scenarios
@@ -280,21 +313,25 @@ result = health.run_all_checks()
 ## Performance Characteristics
 
 **Migration Rollback:**
+
 - O(1) per migration in history
 - Scales to any number of applied migrations
 - No memory overhead (tracked in list)
 
 **LLM Call Handler:**
+
 - Default 30s timeout no performance impact (threading)
 - Backoff strategy: 3 retries = max 98 seconds total (30 + 45 + 22.5 backoff time)
 - History: O(n) space for n calls (configurable cleanup)
 
 **Eval Runner Integration:**
+
 - Cache lookup: O(1) hash table
 - No re-evaluation of identical outputs
 - Callback overhead: O(k) where k = callbacks registered
 
 **Health Check:**
+
 - O(n) where n = registered checks
 - Non-blocking (all checks run in parallel thread)
 - Typical runtime: <100ms for 5-10 checks
