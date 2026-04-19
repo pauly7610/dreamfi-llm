@@ -9,7 +9,7 @@ import os
 import psycopg2
 from psycopg2 import sql
 
-# Optional migrations import (knowledge-hub directory name has dash, not importable)
+# Import migrations runner
 try:
     from services.knowledge_hub.db.migrations import run_migrations
 except (ImportError, ModuleNotFoundError):
