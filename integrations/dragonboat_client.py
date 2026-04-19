@@ -78,6 +78,12 @@ class DragonboatClient:
         data = await self._request("GET", "/roadmap", params=filters or {})
         return data if isinstance(data, list) else data.get("data", data.get("items", []))
 
+    async def async_update_initiative(self, initiative_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Update an initiative."""
+        result = await self._request("PUT", f"/initiatives/{initiative_id}", json=updates)
+        log.info("Updated initiative %s", initiative_id)
+        return result
+
     async def async_update_feature_status(self, feature_id: str, status: str, rag: str) -> dict[str, Any]:
         """Update a feature's status and RAG colour."""
         payload = {"status": status, "rag": rag}
@@ -111,6 +117,10 @@ class DragonboatClient:
     def get_roadmap_items(self, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Sync wrapper for :meth:`async_get_roadmap_items`."""
         return self._sync(self.async_get_roadmap_items(filters))
+
+    def update_initiative(self, initiative_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Sync wrapper for :meth:`async_update_initiative`."""
+        return self._sync(self.async_update_initiative(initiative_id, updates))
 
     def update_feature_status(self, feature_id: str, status: str, rag: str) -> dict[str, Any]:
         """Sync wrapper for :meth:`async_update_feature_status`."""

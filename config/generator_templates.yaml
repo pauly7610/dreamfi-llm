@@ -1,0 +1,595 @@
+templates:
+  technical_prd:
+    id: technical_prd
+    name: Technical PRD
+    description: Product requirements document with system design, API changes, and data model details
+    required_fields:
+      - title
+      - problem_statement
+      - proposed_approach
+      - target_users
+      - success_metrics
+    required_sections:
+      - Problem Statement
+      - Proposed Approach
+      - System Components
+      - API Changes
+      - Data Model Changes
+      - Edge Cases
+      - Success Metrics
+      - Risks
+    section_order:
+      - Problem Statement
+      - Hypothesis
+      - Proposed Approach
+      - System Components
+      - API Changes
+      - Data Model Changes
+      - Edge Cases
+      - Success Metrics
+      - Dependencies
+      - Risks
+    voice_guide: |
+      Write with clarity and directness. Lead with the problem, not the solution.
+      Use active voice. Include specific system components in a table.
+      Define all technical terms. Keep sentences under 20 words.
+      Quantify all metrics and estimates.
+    system_instructions: |
+      You are writing a technical PRD for an internal product team.
+      Focus on implementation details and technical constraints.
+      Include specific API endpoints and data model changes.
+      Be precise about success metrics and how they'll be measured.
+      Address edge cases explicitly.
+    user_prompt_template: |
+      Title: {title}
+      Problem Statement: {problem_statement}
+      Proposed Approach: {proposed_approach}
+      Target Users: {target_users}
+      Success Metrics: {success_metrics}
+      Technical Constraints: {technical_constraints}
+      Data Model Changes: {data_model_changes}
+      API Changes: {api_changes}
+
+      Generate a comprehensive Technical PRD with all required sections.
+    sections:
+      Problem Statement:
+        template: "## Problem Statement"
+        prompt_hint: "What problem are we solving?"
+        required: true
+        word_count_target: 150
+      Hypothesis:
+        template: "## Hypothesis"
+        prompt_hint: "What do we believe to be true?"
+        required: true
+        word_count_target: 100
+      Proposed Approach:
+        template: "## Proposed Approach"
+        prompt_hint: "How will we solve this?"
+        required: true
+        word_count_target: 200
+      System Components:
+        template: "## System Components"
+        prompt_hint: "What systems are involved?"
+        required: true
+        word_count_target: 250
+      API Changes:
+        template: "## API Changes"
+        prompt_hint: "What API endpoints are new or modified?"
+        required: true
+        word_count_target: 200
+      Data Model Changes:
+        template: "## Data Model Changes"
+        prompt_hint: "What database schema changes are needed?"
+        required: true
+        word_count_target: 200
+      Edge Cases:
+        template: "## Edge Cases"
+        prompt_hint: "What could go wrong?"
+        required: true
+        word_count_target: 150
+      Success Metrics:
+        template: "## Success Metrics"
+        prompt_hint: "How will we measure success?"
+        required: true
+        word_count_target: 150
+      Dependencies:
+        template: "## Dependencies"
+        prompt_hint: "What must be completed first?"
+        required: false
+        word_count_target: 100
+      Risks:
+        template: "## Risks"
+        prompt_hint: "What risks should we monitor?"
+        required: true
+        word_count_target: 150
+
+  business_prd:
+    id: business_prd
+    name: Business PRD
+    description: Business-focused PRD with market context, revenue projections, and stakeholder alignment
+    required_fields:
+      - title
+      - business_context
+      - market_opportunity
+      - target_users
+      - revenue_impact_description
+      - proposed_solution
+      - success_metrics
+      - key_stakeholders
+      - timeline_estimate_weeks
+    required_sections:
+      - Hypothesis
+      - Business Context
+      - Market Opportunity
+      - Target Users
+      - Proposed Solution
+      - Success Metrics
+      - Stakeholders
+      - Timeline
+      - Risks
+    section_order:
+      - Hypothesis
+      - Business Context
+      - Market Opportunity
+      - Target Users
+      - Revenue Impact
+      - Proposed Solution
+      - Success Metrics
+      - Stakeholders
+      - Timeline
+      - Risks
+    voice_guide: |
+      Write for business leaders and stakeholders.
+      Lead with market opportunity. Use metrics and financial impact.
+      Be concise but complete. Avoid technical jargon.
+      Include clear revenue projections and ROI calculations.
+    system_instructions: |
+      You are writing a business PRD for executives and stakeholders.
+      Focus on market opportunity, revenue impact, and strategic fit.
+      Include a stakeholder RACI matrix.
+      Provide clear timeline and resource estimates.
+      Quantify all business benefits.
+    user_prompt_template: |
+      Title: {title}
+      Business Context: {business_context}
+      Market Opportunity: {market_opportunity}
+      Target Users: {target_users}
+      Revenue Impact: {revenue_impact_description}
+      Proposed Solution: {proposed_solution}
+      Success Metrics: {success_metrics}
+      Key Stakeholders: {key_stakeholders}
+      Timeline (weeks): {timeline_estimate_weeks}
+      Risk Areas: {risk_areas}
+
+      Generate a comprehensive Business PRD with all required sections.
+    sections:
+      Hypothesis:
+        template: "## Hypothesis"
+        prompt_hint: "What's our core hypothesis?"
+        required: true
+        word_count_target: 100
+      Business Context:
+        template: "## Business Context"
+        prompt_hint: "What's the market situation?"
+        required: true
+        word_count_target: 200
+      Market Opportunity:
+        template: "## Market Opportunity"
+        prompt_hint: "What's the opportunity size?"
+        required: true
+        word_count_target: 250
+      Target Users:
+        template: "## Target Users"
+        prompt_hint: "Who benefits most?"
+        required: true
+        word_count_target: 150
+      Revenue Impact:
+        template: "## Revenue Impact"
+        prompt_hint: "What's the financial upside?"
+        required: true
+        word_count_target: 200
+      Proposed Solution:
+        template: "## Proposed Solution"
+        prompt_hint: "What's our approach?"
+        required: true
+        word_count_target: 200
+      Success Metrics:
+        template: "## Success Metrics"
+        prompt_hint: "How do we measure success?"
+        required: true
+        word_count_target: 150
+      Stakeholders:
+        template: "## Stakeholders"
+        prompt_hint: "Who's involved?"
+        required: true
+        word_count_target: 100
+      Timeline:
+        template: "## Timeline"
+        prompt_hint: "What's the schedule?"
+        required: true
+        word_count_target: 100
+      Risks:
+        template: "## Risks"
+        prompt_hint: "What could prevent success?"
+        required: true
+        word_count_target: 150
+
+  risk_assessment:
+    id: risk_assessment
+    name: Risk Assessment
+    description: Risk assessment document for third-party vendor integrations and compliance review
+    required_fields:
+      - vendor_name
+      - service_type
+      - data_categories
+      - regulatory_frameworks
+      - security_requirements
+      - integration_approach
+      - data_retention_days
+      - exit_strategy_description
+    required_sections:
+      - Vendor Overview
+      - Service Type & Data Categories
+      - Regulatory Frameworks
+      - Security Controls
+      - Risk Assessment
+      - Monitoring Approach
+      - Data Retention
+      - Exit Strategy
+    section_order:
+      - Vendor Overview
+      - Service Type & Data Categories
+      - Regulatory Frameworks
+      - Security Controls
+      - Risk Assessment
+      - Monitoring Approach
+      - Data Retention
+      - Exit Strategy
+    voice_guide: |
+      Write for compliance and risk teams.
+      Be precise and detailed. Avoid ambiguity.
+      Include specific security controls and monitoring approaches.
+      Quantify data volumes and retention periods.
+    system_instructions: |
+      You are writing a risk assessment for third-party vendors.
+      Focus on data security, regulatory compliance, and exit strategies.
+      Include a risk matrix with severity and likelihood ratings.
+      List specific compliance requirements by framework.
+      Detail monitoring and audit approaches.
+    user_prompt_template: |
+      Vendor: {vendor_name}
+      Service Type: {service_type}
+      Data Categories: {data_categories}
+      Regulatory Frameworks: {regulatory_frameworks}
+      Security Requirements: {security_requirements}
+      Integration Approach: {integration_approach}
+      Data Retention (days): {data_retention_days}
+      Exit Strategy: {exit_strategy_description}
+      Monitoring Approach: {monitoring_approach}
+
+      Generate a comprehensive Risk Assessment with all required sections.
+    sections:
+      Vendor Overview:
+        template: "## Vendor Overview"
+        prompt_hint: "Vendor information and history"
+        required: true
+        word_count_target: 150
+      Service Type & Data Categories:
+        template: "## Service Type & Data Categories"
+        prompt_hint: "What service and what data?"
+        required: true
+        word_count_target: 200
+      Regulatory Frameworks:
+        template: "## Regulatory Frameworks"
+        prompt_hint: "What regulations apply?"
+        required: true
+        word_count_target: 200
+      Security Controls:
+        template: "## Security Controls"
+        prompt_hint: "What controls are in place?"
+        required: true
+        word_count_target: 250
+      Risk Assessment:
+        template: "## Risk Assessment"
+        prompt_hint: "What are the key risks?"
+        required: true
+        word_count_target: 300
+      Monitoring Approach:
+        template: "## Monitoring Approach"
+        prompt_hint: "How will we monitor?"
+        required: true
+        word_count_target: 150
+      Data Retention:
+        template: "## Data Retention"
+        prompt_hint: "How long is data kept?"
+        required: true
+        word_count_target: 100
+      Exit Strategy:
+        template: "## Exit Strategy"
+        prompt_hint: "How do we exit?"
+        required: true
+        word_count_target: 150
+
+  sponsor_bank:
+    id: sponsor_bank
+    name: Sponsor Bank Requirements
+    description: Requirements document for sponsor bank integration, settlement, and compliance controls
+    required_fields:
+      - bank_name
+      - bank_routing_number
+      - integration_scope
+      - regulatory_requirements
+      - transaction_types
+      - settlement_window_hours
+      - daily_volume_limit_cents
+      - sla_uptime_percentage
+      - incident_response_sla_minutes
+      - compliance_contacts
+    required_sections:
+      - Bank Overview
+      - Integration Scope
+      - Regulatory Requirements
+      - Transaction Types
+      - Settlement Approach
+      - Compliance Controls
+      - SLA Requirements
+      - Reporting Requirements
+      - Incident Response
+    section_order:
+      - Bank Overview
+      - Integration Scope
+      - Regulatory Requirements
+      - Transaction Types
+      - Settlement Approach
+      - Compliance Controls
+      - SLA Requirements
+      - Reporting Requirements
+      - Incident Response
+    voice_guide: |
+      Write for bank ops and compliance teams.
+      Be precise about settlement timings and regulations.
+      Include specific SLA metrics and escalation procedures.
+      Reference regulatory requirements explicitly.
+    system_instructions: |
+      You are writing requirements for sponsor bank integration.
+      Focus on settlement, compliance, and operational procedures.
+      Include SLA metrics and incident response procedures.
+      Detail all regulatory requirements.
+      Specify transaction types and volume limits.
+    user_prompt_template: |
+      Bank: {bank_name}
+      Routing Number: {bank_routing_number}
+      Integration Scope: {integration_scope}
+      Regulatory Requirements: {regulatory_requirements}
+      Transaction Types: {transaction_types}
+      Settlement Window (hours): {settlement_window_hours}
+      Daily Volume Limit (cents): {daily_volume_limit_cents}
+      SLA Uptime %: {sla_uptime_percentage}
+      Incident Response SLA (minutes): {incident_response_sla_minutes}
+      Compliance Contacts: {compliance_contacts}
+
+      Generate comprehensive Sponsor Bank Requirements with all sections.
+    sections:
+      Bank Overview:
+        template: "## Bank Overview"
+        prompt_hint: "Bank information and capabilities"
+        required: true
+        word_count_target: 150
+      Integration Scope:
+        template: "## Integration Scope"
+        prompt_hint: "What's being integrated?"
+        required: true
+        word_count_target: 200
+      Regulatory Requirements:
+        template: "## Regulatory Requirements"
+        prompt_hint: "What regulations apply?"
+        required: true
+        word_count_target: 250
+      Transaction Types:
+        template: "## Transaction Types"
+        prompt_hint: "What transactions are supported?"
+        required: true
+        word_count_target: 200
+      Settlement Approach:
+        template: "## Settlement Approach"
+        prompt_hint: "How is settlement handled?"
+        required: true
+        word_count_target: 200
+      Compliance Controls:
+        template: "## Compliance Controls"
+        prompt_hint: "What controls are required?"
+        required: true
+        word_count_target: 200
+      SLA Requirements:
+        template: "## SLA Requirements"
+        prompt_hint: "What are the SLAs?"
+        required: true
+        word_count_target: 150
+      Reporting Requirements:
+        template: "## Reporting Requirements"
+        prompt_hint: "What reporting is needed?"
+        required: true
+        word_count_target: 150
+      Incident Response:
+        template: "## Incident Response"
+        prompt_hint: "How do we respond to incidents?"
+        required: true
+        word_count_target: 150
+
+  discovery:
+    id: discovery
+    name: Discovery Document
+    description: Research-driven discovery document with hypotheses, evidence gathering, and recommendations
+    required_fields:
+      - problem_area
+      - research_questions
+      - user_segments
+      - data_sources
+      - hypotheses
+      - evidence_summary
+      - opportunity_size_description
+      - recommendation
+    required_sections:
+      - Problem Area
+      - Research Questions
+      - User Segments
+      - Hypotheses
+      - Evidence Summary
+      - Opportunity Size
+      - Recommendation
+    section_order:
+      - Problem Area
+      - Research Questions
+      - User Segments
+      - Hypotheses
+      - Evidence Summary
+      - Opportunity Size
+      - Recommendation
+      - Next Steps
+    voice_guide: |
+      Write for product and strategy teams.
+      Lead with evidence, not assumptions.
+      Use data to support recommendations.
+      Be clear about what we don't know yet.
+    system_instructions: |
+      You are writing a discovery document based on research.
+      Focus on evidence, hypotheses, and data-driven insights.
+      Include specific evidence sources and methodologies.
+      Provide clear, actionable recommendations.
+      Acknowledge assumptions and gaps.
+    user_prompt_template: |
+      Problem Area: {problem_area}
+      Research Questions: {research_questions}
+      User Segments: {user_segments}
+      Data Sources: {data_sources}
+      Hypotheses: {hypotheses}
+      Evidence Summary: {evidence_summary}
+      Opportunity Size: {opportunity_size_description}
+      Recommendation: {recommendation}
+      Next Steps: {next_steps}
+
+      Generate a comprehensive Discovery Document with all sections.
+    sections:
+      Problem Area:
+        template: "## Problem Area"
+        prompt_hint: "What are we investigating?"
+        required: true
+        word_count_target: 150
+      Research Questions:
+        template: "## Research Questions"
+        prompt_hint: "What questions are we answering?"
+        required: true
+        word_count_target: 150
+      User Segments:
+        template: "## User Segments"
+        prompt_hint: "Who did we research?"
+        required: true
+        word_count_target: 150
+      Hypotheses:
+        template: "## Hypotheses"
+        prompt_hint: "What did we hypothesize?"
+        required: true
+        word_count_target: 150
+      Evidence Summary:
+        template: "## Evidence Summary"
+        prompt_hint: "What did we find?"
+        required: true
+        word_count_target: 300
+      Opportunity Size:
+        template: "## Opportunity Size"
+        prompt_hint: "How big is the opportunity?"
+        required: true
+        word_count_target: 150
+      Recommendation:
+        template: "## Recommendation"
+        prompt_hint: "What should we do?"
+        required: true
+        word_count_target: 200
+      Next Steps:
+        template: "## Next Steps"
+        prompt_hint: "What's next?"
+        required: false
+        word_count_target: 100
+
+  epic_builder:
+    id: epic_builder
+    name: Epic Builder
+    description: Generates epic summaries, user stories with acceptance criteria, and dependency maps for Jira
+    required_fields:
+      - epic_key
+      - epic_summary
+      - epic_description
+      - acceptance_criteria
+      - story_count_estimate
+      - story_point_estimate
+      - priority
+      - team
+    required_sections:
+      - Epic Summary
+      - Epic Description
+      - Success Criteria
+      - User Stories
+      - Dependencies
+      - Risks
+    section_order:
+      - Epic Summary
+      - Epic Description
+      - Success Criteria
+      - User Stories
+      - Dependencies
+      - Risks
+    voice_guide: |
+      Write for development teams and project managers.
+      Be specific about acceptance criteria.
+      Use user story format consistently.
+      Make dependencies explicit.
+    system_instructions: |
+      You are building an epic with user stories for Jira.
+      Generate well-formed user stories with acceptance criteria.
+      Include dependency mapping and risk assessment.
+      Provide clear success metrics.
+      Use consistent formatting for Jira import.
+    user_prompt_template: |
+      Epic Key: {epic_key}
+      Epic Summary: {epic_summary}
+      Epic Description: {epic_description}
+      Acceptance Criteria: {acceptance_criteria}
+      Estimated Stories: {story_count_estimate}
+      Estimated Story Points: {story_point_estimate}
+      Priority: {priority}
+      Team: {team}
+      Dependencies: {dependencies}
+      Success Metrics: {success_metrics}
+
+      Generate a comprehensive Epic with user stories formatted for Jira.
+    sections:
+      Epic Summary:
+        template: "## Epic Summary"
+        prompt_hint: "High-level epic overview"
+        required: true
+        word_count_target: 100
+      Epic Description:
+        template: "## Epic Description"
+        prompt_hint: "Detailed epic description"
+        required: true
+        word_count_target: 250
+      Success Criteria:
+        template: "## Success Criteria"
+        prompt_hint: "How do we know we're done?"
+        required: true
+        word_count_target: 150
+      User Stories:
+        template: "## User Stories"
+        prompt_hint: "Individual stories with acceptance criteria"
+        required: true
+        word_count_target: 400
+      Dependencies:
+        template: "## Dependencies"
+        prompt_hint: "What blocks this epic?"
+        required: true
+        word_count_target: 150
+      Risks:
+        template: "## Risks"
+        prompt_hint: "What could go wrong?"
+        required: true
+        word_count_target: 150
