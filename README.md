@@ -35,11 +35,12 @@ Gold Examples + Prompt Promotion
 
 ## Technology Stack
 
-- **Backend:** Node.js 18+, TypeScript 5.x
+- **Backend:** Python 3.9+ (all production code)
 - **Database:** PostgreSQL 15+ (pgvector for embeddings)
-- **Evaluations:** Python 3.9+, immutable binary scorers
-- **LLM:** Anthropic Claude API
+- **LLM:** Anthropic Claude 3.5 Sonnet API
+- **Testing:** pytest with savepoint-based fixtures (prevent test pollution)
 - **Principles:** Autoresearch toolkit (locked evals, score-driven promotion, regression rollback)
+- **Migrations:** SQL-based migration system (001_initial.sql, auto-run in conftest)
 
 ## Project Status
 

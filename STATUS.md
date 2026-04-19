@@ -26,27 +26,26 @@ The DreamFi platform architecture and supporting infrastructure has been fully s
 
 #### Connectors
 
-- [x] `services/knowledge-hub/src/connectors/base_connector.ts` — Abstract interface and retry logic
-- [x] All 12 connector stubs created:
-  - `jira_connector.ts`
-  - `dragonboat_connector.ts`
-  - `lucidchart_connector.ts`
-  - `confluence_connector.ts`
-  - `metabase_connector.ts`
-  - `posthog_connector.ts`
-  - `ga_connector.ts`
-  - `klaviyo_connector.ts`
-  - `netxd_connector.ts`
-  - `sardine_connector.ts`
-  - `socure_connector.ts`
+- [x] Python connectors (production-ready, real API integration):
+  - `jira_connector.py` — Async, Jira API v3, 7-day freshness, watermarking
+  - `confluence_connector.py` — Async, REST API v1, CQL queries, 14-day freshness, HTML→plaintext
 
 #### API Layer
 
-- [x] Service directory structure created:
-  - `src/api/`
-  - `src/retrieval/`
-  - `src/confidence/`
-  - `src/evals/`
+- [x] Complete knowledge hub modules:
+  - `src/retrieval/retrieve_context.py` — Query engine, ranked by freshness + relevance
+  - `src/confidence/score_confidence.py` — ADR-005: eval × freshness × citations × hard_gate
+  - `src/api/query_api.py` — Flask endpoint: POST /api/query with debug support
+  - `src/generate_loop.py` — ACTUAL Claude 3.5 Sonnet LLM calls, eval execution
+  - `src/promote.py` — Promotion gate (ADR-006), publish guard, 2% improvement threshold
+  - `src/gold_examples.py` — Registry for capturing perfect outputs, few-shot injection
+
+#### Migrations System
+
+- [x] Database migrations (split from monolithic schema):
+  - `db/migrations/001_initial.sql` — Complete schema (copied from schema.sql)
+  - `db/migrations.py` — Runner that executes migrations, auto-run in conftest
+  - Updated `conftest.py` — Auto-run migrations on session start, savepoint-based fixtures
 
 #### Documentation
 
