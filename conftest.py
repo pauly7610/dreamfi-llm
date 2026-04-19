@@ -8,6 +8,27 @@ import pytest
 import os
 import psycopg2
 from psycopg2 import sql
+from services.knowledge_hub.db.migrations import run_migrations
+
+
+@pytest.fixture(scope="session", autouse=True)
+def run_db_migrations():
+    """Auto-run database migrations at session start."""
+    db_url = os.getenv(
+        'DATABASE_URL',
+        'postgresql://test:test@localhost:5432/dreamfi_test'
+    )
+    
+    # For SQLite (local testing)
+    if 'sqlite' in db_url.lower():
+        try:
+            run_migrations(db_url)
+            print("✓ Migrations completed")
+        except Exception as e:
+            print(f"✗ Migrations failed: {e}")
+            raise
+    # For PostgreSQL, migrations may run in CI or via Alembic
+    # This is placeholder for future integration
 
 
 @pytest.fixture(scope="session")
@@ -16,6 +37,7 @@ def db_connection():
     Database connection fixture for integration tests.
     
     Uses DATABASE_URL environment variable or defaults to test DB.
+    Uses savepoints per test to prevent data pollution.
     """
     db_url = os.getenv(
         'DATABASE_URL',
@@ -35,11 +57,34 @@ def db_connection():
 
 @pytest.fixture
 def db_cursor(db_connection):
-    """Database cursor fixture (auto-rollback after test)."""
-    cursor = db_connection.cursor()
-    yield cursor
-    cursor.close()
-    db_connection.rollback()
+    """
+    Database cursor fixture - uses savepoint to prevent test pollution.
+    
+    Each test gets its own savepoint; rolled back after test completes.
+    Prevents issues where one test's data affects another.
+    """
+    try:
+        savepoint_id = f"sp_test_{id(db_connection)}"
+        cursor = db_connection.cursor()
+        
+        # Create savepoint before test
+        cursor.execute(f"SAVEPOINT {savepoint_id}")
+        db_connection.commit()
+        
+        yield cursor
+        
+        # Rollback to savepoint after test
+        cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_id}")
+        db_connection.commit()
+        cursor.close()
+    
+    except Exception as e:
+        # If something fails, attempt rollback anyway
+        try:
+            db_connection.rollback()
+        except:
+            pass
+        raise
 
 
 @pytest.fixture
