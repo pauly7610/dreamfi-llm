@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -84,7 +84,7 @@ def run_round(
     if not test_inputs:
         raise RuntimeError(f"No test inputs for skill {skill_id}")
 
-    started = datetime.now(UTC)
+    started = datetime.now(timezone.utc)
     round_row = EvalRound(
         skill_id=skill_id,
         prompt_version_id=prompt_version_id,
@@ -115,6 +115,7 @@ def run_round(
                     skill=skill_id,
                     input_context={"text": ti.text},
                     test_input_label=ti.label,
+                    prompt_version_id=prompt_version_id,
                     round_id=round_row.round_id,
                     attempt=attempt,
                 )
@@ -155,7 +156,7 @@ def run_round(
         round_row.previous_score = Decimal(f"{previous_score:.4f}")
         round_row.improvement = Decimal(f"{score - previous_score:.4f}")
 
-    round_row.completed_at = datetime.now(UTC)
+    round_row.completed_at = datetime.now(timezone.utc)
     session.flush()
 
     # Append to changelog

@@ -5,8 +5,8 @@ Revises: 20260419_0001
 Create Date: 2026-04-20
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 
@@ -16,45 +16,91 @@ branch_labels = None
 depends_on = None
 
 
+def _dialect_name() -> str:
+    return op.get_bind().dialect.name
+
+
+def _json_type():
+    if _dialect_name() == "postgresql":
+        return postgresql.JSONB(astext_type=sa.Text())
+    return sa.JSON()
+
+
+def _id_type():
+    if _dialect_name() == "postgresql":
+        return postgresql.UUID(as_uuid=False)
+    return sa.String()
+
+
+def _empty_json_default() -> sa.TextClause:
+    if _dialect_name() == "postgresql":
+        return sa.text("'{}'::jsonb")
+    return sa.text("'{}'")
+
+
+def _timestamp_default() -> sa.TextClause:
+    if _dialect_name() == "postgresql":
+        return sa.text("now()")
+    return sa.text("CURRENT_TIMESTAMP")
+
+
 def upgrade() -> None:
-    op.add_column("gold_examples", sa.Column("role", sa.Text(), nullable=False, server_default="exemplar"))
-    op.create_check_constraint(
-        "ck_gold_examples_role",
-        "gold_examples",
-        "role IN ('exemplar','regression','counter_example','canary')",
-    )
-    op.add_column(
-        "gold_examples",
-        sa.Column("expected_pass_criteria", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
-    )
-    op.add_column("gold_examples", sa.Column("last_run_round_id", postgresql.UUID(as_uuid=False), nullable=True))
-    op.add_column("gold_examples", sa.Column("last_result", sa.Text(), nullable=True))
+    with op.batch_alter_table("gold_examples") as batch_op:
+        batch_op.add_column(
+            sa.Column("role", sa.Text(), nullable=False, server_default="exemplar")
+        )
+        batch_op.create_check_constraint(
+            "ck_gold_examples_role",
+            "role IN ('exemplar','regression','counter_example','canary')",
+        )
+        batch_op.add_column(
+            sa.Column(
+                "expected_pass_criteria",
+                _json_type(),
+                nullable=False,
+                server_default=_empty_json_default(),
+            )
+        )
+        batch_op.add_column(sa.Column("last_run_round_id", _id_type(), nullable=True))
+        batch_op.add_column(sa.Column("last_result", sa.Text(), nullable=True))
 
     op.create_table(
         "gold_drift_events",
-        sa.Column("event_id", postgresql.UUID(as_uuid=False), primary_key=True),
-        sa.Column("workspace_id", postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column("event_id", _id_type(), primary_key=True),
+        sa.Column("workspace_id", _id_type(), nullable=False),
         sa.Column("skill_id", sa.Text(), nullable=False),
-        sa.Column("gold_id", postgresql.UUID(as_uuid=False), nullable=False),
-        sa.Column("prompt_version_id", postgresql.UUID(as_uuid=False), nullable=False),
+        sa.Column("gold_id", _id_type(), nullable=False),
+        sa.Column("prompt_version_id", _id_type(), nullable=False),
         sa.Column("previous_result", sa.Text(), nullable=False),
         sa.Column("new_result", sa.Text(), nullable=False),
-        sa.Column("round_id", postgresql.UUID(as_uuid=False), nullable=False),
-        sa.Column("detected_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("round_id", _id_type(), nullable=False),
+        sa.Column(
+            "detected_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=_timestamp_default(),
+            nullable=False,
+        ),
     )
 
-    op.add_column("eval_outputs", sa.Column("export_readiness", sa.Numeric(4, 3), nullable=True))
-    op.add_column(
-        "eval_outputs", sa.Column("export_breakdown_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True)
-    )
+    with op.batch_alter_table("eval_outputs") as batch_op:
+        batch_op.add_column(
+            sa.Column("export_readiness", sa.Numeric(4, 3), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("export_breakdown_json", _json_type(), nullable=True)
+        )
 
 
 def downgrade() -> None:
-    op.drop_column("eval_outputs", "export_breakdown_json")
-    op.drop_column("eval_outputs", "export_readiness")
+    with op.batch_alter_table("eval_outputs") as batch_op:
+        batch_op.drop_column("export_breakdown_json")
+        batch_op.drop_column("export_readiness")
+
     op.drop_table("gold_drift_events")
-    op.drop_column("gold_examples", "last_result")
-    op.drop_column("gold_examples", "last_run_round_id")
-    op.drop_column("gold_examples", "expected_pass_criteria")
-    op.drop_constraint("ck_gold_examples_role", "gold_examples", type_="check")
-    op.drop_column("gold_examples", "role")
+
+    with op.batch_alter_table("gold_examples") as batch_op:
+        batch_op.drop_column("last_result")
+        batch_op.drop_column("last_run_round_id")
+        batch_op.drop_column("expected_pass_criteria")
+        batch_op.drop_constraint("ck_gold_examples_role", type_="check")
+        batch_op.drop_column("role")

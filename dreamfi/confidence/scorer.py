@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -58,13 +58,13 @@ class ConfidenceScorer:
         """Mean per-doc exponential-decay freshness."""
         if not updated_ats:
             return 0.0
-        ref = now or datetime.now(UTC)
+        ref = now or datetime.now(timezone.utc)
         vals = []
         for t in updated_ats:
             if t is None:
                 continue
             if t.tzinfo is None:
-                t = t.replace(tzinfo=UTC)
+                t = t.replace(tzinfo=timezone.utc)
             age_days = max(0.0, (ref - t).total_seconds() / 86400.0)
             vals.append(math.exp(-math.log(2) * age_days / self.halflife_days))
         if not vals:

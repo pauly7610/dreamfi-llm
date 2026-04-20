@@ -81,22 +81,46 @@ class SkillEngine:
             raise RuntimeError(f"No active prompt version for skill {skill_id}")
         return pv
 
+    def _prompt_version(
+        self, skill_id: str, *, prompt_version_id: str | None = None
+    ) -> PromptVersion:
+        if prompt_version_id is None:
+            return self._active_prompt(skill_id)
+        pv = self.db.get(PromptVersion, prompt_version_id)
+        if pv is None or pv.skill_id != skill_id:
+            raise RuntimeError(
+                f"Prompt version {prompt_version_id} not found for skill {skill_id}"
+            )
+        return pv
+
     def _render_prompt(
         self,
         skill_id: str,
         input_context: dict[str, Any] | str,
         *,
+        prompt_version: PromptVersion | None = None,
         include_gold: bool = True,
         scenario_type: str | None = None,
     ) -> str:
-        fname = PROMPT_FILE_BY_SKILL[skill_id]
+        pv = prompt_version or self._active_prompt(skill_id)
         gold = ""
         if include_gold:
             gold = self.gold.render_fewshot(
                 skill_id=skill_id, scenario_type=scenario_type, num_examples=2
             )
-        template = self._jinja.get_template(fname)
-        return template.render(input_context=input_context, gold_examples=gold)
+        template_name = pv.template.strip()
+        template_path = PROMPTS_DIR / template_name
+        if template_name and template_path.exists():
+            template = self._jinja.get_template(template_name)
+        elif template_name and ("{{" in template_name or "{%" in template_name or "\n" in template_name):
+            template = self._jinja.from_string(template_name)
+        else:
+            template = self._jinja.get_template(PROMPT_FILE_BY_SKILL[skill_id])
+        rendered = template.render(input_context=input_context, gold_examples=gold)
+        system_prompt = pv.system_prompt.strip()
+        if not system_prompt:
+            return rendered
+        return f"{system_prompt}\n\n{rendered}"
 
     def _freshness_from_chat(self, chat: ChatResult) -> float:
         updated_ats = []
@@ -121,12 +145,18 @@ class SkillEngine:
         skill: str,
         input_context: dict[str, Any] | str,
         test_input_label: str,
+        prompt_version_id: str | None = None,
         round_id: str | None = None,
         attempt: int = 1,
         scenario_type: str | None = None,
     ) -> GenerationResult:
-        active = self._active_prompt(skill)
-        rendered = self._render_prompt(skill, input_context, scenario_type=scenario_type)
+        prompt_version = self._prompt_version(skill, prompt_version_id=prompt_version_id)
+        rendered = self._render_prompt(
+            skill,
+            input_context,
+            prompt_version=prompt_version,
+            scenario_type=scenario_type,
+        )
         session = self.onyx.create_chat_session(
             persona_id=self._persona_id(skill),
             description=f"dreamfi:{skill}:{test_input_label}",
@@ -166,8 +196,6 @@ class SkillEngine:
             self.db.flush()
             output_id = row.output_id
 
-        # Silence unused-var
-        _ = active
         return GenerationResult(
             output_id=output_id or "",
             generated_text=chat.text,

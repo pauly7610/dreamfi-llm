@@ -1,7 +1,7 @@
 """Skills API — list + history + promote."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -82,7 +82,7 @@ def promote(
     if not decision.promotable:
         raise HTTPException(status_code=409, detail=decision.reason)
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     if active_pv is not None and active_pv.prompt_version_id != target_pv.prompt_version_id:
         active_pv.is_active = False
         active_pv.deactivated_at = now
