@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     dreamfi_confidence_threshold: float = Field(default=0.75)  # 0–1
     dreamfi_improvement_threshold: float = Field(default=0.02)  # fraction, e.g. 0.02 == 2%
     dreamfi_freshness_halflife_days: float = Field(default=14.0)  # days
+    dreamfi_export_readiness_threshold: float = Field(default=0.80)  # 0–1
 
     model_config = SettingsConfigDict(
         env_file=".env",

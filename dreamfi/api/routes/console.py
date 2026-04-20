@@ -1,6 +1,7 @@
 """Minimal operator console (server-rendered Jinja)."""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -87,8 +88,8 @@ def _console_alerts(
     blocked_count: int,
     publish_ready_count: int,
     needs_review_count: int,
-    outputs: list[EvalOutput],
-    publishes: list[PublishLog],
+    outputs: Sequence[EvalOutput],
+    publishes: Sequence[PublishLog],
 ) -> list[dict[str, object]]:
     alerts: list[dict[str, object]] = []
     if blocked_count:
@@ -284,7 +285,7 @@ def _domain_health(
     publish_success_rate: float | None,
     blocked_count: int,
     needs_review_count: int,
-    publishes: list[PublishLog],
+    publishes: Sequence[PublishLog],
 ) -> list[dict[str, object]]:
     blocked_publish_count = sum(1 for log in publishes if log.decision != "published")
     return [

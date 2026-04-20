@@ -24,6 +24,7 @@ dev = [
   "pytest-asyncio>=0.23",
   "respx>=0.21",
   "ruff>=0.5",
+  "mypy>=1.10",
 ]
 
 [tool.setuptools.packages.find]
@@ -34,3 +35,8 @@ exclude = ["tests*", "evals*", "generators*", "deployment*", "PRDs*", "ui_suppor
 pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["dreamfi"]

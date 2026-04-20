@@ -97,14 +97,30 @@ class PromotionGate:
 
 
 class PublishGuard:
-    def __init__(self, confidence_threshold: float | None = None) -> None:
+    def __init__(
+        self,
+        confidence_threshold: float | None = None,
+        export_readiness_threshold: float | None = None,
+    ) -> None:
+        settings = get_settings()
         self.confidence_threshold = (
             confidence_threshold
             if confidence_threshold is not None
-            else get_settings().dreamfi_confidence_threshold
+            else settings.dreamfi_confidence_threshold
+        )
+        self.export_readiness_threshold = (
+            export_readiness_threshold
+            if export_readiness_threshold is not None
+            else settings.dreamfi_export_readiness_threshold
         )
 
-    def check(self, *, pass_fail: str, confidence: float | Decimal | None) -> PublishDecision:
+    def check(
+        self,
+        *,
+        pass_fail: str,
+        confidence: float | Decimal | None,
+        export_readiness: float | Decimal | None = None,
+    ) -> PublishDecision:
         if pass_fail != "pass":
             return PublishDecision(False, "Hard gate failed")
 
@@ -119,6 +135,16 @@ class PublishGuard:
                     f"Low confidence: {confidence_f:.3f} < "
                     f"{self.confidence_threshold:.3f}"
                 ),
+            )
+
+        if export_readiness is None:
+            return PublishDecision(False, "missing_export_readiness")
+
+        readiness_f = float(export_readiness)
+        if readiness_f < self.export_readiness_threshold:
+            return PublishDecision(
+                False,
+                f"low_export_readiness:{readiness_f:.3f}",
             )
 
         return PublishDecision(True, "eligible")

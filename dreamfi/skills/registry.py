@@ -4,10 +4,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from dreamfi.db.models import Skill
+from dreamfi.db.models import GoldExample, Skill
 from dreamfi.evals.loader import parse_eval_template
+from dreamfi.trust.seeding import missing_regression_examples
 
 
 @dataclass(frozen=True)
@@ -21,7 +23,14 @@ class SkillSpec:
     runner_class: str
 
 
-# Source of truth: the 9 locked skills.
+# Active PM-oriented skills. The six marketing/copy skills that used to live
+# here (cold_email, landing_page_copy, newsletter_headline,
+# product_description, resume_bullet, short_form_script) were archived in X5
+# as part of the re-anchor to the shared context engine. Their evals/ templates
+# and runners remain on disk to honor ADR-003 and to preserve historical eval
+# rows; they are simply not part of the active registry and will not boot,
+# seed, or surface in the console. See ARCHIVED_SKILLS below for the
+# spec-level record.
 SKILLS: tuple[SkillSpec, ...] = (
     SkillSpec(
         "meeting_summary",
@@ -32,6 +41,30 @@ SKILLS: tuple[SkillSpec, ...] = (
         "evals.runners.run_meeting_summary_eval",
         "MeetingSummaryEval",
     ),
+    SkillSpec(
+        "agent_system_prompt",
+        "Agent System Prompt",
+        "Generates robust agent system prompts.",
+        "evals/agent-system-prompt.md",
+        "evals/runners/run_agent_system_prompt_eval.py",
+        "evals.runners.run_agent_system_prompt_eval",
+        "AgentSystemPromptEval",
+    ),
+    SkillSpec(
+        "support_agent",
+        "Support Agent",
+        "Generates support-agent replies with empathy + resolution.",
+        "evals/support-agent.md",
+        "evals/runners/run_support_agent_eval.py",
+        "evals.runners.run_support_agent_eval",
+        "SupportAgentEval",
+    ),
+)
+
+
+# Historical record of skills retired in X5. Their files in evals/ are
+# untouched (ADR-003). Restoration is a one-line move into the SKILLS tuple.
+ARCHIVED_SKILLS: tuple[SkillSpec, ...] = (
     SkillSpec(
         "cold_email",
         "Cold Email",
@@ -86,24 +119,6 @@ SKILLS: tuple[SkillSpec, ...] = (
         "evals.runners.run_short_form_script_eval",
         "ShortFormScriptEval",
     ),
-    SkillSpec(
-        "agent_system_prompt",
-        "Agent System Prompt",
-        "Generates robust agent system prompts.",
-        "evals/agent-system-prompt.md",
-        "evals/runners/run_agent_system_prompt_eval.py",
-        "evals.runners.run_agent_system_prompt_eval",
-        "AgentSystemPromptEval",
-    ),
-    SkillSpec(
-        "support_agent",
-        "Support Agent",
-        "Generates support-agent replies with empathy + resolution.",
-        "evals/support-agent.md",
-        "evals/runners/run_support_agent_eval.py",
-        "evals.runners.run_support_agent_eval",
-        "SupportAgentEval",
-    ),
 )
 
 
@@ -111,8 +126,30 @@ def load_registry() -> dict[str, SkillSpec]:
     return {s.skill_id: s for s in SKILLS}
 
 
-def seed_registry(session: Session, repo_root: Path | None = None) -> int:
+class InsufficientRegressionCoverage(RuntimeError):
+    """Raised when skills are registered without the minimum regression coverage."""
+
+    def __init__(self, deficits: dict[str, int]) -> None:
+        parts = ", ".join(f"{sid} (missing {n})" for sid, n in sorted(deficits.items()))
+        super().__init__(
+            f"Registered skills below minimum regression coverage: {parts}"
+        )
+        self.deficits = deficits
+
+
+def seed_registry(
+    session: Session,
+    repo_root: Path | None = None,
+    *,
+    enforce_regression_minimum: bool = True,
+    regression_minimum: int = 5,
+) -> int:
     """Idempotently upsert all 9 skills into the `skills` table.
+
+    When ``enforce_regression_minimum`` is True (the default, matching
+    DESIGN.md §4.3 "no shortcuts"), post-seed the function checks that every
+    registered skill has at least ``regression_minimum`` regression gold
+    examples and raises :class:`InsufficientRegressionCoverage` otherwise.
 
     Returns the count of skills after seeding.
     """
@@ -145,4 +182,15 @@ def seed_registry(session: Session, repo_root: Path | None = None) -> int:
             existing.eval_runner_path = spec.eval_runner_path
             existing.criteria_json = criteria_json
     session.commit()
+
+    if enforce_regression_minimum:
+        examples = list(session.scalars(select(GoldExample)))
+        deficits = missing_regression_examples(
+            examples,
+            minimum_per_skill=regression_minimum,
+            all_skill_ids=(spec.skill_id for spec in SKILLS),
+        )
+        if deficits:
+            raise InsufficientRegressionCoverage(deficits)
+
     return session.query(Skill).count()

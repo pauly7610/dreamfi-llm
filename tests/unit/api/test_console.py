@@ -22,7 +22,7 @@ def session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     session = Session(engine)
-    seed_registry(session, repo_root=REPO_ROOT)
+    seed_registry(session, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     session.add(
         PromptVersion(
             skill_id="meeting_summary",

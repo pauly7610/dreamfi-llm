@@ -38,7 +38,9 @@ def publish(
         raise HTTPException(status_code=400, detail="output does not belong to this skill")
 
     decision = PublishGuard().check(
-        pass_fail=output.pass_fail, confidence=output.confidence
+        pass_fail=output.pass_fail,
+        confidence=output.confidence,
+        export_readiness=output.export_readiness,
     )
 
     log = PublishLog(
