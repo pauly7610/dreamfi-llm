@@ -40,7 +40,6 @@ type PublishActivity = {
 }
 
 type ConsolePayload = {
-  headline: string
   summary: ConsoleSummary
   skills: SkillCard[]
   publish_activity: PublishActivity[]
@@ -53,55 +52,61 @@ type DesignCard = {
 
 const principles: DesignCard[] = [
   {
-    title: 'Trust is the product',
-    body: 'Retrieval, generation, routing, and publishing exist to produce artifacts a human can stake their reputation on.'
+    title: 'Internal by design',
+    body: 'This workspace exists for DreamFi’s product organization, not as an external customer-facing product.'
   },
   {
-    title: 'Binary gates beat fuzzy scores',
-    body: 'DreamFi composes pass/fail checks into an interpretable trust verdict instead of hiding behind vague middle values.'
+    title: 'Fragmented systems become one investigation surface',
+    body: 'The platform joins product analytics, financial outcomes, fraud decisions, workflow state, and planning context in one place.'
   },
   {
-    title: 'Every claim is grounded',
-    body: 'Claims must resolve to a source of truth, an Onyx citation, or both. Ungrounded output fails closed.'
+    title: 'Grounding before publishing',
+    body: 'Outputs must be inspectable, reconstructible, and safe before they are promoted as product artifacts.'
   },
   {
-    title: 'Evaluation is code',
-    body: 'Prompts, gold examples, and eval rounds move through the same promote, test, and revert lifecycle as software.'
+    title: 'Trust-scored operations',
+    body: 'Product questions and generated deliverables carry freshness, discrepancy awareness, and confidence signals.'
   },
   {
-    title: 'Boundaries stay narrow',
-    body: 'Retrieval, generation, evaluation, and publishing are independent layers that can be tested and replaced separately.'
+    title: 'Governed artifact generation',
+    body: 'Discovery docs, PRDs, briefs, and risk documentation should be structured, validated, and versioned.'
   },
   {
-    title: 'Nothing publishes without a receipt',
-    body: 'Export readiness, claims, tool trace, approvals, receipts, and rollback handles are part of the product contract.'
+    title: 'Decision speed with traceability',
+    body: 'The product team should move faster without losing the ability to explain why a decision was made.'
   }
 ]
 
 const trustPillars = [
   {
+    title: 'Product knowledge hub',
+    phase: '01',
+    status: 'Active',
+    body: 'Ask cross-system product questions and get grounded answers with citations, freshness, discrepancy flags, and reusable context.'
+  },
+  {
+    title: 'Governed document generation',
+    phase: '02',
+    status: 'Active',
+    body: 'Produce structured discovery docs, technical and business PRDs, and risk artifacts that are validated and reconstructible.'
+  },
+  {
     title: 'Planning trust',
-    phase: 'T1',
-    status: 'Planned',
-    body: 'Jira and Dragonboat hygiene checks surface stale work, missing owners, and broken planning taxonomies.'
+    phase: '03',
+    status: 'In progress',
+    body: 'Turn Jira and Dragonboat context into trusted briefs, roadmap visibility, and explicit hygiene and ambiguity flags.'
   },
   {
     title: 'Metric trust',
-    phase: 'T2',
-    status: 'Planned',
-    body: 'A metric catalog, snapshots, and discrepancy detection stop bad numbers from silently reaching executives.'
-  },
-  {
-    title: 'Interpretation trust',
-    phase: 'T3',
-    status: 'Planned',
-    body: 'Claims must map to the source-of-truth catalog or retrieval citations, with anomalies explicitly acknowledged.'
-  },
-  {
-    title: 'Artifact trust',
-    phase: 'T4',
+    phase: '04',
     status: 'In progress',
-    body: 'Export readiness becomes the final database-enforced verdict on whether an artifact can leave the system.'
+    body: 'Interpret Metabase, PostHog, and GA with source-aware trust, discrepancy visibility, and defensible narratives.'
+  },
+  {
+    title: 'UI project support',
+    phase: '05',
+    status: 'In progress',
+    body: 'Run governed design and execution support workflows with structured intake, validation, lineage, and publish safety.'
   }
 ]
 
@@ -158,17 +163,23 @@ const receiptChecklist = [
 
 const useCases = [
   {
-    title: 'PM before exec review',
-    body: 'Generate a weekly brief, explain every score, and publish a draft only when the artifact clears threshold.'
+    title: 'KYC drop triage',
+    body: 'Investigate whether conversion changes came from UX friction, fraud-rule shifts, or recent deployment changes.'
   },
   {
-    title: 'Founder catching drift',
-    body: 'Spot regressions, compare prompt behavior, and block overnight candidate prompts before customers ever see them.'
+    title: 'Activation and funding outcomes',
+    body: 'Connect onboarding friction steps to downstream activation, funding, and payment outcomes so root causes are clear.'
   },
   {
-    title: 'Skeptic auditing output',
-    body: 'Open any artifact, inspect the full chain of evidence, and decide in minutes whether it deserves trust.'
+    title: 'Planning and usage drift',
+    body: 'Compare what was shipped and planned against observed behavior to find roadmap ambiguity and low-adoption work.'
   }
+]
+
+const backgroundEvalLoop = [
+  'Candidate prompt changes are evaluated in the background using locked eval runners.',
+  'Promotion requires passing trust gates, so regressions are blocked before publish.',
+  'Recent scores and improvement deltas stay visible so operators can inspect system drift.'
 ]
 
 function formatScore(value: number | null | undefined): string {
@@ -257,25 +268,26 @@ function App() {
           <p className="brand-subtitle">Trust, measured.</p>
         </div>
         <nav className="topnav">
-          <a href="#trust">Trust fabric</a>
-          <a href="#skills">Skills</a>
-          <a href="#architecture">Architecture</a>
-          <a href="#audit">Audit</a>
+          <a href="#trust">Outcomes</a>
+          <a href="#skills">Modules</a>
+          <a href="#architecture">Operating model</a>
+          <a href="#audit">Audit trail</a>
         </nav>
       </header>
 
       <main className="page">
         <section className="hero panel">
           <div className="hero-copy">
-            <span className="eyebrow">Operator console</span>
-            <h1>Build AI artifacts that refuse to be wrong in silence.</h1>
+            <span className="eyebrow">Internal trust workspace</span>
+            <h1>DreamFi’s product intelligence and trust layer.</h1>
             <p>
-              DreamFi turns evals, grounded claims, prompt promotion, and publish receipts into a single frontend
-              for shipping product work with measurable trust.
+              We are building an internal platform for DreamFi’s product department that turns fragmented product,
+              planning, risk, and financial context into trust-scored answers, summaries, and artifacts the team can
+              act on.
             </p>
             <div className="hero-actions">
-              <a className="button primary" href="#skills">View skill health</a>
-              <a className="button secondary" href="#architecture">See the system</a>
+              <a className="button primary" href="#trust">View trust outcomes</a>
+              <a className="button secondary" href="#architecture">See operating model</a>
             </div>
             <div className="status-banner">
               <span className={`status-dot ${error ? 'offline' : 'online'}`} />
@@ -319,11 +331,11 @@ function App() {
 
         <section id="trust" className="section">
           <div className="section-header">
-            <span className="eyebrow">Trust fabric</span>
-            <h2>Four parallel trust surfaces, one operator view.</h2>
+            <span className="eyebrow">Purpose and outcomes</span>
+            <h2>One platform for product investigation, trust, and governed execution.</h2>
             <p>
-              DreamFi operates like a health console for product systems: less chat UI, more vital signs,
-              boundaries, and reasons.
+              The product department should not need to manually stitch analytics, payments and ledgers, fraud signals,
+              Jira workflow state, and planning docs just to answer critical questions.
             </p>
           </div>
           <div className="pillar-grid">
@@ -335,7 +347,7 @@ function App() {
                 </div>
                 <h3>{pillar.title}</h3>
                 <p>{pillar.body}</p>
-                {pillar.title === 'Artifact trust' ? (
+                {pillar.title === 'Governed document generation' ? (
                   <div className="pillar-metric">
                     <span>Live export readiness</span>
                     <strong>{formatScore(data?.summary.average_export_readiness)}</strong>
@@ -348,9 +360,12 @@ function App() {
 
         <section className="section">
           <div className="section-header">
-            <span className="eyebrow">Platform principles</span>
-            <h2>The product experience is organized around DreamFi&apos;s core guarantees.</h2>
-            <p>Every major section exists to surface a trust decision, a boundary, or the evidence behind one.</p>
+            <span className="eyebrow">What this is</span>
+            <h2>An internal product operations and trust layer for DreamFi.</h2>
+            <p>
+              Built for Product Management, Product Operations, design support, risk-adjacent product work, and
+              cross-functional decision making with engineering, ops, and leadership.
+            </p>
           </div>
           <div className="principles-grid">
             {principles.map((principle) => (
@@ -364,11 +379,11 @@ function App() {
 
         <section id="skills" className="section">
           <div className="section-header">
-            <span className="eyebrow">Skill health</span>
-            <h2>Live skill registry data rendered as a trust console.</h2>
+            <span className="eyebrow">Live system state</span>
+            <h2>Operational readiness across governed generation modules.</h2>
             <p>
-              This section reads the current backend registry and latest eval rounds so you can inspect readiness without
-              dropping into raw database tables.
+              This section reads the backend registry and recent eval rounds so teams can inspect trust and publish
+              readiness without dropping into raw tables.
             </p>
           </div>
           <div className="skills-grid">
@@ -425,11 +440,15 @@ function App() {
 
         <section id="architecture" className="section">
           <div className="section-header">
-            <span className="eyebrow">System architecture</span>
-            <h2>The frontend mirrors the operational boundaries of the DreamFi platform.</h2>
+            <span className="eyebrow">How it behaves</span>
+            <h2>Pull-first investigation with governed push and mixed data cadence.</h2>
             <p>
-              The operator experience is shaped around the lifecycle of one generation: request, retrieve, generate,
-              evaluate, score, persist, and only then publish.
+              Operational sources can refresh faster while planning and documentation sync on slower cadence, with each
+              domain treated according to where truth is authoritative.
+            </p>
+            <p>
+              Evals run continuously in the background as a system-improvement loop: operators get the current trust
+              state, while promotion logic quietly enforces quality behind the scenes.
             </p>
           </div>
           <div className="architecture-grid">
@@ -440,6 +459,15 @@ function App() {
                 <p>{step.body}</p>
               </article>
             ))}
+            <article className="architecture-card panel">
+              <span className="architecture-step">07</span>
+              <h3>Background eval improvement loop</h3>
+              <ul className="receipt-list">
+                {backgroundEvalLoop.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
           </div>
         </section>
 
@@ -494,11 +522,11 @@ function App() {
 
         <section className="section">
           <div className="section-header">
-            <span className="eyebrow">Core workflows</span>
-            <h2>DreamFi is built around the operator moments where trust matters most.</h2>
+            <span className="eyebrow">Product questions this should answer</span>
+            <h2>Make fragmented product context usable for high-stakes decisions.</h2>
             <p>
-              The frontend is built to support product briefs, drift reviews, and audit flows rather than a generic chat
-              transcript.
+              The system should quickly reveal whether an issue is product friction, fraud policy, funding behavior, or
+              operational follow-through.
             </p>
           </div>
           <div className="usecase-grid">
