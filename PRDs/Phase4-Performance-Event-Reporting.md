@@ -1,3 +1,5 @@
+> [superseded] These PRDs predate the DreamFi-on-Onyx overhaul (commit f66be26). Architecture has shifted to a thin Skills + Evals layer on top of Onyx as the knowledge substrate. Kept for historical context only — see ADR-009 and ADR-010.
+
 # PRD: Phase 4 — Product Performance & Event-Based Reporting
 
 **Version:** 1.0 | April 2026

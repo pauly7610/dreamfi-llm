@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -50,7 +51,7 @@ class ConfidenceScorer:
 
     def freshness_from_updated_at(
         self,
-        updated_ats: list[datetime | None],
+        updated_ats: Sequence[datetime | None],
         *,
         now: datetime | None = None,
     ) -> float:

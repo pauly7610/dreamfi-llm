@@ -6,6 +6,7 @@ import pathlib
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 
 FORBIDDEN = [
+    "services/",
     "services/knowledge_hub/db/schema.sql",
     "services/knowledge_hub/db/migrations",
     "services/knowledge_hub/src/retrieval",
