@@ -6,6 +6,27 @@ build-backend = "setuptools.build_meta"
 name = "dreamfi"
 version = "0.1.0"
 requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "sqlalchemy>=2.0",
+  "jinja2>=3.1",
+  "httpx>=0.27",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "alembic>=1.13",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "respx>=0.21",
+  "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["dreamfi*"]
+exclude = ["tests*", "evals*", "generators*", "deployment*", "PRDs*", "ui_support*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
