@@ -13,6 +13,7 @@ from dreamfi.context.bundle import (
     OpenQuestion,
     compute_coverage_score,
 )
+from dreamfi.context.litellm_router import LiteLLMRouter, ModelBudgetExceeded
 from dreamfi.context.topics import (
     TopicHint,
     TopicResolution,
@@ -28,6 +29,8 @@ __all__ = [
     "ContextEntity",
     "ContextSource",
     "EntityRelation",
+    "LiteLLMRouter",
+    "ModelBudgetExceeded",
     "OpenQuestion",
     "TopicHint",
     "TopicResolution",

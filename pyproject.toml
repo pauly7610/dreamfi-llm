@@ -16,6 +16,7 @@ dependencies = [
   "alembic>=1.13",
   "tenacity>=8.2",
   "click>=8.1",
+  "litellm>=1.40",
 ]
 
 [project.optional-dependencies]

@@ -25,17 +25,28 @@ def get_onyx_client() -> OnyxClient:
     return OnyxClient(base_url=s.onyx_base_url, api_key=s.onyx_api_key)
 
 
-def get_context_builder() -> ContextBuilder:
-    """Placeholder production factory for the ContextBuilder.
+def get_llm_router() -> ModelRouter:
+    """P9 — the production ModelRouter backed by LiteLLM."""
+    from dreamfi.context.litellm_router import LiteLLMRouter
 
-    Production wiring (real Jira / Confluence clients + LiteLLM router) is
-    P9 work; for now this raises so that the FastAPI app fails loudly if
-    the Ask endpoint is hit without a test override.
-    """
-    raise RuntimeError(
-        "Production ContextBuilder not wired yet — override "
-        "dreamfi.api.deps.get_context_builder in tests or P9 setup."
+    s = get_settings()
+    return LiteLLMRouter(
+        primary_model=s.default_llm_model,
+        fallback_models=s.fallback_llm_models,
+        timeout_seconds=s.llm_request_timeout_seconds,
+        max_cost_usd=s.llm_max_cost_usd_per_call,
     )
+
+
+def get_context_builder() -> ContextBuilder:
+    """Production factory for the ContextBuilder.
+
+    Connector configuration (per-workspace Jira/Confluence credentials) is
+    P13 onboarding work; until then this factory only provides the LLM
+    router and leaves ``connectors`` empty. Tests and the P13 onboarding
+    flow override this dependency with a registry that has real clients.
+    """
+    return ContextBuilder(connectors=ConnectorRegistry(), llm=get_llm_router())
 
 
 def build_context_builder(

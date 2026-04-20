@@ -14,7 +14,13 @@ class Settings(BaseSettings):
     onyx_base_url: str = Field(default="http://localhost:8080")
     onyx_api_key: str = Field(default="")
     anthropic_api_key: str = Field(default="")
+    openai_api_key: str = Field(default="")
     default_llm_model: str = Field(default="claude-3-5-sonnet-20241022")
+    fallback_llm_models: list[str] = Field(
+        default_factory=lambda: ["claude-3-5-haiku-20241022", "gpt-4o-mini"]
+    )
+    llm_request_timeout_seconds: float = Field(default=60.0)
+    llm_max_cost_usd_per_call: float = Field(default=1.0)
     log_level: str = Field(default="INFO")
 
     # Thresholds — documented units below.
