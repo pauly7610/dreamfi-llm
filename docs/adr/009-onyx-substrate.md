@@ -1,7 +1,7 @@
 # ADR-009: Onyx as the knowledge substrate
 
 Status: Active
-Supersedes: ADR-001 (canonical storage), ADR-002 (search architecture), ADR-007 (connector freshness)
+Supersedes: the earlier canonical-storage, search-architecture, and connector-freshness proposals removed from this repo.
 
 ## Context
 
@@ -28,9 +28,8 @@ connector code lives in DreamFi.
 
 ## Consequences
 
-- ADR-001 canonical storage is retired: Onyx is the source of truth.
-- ADR-002 search architecture is retired: Onyx admin search + chat persona.
-- ADR-007 freshness is retired: Onyx tracks `updated_at` per document; DreamFi
-  derives freshness from citations returned during chat.
+- The old DreamFi-owned canonical storage plan is retired: Onyx is the source of truth.
+- The old DreamFi-owned search architecture is retired: Onyx admin search + chat persona.
+- The old connector freshness policy is retired: Onyx tracks `updated_at` per document; DreamFi derives freshness from citations returned during chat.
 - Dragonboat and other unsupported connectors become either an Onyx custom
-  connector or an ingestion-API push (see ADR-010 + Phase 8 of the plan).
+  connector or an ingestion-API push.

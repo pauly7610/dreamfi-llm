@@ -1,7 +1,7 @@
 """Wrap the locked eval runners under evals/runners/ in a typed boundary.
 
-The runners themselves are IMMUTABLE (ADR-003). This module only translates
-between their dict-returning API and DreamFi's `EvalResult` Pydantic model.
+The runners themselves are immutable by repository policy. This module only
+translates between their dict-returning API and DreamFi's `EvalResult` model.
 """
 from __future__ import annotations
 

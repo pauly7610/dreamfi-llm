@@ -1,4 +1,4 @@
-"""Confidence scorer (ADR-005) — DreamFi inputs wired to Onyx retrieval data."""
+"""Confidence scorer for DreamFi inputs wired to Onyx retrieval data."""
 from __future__ import annotations
 
 import math

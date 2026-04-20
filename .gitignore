@@ -7,4 +7,6 @@ node_modules/
 /dist/
 .venv/
 .ruff_cache/
+dreamfi_local.db
+dreamfi_server.*.log
 

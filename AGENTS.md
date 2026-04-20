@@ -2,7 +2,7 @@
 
 ## Non-negotiables
 
-1. **Never modify** files under `evals/` (templates or runners). They are locked by ADR-003.
+1. **Never modify** files under `evals/` (templates or runners). They are locked by repository policy.
 2. **Never hand-edit** Alembic revisions that have already shipped; create new ones.
 3. All Onyx HTTP must go through `dreamfi.onyx.client.OnyxClient`. No raw
    `httpx`/`requests` calls to Onyx anywhere else.

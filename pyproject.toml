@@ -28,7 +28,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["dreamfi*"]
-exclude = ["tests*", "evals*", "generators*", "deployment*", "PRDs*", "ui_support*"]
+exclude = ["tests*", "evals*", "generators*", "deployment*", "ui_support*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
