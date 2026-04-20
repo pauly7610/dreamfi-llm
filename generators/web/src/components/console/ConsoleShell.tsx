@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { modules } from '../../config/modules'
 
 type ConsoleShellProps = {
   title: string
@@ -7,13 +8,24 @@ type ConsoleShellProps = {
   children: ReactNode
 }
 
-const navItems = [
-  { href: '/console', label: 'Console' },
+const moduleNavItems = modules.map((module) => ({
+  href: module.route,
+  label: module.title,
+}))
+
+const opsNavItems = [
+  { href: '/console', label: 'Home' },
   { href: '/console/artifacts', label: 'Artifacts' },
   { href: '/console/review', label: 'Review' },
   { href: '/console/trust', label: 'Trust' },
-  { href: '/console/generate/weekly-brief', label: 'Generate' }
 ]
+
+function isActiveFor(activePath: string, href: string): boolean {
+  if (href === '/console') {
+    return activePath === '/console'
+  }
+  return activePath === href || activePath.startsWith(`${href}/`)
+}
 
 function ConsoleShell({ title, subtitle, activePath, children }: ConsoleShellProps) {
   return (
@@ -26,16 +38,32 @@ function ConsoleShell({ title, subtitle, activePath, children }: ConsoleShellPro
             <p>{subtitle}</p>
           </div>
         </div>
-        <nav className="shell-nav">
-          {navItems.map((item) => {
-            const isActive = activePath === item.href || (item.href !== '/console' && activePath.startsWith(item.href))
-            return (
-              <a key={item.href} className={isActive ? 'active' : ''} href={item.href}>
+        <div className="shell-nav-groups">
+          <nav className="shell-nav shell-nav-modules" aria-label="Modules">
+            <span className="shell-nav-label">Modules</span>
+            {moduleNavItems.map((item) => (
+              <a
+                key={item.href}
+                className={isActiveFor(activePath, item.href) ? 'active' : ''}
+                href={item.href}
+              >
                 {item.label}
               </a>
-            )
-          })}
-        </nav>
+            ))}
+          </nav>
+          <nav className="shell-nav shell-nav-ops" aria-label="Operations">
+            <span className="shell-nav-label">Operations</span>
+            {opsNavItems.map((item) => (
+              <a
+                key={item.href}
+                className={isActiveFor(activePath, item.href) ? 'active' : ''}
+                href={item.href}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </header>
       <main className="console-main">{children}</main>
     </div>

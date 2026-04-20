@@ -140,4 +140,20 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert body['quick_actions'][0]['id'] == 'weekly-brief'
     assert len(body['domain_health']) == 4
     assert {item['domain'] for item in body['domain_health']} == {'planning', 'metrics', 'generation', 'publish'}
+    integration_ids = {item['id'] for item in body['integrations']}
+    assert {
+        'jira',
+        'dragonboat',
+        'confluence',
+        'metabase',
+        'posthog',
+        'ga',
+        'klaviyo',
+        'netxd',
+        'sardine',
+        'socure',
+    } <= integration_ids
+    jira = next(item for item in body['integrations'] if item['id'] == 'jira')
+    assert jira['category'] == 'planning'
+    assert 'technical-prd' in jira['used_for']
     assert body['publish_activity'][0]['decision'] == 'published'

@@ -1,6 +1,7 @@
 import DomainHealthGrid from '../components/console/DomainHealthGrid'
+import IntegrationsPanel from '../components/console/IntegrationsPanel'
 import SkillSnapshot from '../components/console/SkillSnapshot'
-import { methodologyPoints, coreModules } from '../config/dreamfiThesis'
+import { methodologyPoints, coreModules } from '../config/modules'
 import type { ConsolePayload } from '../types/console'
 
 type TrustPageProps = {
@@ -16,6 +17,11 @@ function TrustPage({ data }: TrustPageProps) {
         <p>See the live trust surfaces and the system mechanics behind grounding, evaluation, reconstruction, and publish safety.</p>
       </section>
       <DomainHealthGrid items={data?.domain_health ?? []} />
+      <IntegrationsPanel
+        items={data?.integrations ?? []}
+        title="Connected grounding sources"
+        description="These are the systems DreamFi reads from and writes to when building trust-scored artifacts. Each PRD, brief, or BRD is reconstructible from the sources tagged below."
+      />
       <section className="split-grid">
         <section className="panel methodology-panel">
           <div className="section-heading">

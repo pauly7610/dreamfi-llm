@@ -1,8 +1,11 @@
 import ConsoleShell from './components/console/ConsoleShell'
 import LoadingSkeleton from './components/console/LoadingSkeleton'
+import { moduleById, modules } from './config/modules'
+import type { ModuleId } from './config/modules'
 import useConsoleData from './hooks/useConsoleData'
 import ArtifactsPage from './pages/ArtifactsPage'
 import GeneratePage from './pages/GeneratePage'
+import ModulePage from './pages/ModulePage'
 import OperatorConsolePage from './pages/OperatorConsolePage'
 import ReviewPage from './pages/ReviewPage'
 import TrustPage from './pages/TrustPage'
@@ -12,25 +15,46 @@ function currentPath(): string {
   return pathname || '/console'
 }
 
+function matchModule(path: string): ModuleId | null {
+  for (const module of modules) {
+    if (path === module.route || path.startsWith(`${module.route}/`)) {
+      return module.id
+    }
+  }
+  return null
+}
+
 function shellTitle(path: string): { title: string; subtitle: string } {
+  const moduleId = matchModule(path)
+  if (moduleId) {
+    const module = moduleById[moduleId]
+    return { title: module.title, subtitle: module.tagline }
+  }
   if (path.startsWith('/console/artifacts')) {
-    return { title: 'Artifact console', subtitle: 'Inspect, review, and move through governed artifact workflows.' }
+    return { title: 'Artifacts', subtitle: 'Inspect and move governed artifacts through review and publish.' }
   }
   if (path.startsWith('/console/review')) {
-    return { title: 'Review console', subtitle: 'Focus on blocked work and risky artifacts that need operator judgment.' }
+    return { title: 'Review queue', subtitle: 'Blocked and risky artifacts that need operator judgment.' }
   }
   if (path.startsWith('/console/trust')) {
-    return { title: 'Trust dashboard', subtitle: 'Understand health, risk, and how DreamFi is governing the work.' }
+    return { title: 'Trust view', subtitle: 'Health, risk, and grounding across every module.' }
   }
   if (path.startsWith('/console/generate')) {
-    return { title: 'Generation workflows', subtitle: 'Start governed generation flows for product artifacts and briefs.' }
+    return { title: 'Generators', subtitle: 'Start a governed PRD, brief, or BRD workflow.' }
   }
-  return { title: 'Operator console', subtitle: 'Today’s operating state across product trust workflows.' }
+  return {
+    title: 'DreamFi',
+    subtitle: 'Make product teams smarter with grounded answers, trusted briefs, and publishable artifacts.',
+  }
 }
 
 function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'], loading: boolean, error: string | null, retry: () => void) {
   if (loading && !data) {
     return <LoadingSkeleton />
+  }
+  const moduleId = matchModule(path)
+  if (moduleId) {
+    return <ModulePage module={moduleById[moduleId]} data={data} />
   }
   if (path.startsWith('/console/artifacts')) {
     return <ArtifactsPage data={data} />

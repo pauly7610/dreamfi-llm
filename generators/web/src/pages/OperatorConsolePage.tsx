@@ -1,7 +1,9 @@
 import ActionCenter from '../components/console/ActionCenter'
 import AlertsPanel from '../components/console/AlertsPanel'
 import DomainHealthGrid from '../components/console/DomainHealthGrid'
+import IntegrationsPanel from '../components/console/IntegrationsPanel'
 import LoadingSkeleton from '../components/console/LoadingSkeleton'
+import ModulesGrid from '../components/console/ModulesGrid'
 import PriorityQueue from '../components/console/PriorityQueue'
 import RecentPublishList from '../components/console/RecentPublishList'
 import SkillSnapshot from '../components/console/SkillSnapshot'
@@ -38,16 +40,16 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
     <div className="page-grid">
       <section className="hero-panel panel">
         <div>
-          <span className="eyebrow">Operator console</span>
-          <h2>Trust-scored product operations</h2>
+          <span className="eyebrow">DreamFi</span>
+          <h2>Make product teams smarter</h2>
           <p>
-            Monitor blocked work, review publishable artifacts, and run governed workflows across planning, metrics,
-            generation, and publish safety.
+            DreamFi gives product teams grounded answers, trusted briefs, and publishable artifacts across five
+            operating surfaces — Knowledge, Generators, Planning, Metrics, and UI Support.
           </p>
           <div className="hero-actions">
-            <a className="button primary" href="/console/generate/weekly-brief">Run weekly PM brief</a>
-            <a className="button secondary" href="/console/review">Open review queue</a>
-            <a className="button secondary" href="/console/trust">View trust dashboard</a>
+            <a className="button primary" href="/console/knowledge/ask">Ask a product question</a>
+            <a className="button secondary" href="/console/generate/technical-prd">Create a PRD</a>
+            <a className="button secondary" href="/console/planning">Open planning</a>
           </div>
           {error ? (
             <div className="error-banner">
@@ -79,6 +81,8 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
         </div>
       </section>
 
+      <ModulesGrid />
+
       <StatusBar items={statusItems} />
       <ActionCenter actions={data?.quick_actions ?? []} />
 
@@ -91,6 +95,9 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
         <DomainHealthGrid items={data?.domain_health ?? []} />
         <RecentPublishList items={data?.publish_activity ?? []} />
       </section>
+
+      <IntegrationsPanel items={data?.integrations ?? []} />
+
 
       <section className="split-grid">
         <SkillSnapshot skills={data?.skills ?? []} />

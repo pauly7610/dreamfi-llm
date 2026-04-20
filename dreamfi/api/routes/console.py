@@ -180,6 +180,101 @@ def _quick_actions() -> list[dict[str, str]]:
     ]
 
 
+def _integrations() -> list[dict[str, object]]:
+    return [
+        {
+            "id": "jira",
+            "name": "Jira",
+            "category": "planning",
+            "purpose": "Sprints, issues, and delivery state",
+            "used_for": ["weekly-brief", "technical-prd", "risk-brd"],
+            "status": "available",
+            "href": "/console/integrations/jira",
+        },
+        {
+            "id": "dragonboat",
+            "name": "Dragonboat",
+            "category": "planning",
+            "purpose": "Roadmap, initiatives, and OKR alignment",
+            "used_for": ["business-prd", "weekly-brief"],
+            "status": "available",
+            "href": "/console/integrations/dragonboat",
+        },
+        {
+            "id": "confluence",
+            "name": "Confluence",
+            "category": "docs",
+            "purpose": "Source docs and publish target for PRDs and specs",
+            "used_for": ["technical-prd", "business-prd", "risk-brd"],
+            "status": "available",
+            "href": "/console/integrations/confluence",
+        },
+        {
+            "id": "metabase",
+            "name": "Metabase",
+            "category": "metrics",
+            "purpose": "SQL-backed KPI and funnel dashboards",
+            "used_for": ["weekly-brief", "business-prd"],
+            "status": "available",
+            "href": "/console/integrations/metabase",
+        },
+        {
+            "id": "posthog",
+            "name": "PostHog",
+            "category": "product_analytics",
+            "purpose": "Product events, funnels, and session data",
+            "used_for": ["weekly-brief", "technical-prd"],
+            "status": "available",
+            "href": "/console/integrations/posthog",
+        },
+        {
+            "id": "ga",
+            "name": "Google Analytics",
+            "category": "marketing_analytics",
+            "purpose": "Acquisition, traffic, and conversion signals",
+            "used_for": ["business-prd"],
+            "status": "available",
+            "href": "/console/integrations/ga",
+        },
+        {
+            "id": "klaviyo",
+            "name": "Klaviyo",
+            "category": "marketing",
+            "purpose": "Lifecycle campaigns, audiences, and sends",
+            "used_for": ["business-prd"],
+            "status": "available",
+            "href": "/console/integrations/klaviyo",
+        },
+        {
+            "id": "netxd",
+            "name": "NetXD",
+            "category": "payments",
+            "purpose": "Payments and ledger transaction context",
+            "used_for": ["risk-brd", "technical-prd"],
+            "status": "available",
+            "href": "/console/integrations/netxd",
+        },
+        {
+            "id": "sardine",
+            "name": "Sardine",
+            "category": "risk",
+            "purpose": "Fraud and risk signal enrichment",
+            "used_for": ["risk-brd"],
+            "status": "available",
+            "href": "/console/integrations/sardine",
+        },
+        {
+            "id": "socure",
+            "name": "Socure",
+            "category": "identity",
+            "purpose": "Identity verification and KYC signals",
+            "used_for": ["risk-brd"],
+            "status": "available",
+            "href": "/console/integrations/socure",
+        },
+    ]
+
+
 def _domain_health(
     *,
     average_latest_score: float | None,
@@ -330,6 +425,7 @@ def _console_payload(session: Session) -> dict[str, Any]:
             publishes=publishes,
         ),
         "quick_actions": _quick_actions(),
+        "integrations": _integrations(),
         "domain_health": _domain_health(
             average_latest_score=round(sum(latest_scores) / len(latest_scores), 3) if latest_scores else None,
             average_confidence=round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,

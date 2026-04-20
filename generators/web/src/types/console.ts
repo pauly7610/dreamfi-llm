@@ -81,6 +81,29 @@ export type ConsoleDomainHealth = {
   issue_count: number
 }
 
+export type IntegrationCategory =
+  | 'planning'
+  | 'docs'
+  | 'metrics'
+  | 'product_analytics'
+  | 'marketing_analytics'
+  | 'marketing'
+  | 'payments'
+  | 'risk'
+  | 'identity'
+
+export type IntegrationStatus = 'connected' | 'degraded' | 'available' | 'not_configured'
+
+export type ConsoleIntegration = {
+  id: string
+  name: string
+  category: IntegrationCategory
+  purpose: string
+  used_for: string[]
+  status: IntegrationStatus
+  href: string
+}
+
 export type ConsolePayload = {
   headline: string
   summary: ConsoleSummary
@@ -89,5 +112,6 @@ export type ConsolePayload = {
   publish_activity: PublishActivity[]
   alerts: ConsoleAlert[]
   quick_actions: QuickAction[]
+  integrations: ConsoleIntegration[]
   domain_health: ConsoleDomainHealth[]
 }
