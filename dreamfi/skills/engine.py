@@ -1,0 +1,179 @@
+"""Generation orchestration: prompt → Onyx chat → eval → confidence → persist."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from dreamfi.confidence.scorer import ConfidenceResult, ConfidenceScorer
+from dreamfi.config import get_settings
+from dreamfi.db.models import EvalOutput, PromptVersion, Skill
+from dreamfi.evals.runner import EvalResult, run_eval
+from dreamfi.gold.registry import GoldExampleRegistry
+from dreamfi.onyx.client import OnyxClient
+from dreamfi.onyx.models import ChatResult
+
+PROMPTS_DIR = Path(__file__).parent / "prompts"
+PROMPT_FILE_BY_SKILL = {
+    "meeting_summary": "meeting_summary.jinja",
+    "cold_email": "cold_email.jinja",
+    "landing_page_copy": "landing_page_copy.jinja",
+    "newsletter_headline": "newsletter_headline.jinja",
+    "product_description": "product_description.jinja",
+    "resume_bullet": "resume_bullet.jinja",
+    "short_form_script": "short_form_script.jinja",
+    "agent_system_prompt": "agent_system_prompt.jinja",
+    "support_agent": "support_agent.jinja",
+}
+
+
+@dataclass
+class GenerationResult:
+    output_id: str
+    generated_text: str
+    eval: EvalResult
+    confidence: ConfidenceResult
+    onyx_chat_session_id: str | None
+    onyx_message_id: int | None
+    onyx_citations: dict[int, str]
+
+
+class SkillEngine:
+    def __init__(
+        self,
+        *,
+        db: Session,
+        onyx: OnyxClient,
+        gold: GoldExampleRegistry | None = None,
+        scorer: ConfidenceScorer | None = None,
+    ) -> None:
+        self.db = db
+        self.onyx = onyx
+        self.gold = gold or GoldExampleRegistry(db)
+        self.scorer = scorer or ConfidenceScorer(
+            freshness_halflife_days=get_settings().dreamfi_freshness_halflife_days
+        )
+        self._jinja = Environment(
+            loader=FileSystemLoader(str(PROMPTS_DIR)),
+            autoescape=select_autoescape(default=False),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+    def _persona_id(self, skill_id: str) -> int:
+        skill = self.db.get(Skill, skill_id)
+        if skill is None or skill.onyx_persona_id is None:
+            raise RuntimeError(f"Skill {skill_id} has no onyx_persona_id (run `make seed`).")
+        return skill.onyx_persona_id
+
+    def _active_prompt(self, skill_id: str) -> PromptVersion:
+        stmt = (
+            select(PromptVersion)
+            .where(PromptVersion.skill_id == skill_id, PromptVersion.is_active.is_(True))
+            .limit(1)
+        )
+        pv = self.db.scalar(stmt)
+        if pv is None:
+            raise RuntimeError(f"No active prompt version for skill {skill_id}")
+        return pv
+
+    def _render_prompt(
+        self,
+        skill_id: str,
+        input_context: dict[str, Any] | str,
+        *,
+        include_gold: bool = True,
+        scenario_type: str | None = None,
+    ) -> str:
+        fname = PROMPT_FILE_BY_SKILL[skill_id]
+        gold = ""
+        if include_gold:
+            gold = self.gold.render_fewshot(
+                skill_id=skill_id, scenario_type=scenario_type, num_examples=2
+            )
+        template = self._jinja.get_template(fname)
+        return template.render(input_context=input_context, gold_examples=gold)
+
+    def _freshness_from_chat(self, chat: ChatResult) -> float:
+        updated_ats = []
+        for doc in chat.documents:
+            u = doc.get("updated_at")
+            if u is None:
+                continue
+            try:
+                from datetime import datetime
+
+                if isinstance(u, str):
+                    updated_ats.append(datetime.fromisoformat(u.replace("Z", "+00:00")))
+                elif isinstance(u, datetime):
+                    updated_ats.append(u)
+            except ValueError:
+                continue
+        return self.scorer.freshness_from_updated_at(updated_ats)
+
+    def generate(
+        self,
+        *,
+        skill: str,
+        input_context: dict[str, Any] | str,
+        test_input_label: str,
+        round_id: str | None = None,
+        attempt: int = 1,
+        scenario_type: str | None = None,
+    ) -> GenerationResult:
+        active = self._active_prompt(skill)
+        rendered = self._render_prompt(skill, input_context, scenario_type=scenario_type)
+        session = self.onyx.create_chat_session(
+            persona_id=self._persona_id(skill),
+            description=f"dreamfi:{skill}:{test_input_label}",
+        )
+        chat = self.onyx.send_message_sync(
+            chat_session_id=session.id,
+            parent_message_id=None,
+            message=rendered,
+        )
+
+        eval_result = run_eval(skill, chat.text, test_input_label)
+        freshness = self._freshness_from_chat(chat)
+        conf = self.scorer.score(
+            eval_score=eval_result.eval_score,
+            freshness_score=freshness,
+            citation_count=len(chat.citations),
+            hard_gate_passed=eval_result.pass_fail == "pass",
+        )
+
+        # Persist (only if a round is provided — eval rounds own aggregation)
+        output_id: str | None = None
+        if round_id is not None:
+            row = EvalOutput(
+                round_id=round_id,
+                test_input_label=test_input_label,
+                attempt=attempt,
+                generated_text=chat.text,
+                criteria_json=eval_result.criteria,
+                pass_fail=eval_result.pass_fail,
+                onyx_chat_session_id=session.id,
+                onyx_message_id=chat.message_id,
+                onyx_citations_json={str(k): v for k, v in chat.citations.items()},
+                freshness_score=conf.freshness_score,
+                confidence=conf.confidence,
+            )
+            self.db.add(row)
+            self.db.flush()
+            output_id = row.output_id
+
+        # Silence unused-var
+        _ = active
+        return GenerationResult(
+            output_id=output_id or "",
+            generated_text=chat.text,
+            eval=eval_result,
+            confidence=conf,
+            onyx_chat_session_id=session.id,
+            onyx_message_id=chat.message_id,
+            onyx_citations=chat.citations,
+        )

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DreamFi Console</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2em; }
+    table { border-collapse: collapse; margin-bottom: 2em; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; }
+    h2 { margin-top: 2em; }
+  </style>
+</head>
+<body>
+  <h1>DreamFi Operator Console</h1>
+  {% for skill in skills %}
+    <h2>{{ skill.display_name }} <small>({{ skill.skill_id }})</small></h2>
+    <table>
+      <tr><th>Round</th><th>Score</th><th>Completed</th></tr>
+      {% for r in rounds_by_skill[skill.skill_id] %}
+        <tr>
+          <td>{{ r.round_id }}</td>
+          <td>{{ '%.4f'|format(r.score) }}</td>
+          <td>{{ r.completed_at }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endfor %}
+</body>
+</html>

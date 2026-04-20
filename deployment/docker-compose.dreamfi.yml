@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: dreamfi
+      POSTGRES_USER: dreamfi
+      POSTGRES_PASSWORD: dreamfi
+    ports:
+      - "5433:5432"
+    volumes:
+      - dreamfi_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dreamfi"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://dreamfi:dreamfi@postgres:5432/dreamfi
+      ONYX_BASE_URL: ${ONYX_BASE_URL:-http://host.docker.internal:8080}
+      ONYX_API_KEY: ${ONYX_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    command: >
+      bash -lc "alembic upgrade head &&
+                uvicorn dreamfi.api.app:app --host 0.0.0.0 --port 5001"
+
+volumes:
+  dreamfi_pg_data:
