@@ -3,11 +3,14 @@ import LoadingSkeleton from './components/console/LoadingSkeleton'
 import { moduleById, modules } from './config/modules'
 import type { ModuleId } from './config/modules'
 import useConsoleData from './hooks/useConsoleData'
+import AskPage from './pages/AskPage'
 import ArtifactsPage from './pages/ArtifactsPage'
 import GeneratePage from './pages/GeneratePage'
 import ModulePage from './pages/ModulePage'
 import OperatorConsolePage from './pages/OperatorConsolePage'
 import ReviewPage from './pages/ReviewPage'
+import SourceDetailPage from './pages/SourceDetailPage'
+import TopicRoomPage from './pages/TopicRoomPage'
 import TrustPage from './pages/TrustPage'
 
 function currentPath(): string {
@@ -42,9 +45,18 @@ function shellTitle(path: string): { title: string; subtitle: string } {
   if (path.startsWith('/console/generate')) {
     return { title: 'Generators', subtitle: 'Start a governed PRD, brief, or BRD workflow.' }
   }
+  if (path.startsWith('/console/knowledge/ask')) {
+    return { title: 'Ask DreamFi', subtitle: 'Ask product questions with citations, evidence receipts, and gaps.' }
+  }
+  if (path.startsWith('/console/topics')) {
+    return { title: 'Topic rooms', subtitle: 'Gather sources around recurring Product questions and decisions.' }
+  }
+  if (path.startsWith('/console/integrations')) {
+    return { title: 'Source data', subtitle: 'Choose a connector, inspect its data slice, then ask with citations.' }
+  }
   return {
-    title: 'DreamFi',
-    subtitle: 'Make product teams smarter with grounded answers, trusted briefs, and publishable artifacts.',
+    title: 'Product Source Room',
+    subtitle: 'Ask across DreamFi product systems with evidence, citations, and trust signals.',
   }
 }
 
@@ -68,6 +80,17 @@ function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'
   if (path.startsWith('/console/generate')) {
     const templateName = path.split('/').pop() || 'weekly-brief'
     return <GeneratePage data={data} templateName={templateName} />
+  }
+  if (path.startsWith('/console/knowledge/ask')) {
+    return <AskPage data={data} />
+  }
+  if (path.startsWith('/console/topics')) {
+    const topicId = path.split('/').filter(Boolean)[2] ?? null
+    return <TopicRoomPage data={data} topicId={topicId ? decodeURIComponent(topicId) : null} />
+  }
+  if (path.startsWith('/console/integrations')) {
+    const sourceId = path.split('/').filter(Boolean)[2] ?? null
+    return <SourceDetailPage data={data} sourceId={sourceId ? decodeURIComponent(sourceId) : null} />
   }
   return <OperatorConsolePage data={data} loading={loading} error={error} retry={retry} />
 }

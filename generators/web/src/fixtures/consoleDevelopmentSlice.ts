@@ -1,0 +1,259 @@
+import type { ConsolePayload } from '../types/console'
+
+const now = '2026-04-21T14:30:00Z'
+
+export const consoleDevelopmentSlice: ConsolePayload = {
+  headline: 'Development source-room slice',
+  summary: {
+    skill_count: 9,
+    active_prompt_count: 9,
+    average_latest_score: 0.884,
+    average_confidence: 0.861,
+    average_export_readiness: 0.902,
+    publish_success_rate: 0.8,
+    hard_gate_pass_rate: 0.875,
+    blocked_artifact_count: 1,
+    publish_ready_count: 3,
+    published_artifact_count: 5,
+    needs_review_count: 1,
+  },
+  skills: [
+    {
+      skill_id: 'technical_prd',
+      display_name: 'Technical PRD',
+      description: 'Turns sourced product and engineering context into a technical PRD.',
+      criteria_count: 7,
+      active_prompt_version: 3,
+      latest_round: {
+        round_id: 'dev-round-technical-prd',
+        prompt_version_id: 'dev-prompt-technical-prd-v3',
+        score: 0.91,
+        previous_score: 0.86,
+        improvement: 0.05,
+        completed_at: now,
+        artifacts_path: 'dev/artifacts/technical-prd',
+      },
+      recent_rounds: [],
+    },
+  ],
+  artifact_queue: [
+    {
+      output_id: 'dev-artifact-kyc-drop',
+      skill_id: 'technical_prd',
+      skill_display_name: 'Technical PRD',
+      round_id: 'dev-round-technical-prd',
+      test_input_label: 'KYC conversion drop investigation',
+      attempt: 1,
+      pass_fail: 'pass',
+      confidence: 0.89,
+      export_readiness: 0.92,
+      created_at: now,
+      status: 'publish_ready',
+      artifacts_path: 'dev/artifacts/technical-prd/kyc-drop',
+      latest_publish: null,
+    },
+    {
+      output_id: 'dev-artifact-risk-brd',
+      skill_id: 'risk_brd',
+      skill_display_name: 'Risk BRD',
+      round_id: 'dev-round-risk-brd',
+      test_input_label: 'Socure retry policy review',
+      attempt: 1,
+      pass_fail: 'pass',
+      confidence: 0.84,
+      export_readiness: 0.79,
+      created_at: '2026-04-21T13:10:00Z',
+      status: 'needs_review',
+      artifacts_path: 'dev/artifacts/risk-brd/socure-retry',
+      latest_publish: null,
+    },
+  ],
+  publish_activity: [
+    {
+      publish_id: 'dev-publish-weekly-brief',
+      skill_id: 'weekly_brief',
+      destination: 'confluence',
+      destination_ref: 'Product Weekly Brief',
+      decision: 'published',
+      reason: null,
+      created_at: '2026-04-21T12:45:00Z',
+    },
+  ],
+  alerts: [
+    {
+      id: 'dev-needs-review',
+      severity: 'warning',
+      title: 'One development artifact needs review',
+      message: 'The Socure retry policy BRD is below publish-ready threshold.',
+      href: '/console/review?focus=dev-artifact-risk-brd',
+      created_at: '2026-04-21T13:10:00Z',
+    },
+  ],
+  quick_actions: [
+    {
+      id: 'weekly-brief',
+      label: 'Run weekly PM brief',
+      href: '/console/generate/weekly-brief',
+      kind: 'primary',
+    },
+    {
+      id: 'technical-prd',
+      label: 'Create Technical PRD',
+      href: '/console/generate/technical-prd',
+      kind: 'secondary',
+    },
+    {
+      id: 'business-prd',
+      label: 'Create Business PRD',
+      href: '/console/generate/business-prd',
+      kind: 'secondary',
+    },
+    {
+      id: 'risk-brd',
+      label: 'Create Risk BRD',
+      href: '/console/generate/risk-brd',
+      kind: 'secondary',
+    },
+    {
+      id: 'review-blocked',
+      label: 'Review blocked artifacts',
+      href: '/console/review?status=blocked',
+      kind: 'secondary',
+    },
+    {
+      id: 'trust-dashboard',
+      label: 'Open trust dashboard',
+      href: '/console/trust',
+      kind: 'secondary',
+    },
+  ],
+  integrations: [
+    {
+      id: 'jira',
+      name: 'Jira',
+      category: 'planning',
+      purpose: 'Sprints, issues, and delivery state for product investigation.',
+      used_for: ['weekly-brief', 'technical-prd', 'risk-brd'],
+      status: 'connected',
+      href: '/console/integrations/jira',
+    },
+    {
+      id: 'dragonboat',
+      name: 'Dragonboat',
+      category: 'planning',
+      purpose: 'Roadmap, initiative, and OKR alignment context.',
+      used_for: ['weekly-brief', 'business-prd'],
+      status: 'available',
+      href: '/console/integrations/dragonboat',
+    },
+    {
+      id: 'confluence',
+      name: 'Confluence',
+      category: 'docs',
+      purpose: 'Specs, PRDs, decisions, and publish destinations.',
+      used_for: ['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd'],
+      status: 'connected',
+      href: '/console/integrations/confluence',
+    },
+    {
+      id: 'metabase',
+      name: 'Metabase',
+      category: 'metrics',
+      purpose: 'SQL-backed KPI and funnel dashboards.',
+      used_for: ['weekly-brief', 'business-prd'],
+      status: 'connected',
+      href: '/console/integrations/metabase',
+    },
+    {
+      id: 'posthog',
+      name: 'PostHog',
+      category: 'product_analytics',
+      purpose: 'Product events, funnels, cohorts, and session context.',
+      used_for: ['weekly-brief', 'technical-prd'],
+      status: 'connected',
+      href: '/console/integrations/posthog',
+    },
+    {
+      id: 'ga',
+      name: 'Google Analytics',
+      category: 'marketing_analytics',
+      purpose: 'Acquisition, traffic, and conversion signal context.',
+      used_for: ['business-prd'],
+      status: 'available',
+      href: '/console/integrations/ga',
+    },
+    {
+      id: 'klaviyo',
+      name: 'Klaviyo',
+      category: 'marketing',
+      purpose: 'Lifecycle messaging, audiences, and campaign sends.',
+      used_for: ['business-prd'],
+      status: 'available',
+      href: '/console/integrations/klaviyo',
+    },
+    {
+      id: 'netxd',
+      name: 'NetXD',
+      category: 'payments',
+      purpose: 'Payment and ledger transaction context.',
+      used_for: ['technical-prd', 'risk-brd'],
+      status: 'connected',
+      href: '/console/integrations/netxd',
+    },
+    {
+      id: 'sardine',
+      name: 'Sardine',
+      category: 'risk',
+      purpose: 'Fraud and risk decision signal enrichment.',
+      used_for: ['risk-brd'],
+      status: 'connected',
+      href: '/console/integrations/sardine',
+    },
+    {
+      id: 'socure',
+      name: 'Socure',
+      category: 'identity',
+      purpose: 'Identity verification and KYC evidence.',
+      used_for: ['risk-brd'],
+      status: 'degraded',
+      href: '/console/integrations/socure',
+    },
+  ],
+  domain_health: [
+    {
+      domain: 'planning',
+      trust_score: 0.91,
+      pass_rate: 0.89,
+      issue_count: 0,
+    },
+    {
+      domain: 'metrics',
+      trust_score: 0.86,
+      pass_rate: 0.84,
+      issue_count: 1,
+    },
+    {
+      domain: 'generation',
+      trust_score: 0.88,
+      pass_rate: 0.87,
+      issue_count: 1,
+    },
+    {
+      domain: 'publish',
+      trust_score: 0.9,
+      pass_rate: 0.8,
+      issue_count: 0,
+    },
+  ],
+}
+
+export function shouldUseDevelopmentSlice(): boolean {
+  return import.meta.env.DEV && import.meta.env.VITE_USE_API !== 'true'
+}
+
+export function shouldForceDevelopmentSlice(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return false
+  }
+  return new URLSearchParams(window.location.search).get('demo') === '1'
+}

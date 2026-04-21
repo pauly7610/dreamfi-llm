@@ -2,14 +2,23 @@ import type { QuickAction } from '../../types/console'
 
 type ActionCenterProps = {
   actions: QuickAction[]
+  eyebrow?: string
+  title?: string
+  description?: string
 }
 
-function ActionCenter({ actions }: ActionCenterProps) {
+function ActionCenter({
+  actions,
+  eyebrow = 'Action center',
+  title = 'What you can do next',
+  description,
+}: ActionCenterProps) {
   return (
     <section className="action-center panel">
       <div className="section-heading">
-        <span className="eyebrow">Action center</span>
-        <h2>What you can do next</h2>
+        <span className="eyebrow">{eyebrow}</span>
+        <h2>{title}</h2>
+        {description ? <p className="section-subtle">{description}</p> : null}
       </div>
       <div className="action-grid">
         {actions.map((action) => (
