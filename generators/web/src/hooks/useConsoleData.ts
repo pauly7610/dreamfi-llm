@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import {
+  consoleDevelopmentSlice,
+  shouldForceDevelopmentSlice,
+  shouldUseDevelopmentSlice,
+} from '../fixtures/consoleDevelopmentSlice'
 import type { ConsolePayload } from '../types/console'
 
 type UseConsoleDataResult = {
@@ -25,6 +30,11 @@ function useConsoleData(): UseConsoleDataResult {
     async function loadConsoleData() {
       try {
         setLoading(true)
+        if (shouldForceDevelopmentSlice()) {
+          setData(consoleDevelopmentSlice)
+          setError(null)
+          return
+        }
         const response = await fetch('/api/console', { signal: controller.signal })
         if (!response.ok) {
           throw new Error(`Request failed with ${response.status}`)
@@ -34,6 +44,11 @@ function useConsoleData(): UseConsoleDataResult {
         setError(null)
       } catch (loadError) {
         if (controller.signal.aborted) {
+          return
+        }
+        if (shouldUseDevelopmentSlice()) {
+          setData(consoleDevelopmentSlice)
+          setError(null)
           return
         }
         setError(loadError instanceof Error ? loadError.message : 'Unable to load console data')
