@@ -1,5 +1,6 @@
 import type { ArtifactRecord } from '../../types/console'
 import { formatArtifactStatus, formatDate, formatScore } from './formatters'
+import { generatorSlugFromIdentifier } from '../../utils/consoleRoutes'
 
 type PriorityQueueProps = {
   artifacts: ArtifactRecord[]
@@ -51,7 +52,7 @@ function PriorityQueue({ artifacts, title = 'Priority queue' }: PriorityQueuePro
                 {artifact.status === 'publish_ready' && (
                   <a href={`/console/artifacts?status=publish_ready&focus=${artifact.output_id}`}>Publish</a>
                 )}
-                <a href={`/console/generate/${artifact.skill_id ?? 'artifact'}?source=${artifact.output_id}`}>Regenerate</a>
+                <a href={`/console/generate/${generatorSlugFromIdentifier(artifact.skill_id)}?source=${artifact.output_id}`}>Regenerate</a>
               </div>
             </article>
           ))

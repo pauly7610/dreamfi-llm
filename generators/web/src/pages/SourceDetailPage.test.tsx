@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { consoleDevelopmentSlice } from '../fixtures/consoleDevelopmentSlice'
+import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
 import SourceDetailPage from './SourceDetailPage'
 
 afterEach(() => {
@@ -14,6 +14,7 @@ describe('SourceDetailPage', () => {
     render(<SourceDetailPage data={consoleDevelopmentSlice} sourceId="metabase" />)
 
     expect(screen.getByRole('navigation', { name: 'Breadcrumb' }).textContent).toContain('Product Source Room')
+    expect(screen.getByRole('link', { name: 'Product Source Room' }).getAttribute('href')).toBe('/console')
     expect(screen.getByRole('heading', { name: 'Metabase' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Dashboard collection' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Official KPI boards' })).toBeTruthy()
@@ -21,6 +22,11 @@ describe('SourceDetailPage', () => {
     expect(screen.getAllByText('Product KPI warehouse').length).toBeGreaterThan(0)
     expect(screen.getByText('KYC conversion by source')).toBeTruthy()
     expect(screen.getByRole('navigation', { name: 'Metabase workspace sections' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /KYC funnel dashboard/i }).getAttribute('href')).toContain('/console/knowledge/ask?source=metabase')
+    expect(screen.getByRole('link', { name: /Metric definitions/i }).getAttribute('href')).toContain('/console/knowledge/ask?source=metabase')
+    expect(screen.getByRole('link', { name: /KYC conversion by source/i }).getAttribute('href')).toContain('/console/knowledge/ask?source=metabase')
+    expect(screen.getByText('Product KPIs')).toBeTruthy()
+    expect(screen.getAllByText('Official').length).toBeGreaterThan(0)
   })
 
   it('shows product analytics data for PostHog', () => {
@@ -32,6 +38,8 @@ describe('SourceDetailPage', () => {
     expect(screen.getAllByText('started_kyc to completed_kyc').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Feature flag exposure').length).toBeGreaterThan(0)
     expect(screen.getByText('document_retry')).toBeTruthy()
+    expect(screen.getByText('Conversion trend')).toBeTruthy()
+    expect(screen.getByText('Recent friction callouts')).toBeTruthy()
     const kycTopicLink = screen
       .getAllByRole('link', { name: /KYC conversion/i })
       .find((link) => link.getAttribute('href') === '/console/topics/kyc-conversion')
@@ -50,6 +58,8 @@ describe('SourceDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Flow library and current performance' })).toBeTruthy()
     expect(screen.getByText('Welcome series')).toBeTruthy()
     expect(screen.getByText('Marketing impact brief')).toBeTruthy()
+    expect(screen.getByText('30-day analytics snapshot')).toBeTruthy()
+    expect(screen.getByText('Business performance summary')).toBeTruthy()
   })
 
   it('personalizes Socure around fraud tiers and reason codes', () => {
@@ -99,6 +109,8 @@ describe('SourceDetailPage', () => {
     expect(screen.getByText('KYC-231')).toBeTruthy()
     expect(screen.getByText('Done vs codebase audit')).toBeTruthy()
     expect(screen.getByText('Which tickets conflict with the current PRD?')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /KYC-231/i }).getAttribute('href')).toContain('/console/knowledge/ask?source=jira')
+    expect(screen.getByText('Sprint burndown')).toBeTruthy()
   })
 
   it('turns the integrations route into a clickable source directory', () => {

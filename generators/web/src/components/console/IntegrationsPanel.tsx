@@ -1,5 +1,5 @@
 import type { ConsoleIntegration, IntegrationCategory } from '../../types/console'
-import ConnectorIcon from './ConnectorLogo'
+import ConnectorLogo from './ConnectorLogo'
 
 type IntegrationsPanelProps = {
   items: ConsoleIntegration[]
@@ -7,30 +7,11 @@ type IntegrationsPanelProps = {
   description?: string
 }
 
-const CATEGORY_LABEL: Record<IntegrationCategory, string> = {
-  planning: 'Planning',
-  docs: 'Docs',
-  metrics: 'Metrics',
-  product_analytics: 'Product analytics',
-  marketing_analytics: 'Marketing analytics',
-  marketing: 'Marketing',
-  payments: 'Payments',
-  risk: 'Risk',
-  identity: 'Identity',
-}
-
 const STATUS_LABEL: Record<ConsoleIntegration['status'], string> = {
   connected: 'Live',
   degraded: 'Needs attention',
   available: 'Ready',
   not_configured: 'Setup needed',
-}
-
-const ACTION_LABEL: Record<string, string> = {
-  'weekly-brief': 'Weekly brief',
-  'technical-prd': 'Technical PRD',
-  'business-prd': 'Business PRD',
-  'risk-brd': 'Risk BRD',
 }
 
 const SOURCE_GROUPS: Array<{
@@ -42,19 +23,19 @@ const SOURCE_GROUPS: Array<{
   {
     id: 'planning-docs',
     title: 'Planning + docs',
-    description: 'Roadmap, tickets, specs, and source-of-truth product docs.',
+    description: 'Roadmaps, tickets, and specs Product checks before making a call.',
     categories: ['planning', 'docs'],
   },
   {
     id: 'metrics-growth',
     title: 'Metrics + growth',
-    description: 'Behavior, funnels, acquisition, lifecycle, and KPI context.',
+    description: 'Funnels, dashboards, campaigns, and user behavior.',
     categories: ['metrics', 'product_analytics', 'marketing_analytics', 'marketing'],
   },
   {
     id: 'risk-money',
     title: 'Risk + money',
-    description: 'Payments, identity, KYC, fraud, and risk-review evidence.',
+    description: 'Payments, identity, fraud, and review queues.',
     categories: ['payments', 'risk', 'identity'],
   },
 ]
@@ -87,8 +68,8 @@ function integrationGroups(items: ConsoleIntegration[]) {
 
 function IntegrationsPanel({
   items,
-  title = 'Shared connector space',
-  description = 'The product department source room: planning, docs, analytics, risk, identity, and payment context in one evidence-backed surface.',
+  title = 'Browse the sources Product can inspect.',
+  description = 'Open a connector to see what DreamFi can use right now.',
 }: IntegrationsPanelProps) {
   if (items.length === 0) {
     return null
@@ -131,20 +112,15 @@ function IntegrationsPanel({
             <div className="source-chip-list">
               {group.items.map((item) => (
                 <a key={item.id} className={`source-chip status-${item.status}`} href={item.href}>
-                  <ConnectorIcon id={item.id} name={item.name} />
+                  <ConnectorLogo id={item.id} name={item.name} />
                   <span>
                     <strong>{item.name}</strong>
                     <small>
-                      View data · {STATUS_LABEL[item.status]} · {CATEGORY_LABEL[item.category]}
+                      View data · {STATUS_LABEL[item.status]} · {item.purpose}
                     </small>
                   </span>
                   <span className="source-chip-arrow" aria-hidden="true">Open</span>
                 </a>
-              ))}
-            </div>
-            <div className="source-lane-uses">
-              {Array.from(new Set(group.items.flatMap((item) => item.used_for))).slice(0, 4).map((use) => (
-                <span key={use}>{ACTION_LABEL[use] ?? use}</span>
               ))}
             </div>
           </article>

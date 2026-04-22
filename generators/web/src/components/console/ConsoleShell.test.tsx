@@ -11,11 +11,7 @@ afterEach(() => {
 describe('ConsoleShell', () => {
   it('keeps the primary navigation focused on sources, trust, and asking', () => {
     render(
-      <ConsoleShell
-        title="Product Source Room"
-        subtitle="Ask across DreamFi product systems."
-        activePath="/console"
-      >
+      <ConsoleShell activePath="/console">
         <div>Homepage body</div>
       </ConsoleShell>,
     )
@@ -23,11 +19,15 @@ describe('ConsoleShell', () => {
     const nav = screen.getByRole('navigation', { name: 'Primary' })
     const labels = within(nav).getAllByRole('link').map((link) => link.textContent)
     const homeLink = screen.getByRole('link', { name: 'DreamFi home' })
+    const sourcesLink = screen.getByRole('link', { name: 'Sources' })
+    const askLink = screen.getByRole('link', { name: 'Ask from anywhere' })
 
-    expect(labels).toEqual(['Sources', 'Trust', 'Ask'])
+    expect(labels).toEqual(['Sources', 'Trust', 'Ask⌘K'])
     expect(homeLink.getAttribute('href')).toBe('/console')
+    expect(sourcesLink.getAttribute('href')).toBe('/console/integrations')
+    expect(askLink.getAttribute('href')).toBe('/console/knowledge/ask')
     expect(screen.queryByText('Artifacts')).toBeNull()
     expect(screen.queryByText('Review')).toBeNull()
-    expect(screen.queryByText('Product Knowledge Hub')).toBeNull()
+    expect(screen.queryByText('Product Source Room')).toBeNull()
   })
 })

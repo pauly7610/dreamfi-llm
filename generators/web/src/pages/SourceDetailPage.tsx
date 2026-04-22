@@ -1,8 +1,8 @@
-import ConnectorIcon from '../components/console/ConnectorLogo'
+import ConnectorLogo from '../components/console/ConnectorLogo'
 import ConnectorWorkspace from '../components/console/ConnectorWorkspace'
 import SocureWorkspace from '../components/console/SocureWorkspace'
-import { topicsForSource } from '../fixtures/productTopics'
-import { getSourceDataPreview } from '../fixtures/sourceDataPreviews'
+import { getConnectorWorkspace } from '../content/connectorWorkspaces'
+import { topicsForSource } from '../content/productTopics'
 import type { ConsoleIntegration, ConsolePayload, IntegrationCategory } from '../types/console'
 
 type SourceDetailPageProps = {
@@ -114,7 +114,7 @@ function actionContentForSource(source: ConsoleIntegration): SourceActionContent
 function Breadcrumbs({ source }: { source?: ConsoleIntegration }) {
   return (
     <nav className="breadcrumbs" aria-label="Breadcrumb">
-      <a href="/console#sources">Product Source Room</a>
+      <a href="/console">Product Source Room</a>
       <span aria-hidden="true">/</span>
       <a href="/console/integrations">Sources</a>
       {source ? (
@@ -146,7 +146,7 @@ function SourceDirectory({ data }: { data: ConsolePayload | null }) {
       <section className="source-directory-panel panel" aria-label="Available sources">
         {integrations.map((source) => (
           <a key={source.id} className="source-directory-row" href={source.href}>
-            <ConnectorIcon id={source.id} name={source.name} />
+            <ConnectorLogo id={source.id} name={source.name} />
             <span>
               <strong>{source.name}</strong>
               <small>
@@ -186,17 +186,17 @@ function SourceDetailPage({ data, sourceId }: SourceDetailPageProps) {
     return <SourceNotFound />
   }
 
-  const preview = getSourceDataPreview(source)
+  const workspace = getConnectorWorkspace(source)
   const relatedTopics = topicsForSource(source.id)
   const actionContent = actionContentForSource(source)
-  const heroDescription = source.id === 'socure' ? preview.description : source.purpose
+  const heroDescription = workspace.connector.description
 
   return (
     <div className={`page-grid source-detail-page source-page-${source.id}`}>
       <Breadcrumbs source={source} />
       <section className="source-detail-hero panel">
         <div className="source-detail-heading">
-          <ConnectorIcon id={source.id} name={source.name} size="large" />
+          <ConnectorLogo id={source.id} name={source.name} size="large" />
           <div>
             <span className="eyebrow">{actionContent.heroEyebrow}</span>
             <h2>{source.name}</h2>
@@ -213,14 +213,14 @@ function SourceDetailPage({ data, sourceId }: SourceDetailPageProps) {
         <aside className={`source-status-card status-${source.status}`}>
           <span>Status</span>
           <strong>{STATUS_LABEL[source.status]}</strong>
-          <small>{preview.freshness}</small>
+          <small>{workspace.connector.freshness}</small>
         </aside>
       </section>
 
       {source.id === 'socure' ? (
-        <SocureWorkspace source={source} preview={preview} relatedTopics={relatedTopics} />
+        <SocureWorkspace workspace={workspace} relatedTopics={relatedTopics} />
       ) : (
-        <ConnectorWorkspace source={source} preview={preview} relatedTopics={relatedTopics} />
+        <ConnectorWorkspace workspace={workspace} relatedTopics={relatedTopics} />
       )}
     </div>
   )

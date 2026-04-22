@@ -1,19 +1,15 @@
 import EvidenceReceipt from '../components/console/EvidenceReceipt'
-import { productTopics, topicById } from '../fixtures/productTopics'
-import type { ProductTopic } from '../fixtures/productTopics'
+import { productTopics, starterTopics, topicById } from '../content/productTopics'
+import type { ProductTopic } from '../content/productTopics'
+import { workflowByTopicId } from '../content/productWorkflows'
+import type { ProductWorkflowModel } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
 
 type AskPageProps = {
   data: ConsolePayload | null
 }
 
-const fallbackQuestion = 'What should Product know before the next decision?'
-
-const starterQuestions = [
-  'Why did KYC conversion move this week?',
-  'Where are users getting stuck before first funding?',
-  'Which lifecycle messages are helping users finish onboarding?',
-]
+const fallbackQuestion = starterTopics[0]?.question ?? 'What should Product know before the next decision?'
 
 function sourceListForAsk(
   integrations: ConsoleIntegration[],
@@ -35,7 +31,20 @@ function sourceListForAsk(
   return integrations.filter((source) => ['metabase', 'posthog', 'klaviyo', 'jira'].includes(source.id))
 }
 
-function answerPoints(topic: ProductTopic | null, selectedSource: ConsoleIntegration | null): string[] {
+function answerPoints(
+  topic: ProductTopic | null,
+  workflow: ProductWorkflowModel | null,
+  selectedSource: ConsoleIntegration | null,
+): string[] {
+  if (topic && workflow) {
+    return [
+      `Current step: ${workflow.currentState.phase} -> ${workflow.currentState.step}. Jira currently reads ${workflow.currentState.jiraState}.`,
+      `Decision required next: ${workflow.nextDecision}`,
+      `Missing before movement: ${workflow.missing.slice(0, 2).join('; ')}`,
+      ...topic.signals.slice(0, 2).map((signal) => `${signal.label}: ${signal.value}. ${signal.detail}`),
+    ]
+  }
+
   if (topic) {
     return topic.signals.map((signal) => `${signal.label}: ${signal.value}. ${signal.detail}`)
   }
@@ -60,15 +69,17 @@ function AskPage({ data }: AskPageProps) {
   const query = searchParams.get('q') || fallbackQuestion
   const selectedSourceId = searchParams.get('source')
   const selectedTopic = topicById(searchParams.get('topic'))
+  const selectedWorkflow = workflowByTopicId(selectedTopic?.id ?? null)
   const integrations = data?.integrations ?? []
   const selectedSource = integrations.find((source) => source.id === selectedSourceId) ?? null
   const receiptSources = sourceListForAsk(integrations, selectedTopic, selectedSourceId)
   const gaps = selectedTopic?.gaps ?? []
+  const workflowQuestions = selectedWorkflow?.questionGroups ?? []
 
   return (
     <div className="page-grid ask-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <a href="/console#sources">Product Source Room</a>
+        <a href="/console">Product Source Room</a>
         <span aria-hidden="true">/</span>
         <span>Ask</span>
       </nav>
@@ -119,18 +130,51 @@ function AskPage({ data }: AskPageProps) {
         </div>
       </section>
 
+      {selectedWorkflow ? (
+        <section className="ask-workflow-panel panel">
+          <div className="section-heading inline">
+            <div>
+              <span className="eyebrow">Decision support</span>
+              <h2>Keep this answer anchored to process state.</h2>
+            </div>
+            <a className="button secondary" href={`/console/topics/${selectedWorkflow.topicId}`}>Open topic room</a>
+          </div>
+          <div className="ask-workflow-strip">
+            <div className="ask-workflow-card">
+              <span>Current step</span>
+              <strong>{selectedWorkflow.currentState.step}</strong>
+              <small>{selectedWorkflow.currentState.phase}</small>
+            </div>
+            <div className="ask-workflow-card">
+              <span>Next decision</span>
+              <strong>{selectedWorkflow.nextDecision}</strong>
+              <small>{selectedWorkflow.recommendation}</small>
+            </div>
+            <div className="ask-workflow-card">
+              <span>Missing</span>
+              <strong>{selectedWorkflow.missing[0]}</strong>
+              <small>
+                {selectedWorkflow.missing.length > 1
+                  ? `${selectedWorkflow.missing.length - 1} more workflow gaps still open.`
+                  : 'The main workflow gap is shown here.'}
+              </small>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="ask-answer-grid">
         <article className="ask-answer-panel panel">
           <span className="eyebrow">Evidence-backed starter answer</span>
           <h2>{query}</h2>
           <div className="answer-points">
-            {answerPoints(selectedTopic, selectedSource).map((point) => (
+            {answerPoints(selectedTopic, selectedWorkflow, selectedSource).map((point) => (
               <p key={point}>{point}</p>
             ))}
           </div>
           <div className="answer-actions">
             <a className="button primary" href="/console/generate/weekly-brief">Generate brief from this</a>
-            <a className="button secondary" href="/console#sources">Inspect sources</a>
+            <a className="button secondary" href="/console/integrations">Inspect sources</a>
           </div>
         </article>
         <EvidenceReceipt sources={receiptSources} gaps={gaps} />
@@ -140,16 +184,33 @@ function AskPage({ data }: AskPageProps) {
         <div className="section-heading inline">
           <div>
             <span className="eyebrow">Good starts</span>
-            <h2>Questions that map cleanly to evidence</h2>
+            <h2>{selectedWorkflow ? 'Decision questions this room should answer' : 'Questions that map cleanly to evidence'}</h2>
           </div>
         </div>
-        <div className="prompt-chips">
-          {starterQuestions.map((starter) => (
-            <a key={starter} href={`/console/knowledge/ask?q=${encodeURIComponent(starter)}`}>
-              {starter}
-            </a>
-          ))}
-        </div>
+        {selectedWorkflow ? (
+          <div className="workflow-question-groups ask-question-groups">
+            {workflowQuestions.map((group) => (
+              <div key={group.title} className="workflow-question-group">
+                <span>{group.title}</span>
+                <div className="prompt-chips">
+                  {group.questions.map((question) => (
+                    <a key={question} href={`/console/knowledge/ask?topic=${selectedWorkflow.topicId}&q=${encodeURIComponent(question)}`}>
+                      {question}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="prompt-chips">
+            {starterTopics.map((topic) => (
+              <a key={topic.id} href={`/console/knowledge/ask?topic=${topic.id}&q=${encodeURIComponent(topic.question)}`}>
+                {topic.question}
+              </a>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
