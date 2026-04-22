@@ -4,7 +4,7 @@ import {
   consoleDevelopmentSlice,
   shouldForceDevelopmentSlice,
   shouldUseDevelopmentSlice,
-} from '../fixtures/consoleDevelopmentSlice'
+} from '../content/consoleDevelopmentSlice'
 import type { ConsolePayload } from '../types/console'
 
 type UseConsoleDataResult = {

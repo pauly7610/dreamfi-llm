@@ -7,7 +7,8 @@ type GeneratePageProps = {
 
 function prettifyTemplateName(templateName: string): string {
   return templateName
-    .split('-')
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
 }

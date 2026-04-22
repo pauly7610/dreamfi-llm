@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react'
 
-import type { ProductTopic } from '../../fixtures/productTopics'
-import type { SourceDataPreview, SourceReviewCase } from '../../fixtures/sourceDataPreviews'
-import type { ConsoleIntegration } from '../../types/console'
+import type { ProductTopic } from '../../content/productTopics'
+import type { ConnectorWorkspacePayload, WorkspaceReviewCase } from '../../types/connectorWorkspace'
 
 type SocureWorkspaceProps = {
-  preview: SourceDataPreview
   relatedTopics: ProductTopic[]
-  source: ConsoleIntegration
+  workspace: ConnectorWorkspacePayload
 }
 
 type PromptSuggestion = {
@@ -17,14 +15,14 @@ type PromptSuggestion = {
 
 const PROMPT_LABELS = ['Triage', 'Explain', 'Escalate']
 
-function promptSuggestions(preview: SourceDataPreview): PromptSuggestion[] {
-  return preview.questions.slice(0, 3).map((question, index) => ({
+function promptSuggestions(workspace: ConnectorWorkspacePayload): PromptSuggestion[] {
+  return workspace.questions.slice(0, 3).map((question, index) => ({
     label: PROMPT_LABELS[index] ?? PROMPT_LABELS[PROMPT_LABELS.length - 1],
     question,
   }))
 }
 
-function caseStatusLabel(status: SourceReviewCase['status']): string {
+function caseStatusLabel(status: WorkspaceReviewCase['status']): string {
   switch (status) {
     case 'questionable':
       return 'Questionable'
@@ -35,9 +33,9 @@ function caseStatusLabel(status: SourceReviewCase['status']): string {
   }
 }
 
-function caseQuestion(reviewCase: SourceReviewCase | null, source: ConsoleIntegration, preview: SourceDataPreview): string {
+function caseQuestion(reviewCase: WorkspaceReviewCase | null, workspace: ConnectorWorkspacePayload): string {
   if (!reviewCase) {
-    return preview.questions[0] ?? `What should Product know from ${source.name}?`
+    return workspace.questions[0] ?? `What should Product know from ${workspace.connector.name}?`
   }
 
   if (reviewCase.status === 'stepped_up') {
@@ -51,32 +49,32 @@ function caseQuestion(reviewCase: SourceReviewCase | null, source: ConsoleIntegr
   return `Why did ${reviewCase.id} clear and what should Product learn from it?`
 }
 
-function helperLine(reviewCase: SourceReviewCase | null, preview: SourceDataPreview, focusTitle: string): string {
+function helperLine(reviewCase: WorkspaceReviewCase | null, workspace: ConnectorWorkspacePayload, focusTitle: string): string {
   if (!reviewCase) {
-    return `The current ${preview.primaryDataset.toLowerCase()} slice points first to ${focusTitle.toLowerCase()}.`
+    return `The current ${workspace.connector.primaryDataset.toLowerCase()} slice points first to ${focusTitle.toLowerCase()}.`
   }
 
   return `${reviewCase.id} is currently in ${reviewCase.stage.toLowerCase()}. The review is anchored on ${focusTitle.toLowerCase()}.`
 }
 
-function queueSubtitle(reviewCase: SourceReviewCase): string {
+function queueSubtitle(reviewCase: WorkspaceReviewCase): string {
   return `${reviewCase.stage} · ${reviewCase.updatedAt}`
 }
 
-function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProps) {
-  const reviewCases = preview.reviewCases ?? []
-  const suggestions = useMemo(() => promptSuggestions(preview), [preview])
+function SocureWorkspace({ relatedTopics, workspace }: SocureWorkspaceProps) {
+  const reviewCases = workspace.reviewCases ?? []
+  const suggestions = useMemo(() => promptSuggestions(workspace), [workspace])
   const [selectedCaseIndex, setSelectedCaseIndex] = useState(0)
 
   const activeCase = reviewCases[selectedCaseIndex] ?? reviewCases[0] ?? null
   const activeFocusIndex =
-    preview.rows.length > 0 ? (reviewCases.length > 0 ? selectedCaseIndex % preview.rows.length : 0) : 0
-  const activeSignal = preview.rows[activeFocusIndex] ?? preview.rows[0] ?? null
-  const activeInspect = preview.inspect[activeFocusIndex] ?? preview.inspect[0] ?? null
-  const initialQuestion = caseQuestion(activeCase, source, preview)
+    workspace.highlights.length > 0 ? (reviewCases.length > 0 ? selectedCaseIndex % workspace.highlights.length : 0) : 0
+  const activeSignal = workspace.highlights[activeFocusIndex] ?? workspace.highlights[0] ?? null
+  const activeInspect = workspace.inspect[activeFocusIndex] ?? workspace.inspect[0] ?? null
+  const initialQuestion = caseQuestion(activeCase, workspace)
   const [draftQuestion, setDraftQuestion] = useState(initialQuestion)
   const [submittedQuestion, setSubmittedQuestion] = useState(initialQuestion)
-  const activeWorkflows = preview.workflows.slice(0, 2)
+  const activeWorkflows = workspace.workflows.slice(0, 2)
 
   return (
     <section id="source-data" className="socure-workspace panel">
@@ -109,8 +107,8 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
         <aside className="socure-rail">
           <div className="socure-rail-section">
             <span className="eyebrow">Connector pull</span>
-            <strong>{preview.primaryDataset}</strong>
-            <p>{preview.freshness}</p>
+            <strong>{workspace.connector.primaryDataset}</strong>
+            <p>{workspace.connector.freshness}</p>
           </div>
 
           <div className="socure-rail-section">
@@ -125,7 +123,7 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
           <div className="socure-rail-section">
             <span className="eyebrow">Views in scope</span>
             <div className="socure-chip-stack">
-              {preview.views.map((view) => (
+              {workspace.views.map((view) => (
                 <span key={view} className="socure-chip">
                   {view}
                 </span>
@@ -166,7 +164,7 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
                   type="button"
                   className={selectedCaseIndex === index ? 'socure-queue-row active' : 'socure-queue-row'}
                   onClick={() => {
-                    const nextQuestion = caseQuestion(reviewCase, source, preview)
+                    const nextQuestion = caseQuestion(reviewCase, workspace)
                     setSelectedCaseIndex(index)
                     setDraftQuestion(nextQuestion)
                     setSubmittedQuestion(nextQuestion)
@@ -195,7 +193,7 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
             </div>
 
             <div className="socure-signal-table" aria-label="Socure decision overview">
-              {preview.rows.map((row, index) => (
+              {workspace.highlights.map((row, index) => (
                 <article key={row.label} className={activeFocusIndex === index ? 'socure-signal-row active' : 'socure-signal-row'}>
                   <div className="socure-signal-rank">{String(index + 1).padStart(2, '0')}</div>
                   <div className="socure-signal-copy">
@@ -219,7 +217,7 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
             </div>
 
             <div className="socure-explainability-list">
-              {preview.inspect.map((item, index) => (
+              {workspace.inspect.map((item, index) => (
                 <article
                   key={item.title}
                   className={activeFocusIndex === index ? 'socure-explainability-row active' : 'socure-explainability-row'}
@@ -230,8 +228,8 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
                     <p>{item.detail}</p>
                   </div>
                   <div className="socure-explainability-signal">
-                    <span>{preview.rows[index]?.label ?? preview.primaryDataset}</span>
-                    <b>{preview.rows[index]?.value ?? preview.primaryDataset}</b>
+                    <span>{workspace.highlights[index]?.label ?? workspace.connector.primaryDataset}</span>
+                    <b>{workspace.highlights[index]?.value ?? workspace.connector.primaryDataset}</b>
                   </div>
                 </article>
               ))}
@@ -287,7 +285,7 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
               </article>
               <article className="socure-message socure-message-assistant">
                 <span>DreamFi</span>
-                <p>{helperLine(activeCase, preview, activeInspect.title)}</p>
+                <p>{helperLine(activeCase, workspace, activeInspect.title)}</p>
                 <ul>
                   <li>
                     <strong>{activeCase.id}</strong>: {activeCase.detail}
@@ -325,9 +323,9 @@ function SocureWorkspace({ preview, relatedTopics, source }: SocureWorkspaceProp
               <button type="submit" className="button primary">
                 Run explainability
               </button>
-              {preview.workflows[0] ? (
-                <a className="button secondary" href={preview.workflows[0].href}>
-                  {preview.workflows[0].title}
+              {workspace.workflows[0] ? (
+                <a className="button secondary" href={workspace.workflows[0].href}>
+                  {workspace.workflows[0].title}
                 </a>
               ) : null}
             </div>

@@ -1,22 +1,17 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 type ConsoleShellProps = {
-  title: string
-  subtitle: string
   activePath: string
   children: ReactNode
 }
 
 const navItems = [
-  { href: '/console#sources', label: 'Sources' },
+  { href: '/console/integrations', label: 'Sources' },
   { href: '/console/trust', label: 'Trust' },
 ]
 
 function isActiveFor(activePath: string, href: string): boolean {
   const cleanHref = href.split('#')[0]
-  if (cleanHref === '/console') {
-    return activePath === '/console' || activePath.startsWith('/console/integrations')
-  }
   return activePath === cleanHref || activePath.startsWith(`${cleanHref}/`)
 }
 
@@ -28,7 +23,15 @@ function connectorIdForPath(activePath: string): string | null {
   return decodeURIComponent(segments[2])
 }
 
-function ConsoleShell({ title, subtitle, activePath, children }: ConsoleShellProps) {
+function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+}
+
+function ConsoleShell({ activePath, children }: ConsoleShellProps) {
   const connectorId = connectorIdForPath(activePath)
   const isConnectorDetail = connectorId !== null
   const shellClassName = [
@@ -39,15 +42,31 @@ function ConsoleShell({ title, subtitle, activePath, children }: ConsoleShellPro
     .filter(Boolean)
     .join(' ')
 
+  useEffect(() => {
+    function handleKeydown(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k' || shouldIgnoreShortcutTarget(event.target)) {
+        return
+      }
+
+      event.preventDefault()
+
+      if (window.location.pathname !== '/console/knowledge/ask') {
+        window.location.assign('/console/knowledge/ask')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeydown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown)
+    }
+  }, [])
+
   return (
     <div className={shellClassName}>
       <header className={`shell-header${isConnectorDetail ? ' shell-header-compact' : ''}`}>
         <a className="shell-brand shell-brand-link" href="/console" aria-label="DreamFi home">
-          <span className="brand-chip">{isConnectorDetail ? 'DreamFi layer' : 'DreamFi'}</span>
-          <div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
-          </div>
+          <span className="brand-chip">DreamFi</span>
         </a>
         <nav className="shell-nav" aria-label="Primary">
           {navItems.map((item) => (
@@ -62,8 +81,10 @@ function ConsoleShell({ title, subtitle, activePath, children }: ConsoleShellPro
           <a
             className={`shell-ask-button${activePath.startsWith('/console/knowledge/ask') ? ' active' : ''}`}
             href="/console/knowledge/ask"
+            aria-label="Ask from anywhere"
           >
-            Ask
+            <span>Ask</span>
+            <kbd className="shell-ask-shortcut" aria-hidden="true">⌘K</kbd>
           </a>
         </nav>
       </header>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ConsolePayload } from '../types/console'
@@ -117,7 +117,10 @@ describe('OperatorConsolePage', () => {
     render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
 
     expect(screen.getByRole('heading', { name: 'Ask across every product system. Get answers with evidence.' })).toBeTruthy()
-    expect(screen.getByText('Product connector space')).toBeTruthy()
+    expect(screen.getByText("What do you want to understand today? Start with a product question and I'll pull the right evidence.")).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'Start with a question' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ask DreamFi' })).toBeTruthy()
+    expect(screen.getByText('Browse the sources Product can inspect.')).toBeTruthy()
     expect(screen.getAllByLabelText('Jira connector').length).toBeGreaterThan(0)
     expect(screen.getAllByLabelText('PostHog connector').length).toBeGreaterThan(0)
     expect(screen.getByText('Planning + docs')).toBeTruthy()
@@ -138,21 +141,30 @@ describe('OperatorConsolePage', () => {
     expect(posthogLink?.textContent).toContain('View data')
     const sourcesMapped = screen.getByText('Mapped sources').closest('div')
     expect(sourcesMapped?.textContent).toContain('2')
+    expect(screen.getByRole('link', { name: /Mapped sources/i }).getAttribute('href')).toBe('/console/integrations')
+    expect(screen.getByRole('link', { name: /Needs review/i }).getAttribute('href')).toBe('/console/review')
+    expect(screen.getByRole('link', { name: /Hard gate pass/i }).getAttribute('href')).toBe('/console/trust')
   })
 
-  it('keeps creation actions prominent and leaves operator-only actions out of the main action center', () => {
+  it('lets starter questions drive the home chatbot composer', () => {
+    render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
+
+    const textarea = screen.getByRole('textbox', { name: 'Start with a question' }) as HTMLTextAreaElement
+
+    fireEvent.click(screen.getByRole('button', { name: 'Which lifecycle messages are helping users finish onboarding?' }))
+
+    expect(textarea.value).toBe('Which lifecycle messages are helping users finish onboarding?')
+    expect(screen.getByDisplayValue('lifecycle-messaging')).toBeTruthy()
+  })
+
+  it('keeps the home page focused on ask, topics, and sources', () => {
     const { container } = render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
 
-    expect(screen.getByText('Create from context')).toBeTruthy()
-    const actionCenter = container.querySelector('.action-center')
-
-    expect(actionCenter).toBeTruthy()
-
-    expect(within(actionCenter as HTMLElement).getByText('Run weekly PM brief')).toBeTruthy()
-    expect(within(actionCenter as HTMLElement).getByText('Create Technical PRD')).toBeTruthy()
-    expect(within(actionCenter as HTMLElement).getByText('Create Risk BRD')).toBeTruthy()
-    expect(within(actionCenter as HTMLElement).queryByText('Create Business PRD')).toBeNull()
-    expect(within(actionCenter as HTMLElement).queryByText('Review blocked artifacts')).toBeNull()
-    expect(within(actionCenter as HTMLElement).queryByText('Open trust dashboard')).toBeNull()
+    expect(container.querySelector('.action-center')).toBeNull()
+    expect(screen.queryByText('Create from context')).toBeNull()
+    expect(screen.queryByText('Quiet system pulse')).toBeNull()
+    expect(screen.queryByText('The machinery is still here, just not shouting.')).toBeNull()
+    expect(screen.getByText('Problem rooms')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open source directory' }).getAttribute('href')).toBe('/console/integrations')
   })
 })

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import type { SourceDataPreview } from '../../fixtures/sourceDataPreviews'
+import type { SourceDataPreview } from '../../content/sourceDataPreviews'
 import type { ConsoleIntegration } from '../../types/console'
 
 type SourceCopilotPanelProps = {

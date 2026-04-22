@@ -1,6 +1,6 @@
-import { productTopics } from '../../fixtures/productTopics'
+import { productTopics } from '../../content/productTopics'
 import type { ConsoleIntegration } from '../../types/console'
-import ConnectorIcon from './ConnectorLogo'
+import ConnectorLogo from './ConnectorLogo'
 
 type TopicRoomsPanelProps = {
   integrations: ConsoleIntegration[]
@@ -38,7 +38,7 @@ function TopicRoomsPanel({ integrations }: TopicRoomsPanelProps) {
               </span>
               <span className="topic-source-stack" aria-label={`${topic.title} sources`}>
                 {topicSources.map((source) => (
-                  <ConnectorIcon key={source.id} id={source.id} name={source.name} />
+                  <ConnectorLogo key={source.id} id={source.id} name={source.name} />
                 ))}
               </span>
               <b>Open room</b>

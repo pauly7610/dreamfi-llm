@@ -2,7 +2,7 @@ import type { CSSProperties, ReactElement } from 'react'
 import type { SimpleIcon } from 'simple-icons'
 import { siConfluence, siGoogleanalytics, siJira, siMetabase, siPosthog } from 'simple-icons'
 
-type ConnectorIconProps = {
+type ConnectorLogoProps = {
   id: string
   name: string
   size?: 'default' | 'large'
@@ -86,7 +86,7 @@ function ConnectorFallbackGlyph({ id }: { id: string }) {
   }
 }
 
-function ConnectorIcon({ id, name, size = 'default' }: ConnectorIconProps) {
+function ConnectorLogo({ id, name, size = 'default' }: ConnectorLogoProps) {
   const brandMark = brandMarkFor(id)
   const style = brandMark
     ? ({ '--connector-brand-color': `#${brandMark.hex}` } as CSSProperties)
@@ -103,4 +103,4 @@ function ConnectorIcon({ id, name, size = 'default' }: ConnectorIconProps) {
   )
 }
 
-export default ConnectorIcon
+export default ConnectorLogo

@@ -1,5 +1,5 @@
 import type { ConsoleIntegration } from '../../types/console'
-import ConnectorIcon from './ConnectorLogo'
+import ConnectorLogo from './ConnectorLogo'
 
 type EvidenceReceiptProps = {
   sources: ConsoleIntegration[]
@@ -24,7 +24,7 @@ function EvidenceReceipt({
       <div className="receipt-source-list">
         {sources.map((source) => (
           <a key={source.id} className="receipt-source" href={source.href}>
-            <ConnectorIcon id={source.id} name={source.name} />
+            <ConnectorLogo id={source.id} name={source.name} />
             <span>
               <strong>{source.name}</strong>
               <small>{source.status === 'connected' ? 'Live source' : 'Context available'}</small>

@@ -2,7 +2,7 @@
 import { cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { consoleDevelopmentSlice } from '../fixtures/consoleDevelopmentSlice'
+import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
 import useConsoleData from './useConsoleData'
 
 afterEach(() => {

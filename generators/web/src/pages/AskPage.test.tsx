@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { consoleDevelopmentSlice } from '../fixtures/consoleDevelopmentSlice'
+import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
 import AskPage from './AskPage'
 
 afterEach(() => {
@@ -16,13 +16,18 @@ describe('AskPage', () => {
 
     render(<AskPage data={consoleDevelopmentSlice} />)
 
+    expect(screen.getByRole('link', { name: 'Product Source Room' }).getAttribute('href')).toBe('/console')
     expect(screen.getByRole('heading', { name: 'Ask the company what it already knows.' })).toBeTruthy()
     expect(screen.getByDisplayValue('Why did KYC conversion move?')).toBeTruthy()
     expect(screen.getAllByText('KYC conversion').length).toBeGreaterThan(0)
+    expect(screen.getByText('Decision support')).toBeTruthy()
+    expect(screen.getByText('Current step')).toBeTruthy()
+    expect(screen.getByText('Should this move to Ready for Dev or stay blocked?')).toBeTruthy()
     expect(screen.getByText('Evidence receipt')).toBeTruthy()
     expect(screen.getByText('Metabase')).toBeTruthy()
     expect(screen.getByText('PostHog')).toBeTruthy()
     expect(screen.getByText('Known limits')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Inspect sources' }).getAttribute('href')).toBe('/console/integrations')
   })
 
   it('can scope an ask to a single source from source pages', () => {

@@ -1,8 +1,12 @@
-import ConnectorIcon from '../components/console/ConnectorLogo'
+import ConnectorCoveragePanel from '../components/console/ConnectorCoveragePanel'
+import ConnectorLogo from '../components/console/ConnectorLogo'
 import EvidenceReceipt from '../components/console/EvidenceReceipt'
-import { productTopics, topicById } from '../fixtures/productTopics'
-import type { ProductTopic } from '../fixtures/productTopics'
+import WorkflowSnapshotPanel from '../components/console/WorkflowSnapshotPanel'
+import { productTopics, topicById } from '../content/productTopics'
+import type { ProductTopic } from '../content/productTopics'
+import { workflowByTopicId } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
+import { generatorSlugFromIdentifier } from '../utils/consoleRoutes'
 
 type TopicRoomPageProps = {
   data: ConsolePayload | null
@@ -15,13 +19,25 @@ function sourcesForTopic(topic: ProductTopic, integrations: ConsoleIntegration[]
     .filter((source): source is ConsoleIntegration => Boolean(source))
 }
 
+function signalHref(sourceId?: string): string | null {
+  if (!sourceId) {
+    return null
+  }
+
+  return `/console/integrations/${sourceId}#source-data`
+}
+
+function metricHref(sourceId?: string): string | null {
+  return signalHref(sourceId)
+}
+
 function TopicDirectory({ data }: { data: ConsolePayload | null }) {
   const integrations = data?.integrations ?? []
 
   return (
     <div className="page-grid topic-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <a href="/console#sources">Product Source Room</a>
+        <a href="/console">Product Source Room</a>
         <span aria-hidden="true">/</span>
         <span>Topics</span>
       </nav>
@@ -44,7 +60,7 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
               </span>
               <span className="topic-source-stack" aria-label={`${topic.title} evidence sources`}>
                 {topicSources.map((source) => (
-                  <ConnectorIcon key={source.id} id={source.id} name={source.name} />
+                  <ConnectorLogo key={source.id} id={source.id} name={source.name} />
                 ))}
               </span>
               <b>Open room</b>
@@ -60,7 +76,7 @@ function TopicNotFound() {
   return (
     <div className="page-grid topic-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <a href="/console#sources">Product Source Room</a>
+        <a href="/console">Product Source Room</a>
         <span aria-hidden="true">/</span>
         <a href="/console/topics">Topics</a>
       </nav>
@@ -86,11 +102,12 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
 
   const integrations = data?.integrations ?? []
   const topicSources = sourcesForTopic(topic, integrations)
+  const workflow = workflowByTopicId(topic.id)
 
   return (
     <div className="page-grid topic-page">
       <nav className="breadcrumbs" aria-label="Breadcrumb">
-        <a href="/console#sources">Product Source Room</a>
+        <a href="/console">Product Source Room</a>
         <span aria-hidden="true">/</span>
         <a href="/console/topics">Topics</a>
         <span aria-hidden="true">/</span>
@@ -107,24 +124,78 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
           </a>
           <a className="button secondary" href="/console/generate/weekly-brief">Generate brief</a>
         </div>
+        <div className="topic-topline-strip" aria-label="Top line metrics">
+          {topic.toplineMetrics.map((metric) => {
+            const href = metricHref(metric.sourceId)
+            const content = (
+              <>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.detail}</small>
+              </>
+            )
+
+            if (!href) {
+              return (
+                <div key={metric.label} className="topic-topline-metric">
+                  {content}
+                </div>
+              )
+            }
+
+            return (
+              <a key={metric.label} className="topic-topline-metric topic-topline-link" href={href}>
+                {content}
+              </a>
+            )
+          })}
+        </div>
       </section>
 
-      <section className="topic-workspace-grid">
-        <article className="topic-signal-panel panel">
-          <span className="eyebrow">Current signals</span>
-          <h2>{topic.question}</h2>
-          <div className="topic-signal-list">
-            {topic.signals.map((signal) => (
-              <div key={signal.label} className="topic-signal-row">
+      {workflow ? (
+        <section className="topic-workflow-grid">
+          <WorkflowSnapshotPanel workflow={workflow} />
+          <div className="topic-evidence-rail">
+            <EvidenceReceipt sources={topicSources} gaps={topic.gaps} />
+            <ConnectorCoveragePanel workflow={workflow} integrations={integrations} />
+          </div>
+        </section>
+      ) : (
+        <section className="topic-workspace-grid">
+          <EvidenceReceipt sources={topicSources} gaps={topic.gaps} />
+        </section>
+      )}
+
+      <article className="topic-signal-panel panel">
+        <span className="eyebrow">Current signals</span>
+        <h2>{topic.question}</h2>
+        <div className="topic-signal-list">
+          {topic.signals.map((signal) => {
+            const href = signalHref(signal.sourceId)
+            const content = (
+              <>
                 <span>{signal.label}</span>
                 <strong>{signal.value}</strong>
                 <p>{signal.detail}</p>
-              </div>
-            ))}
-          </div>
-        </article>
-        <EvidenceReceipt sources={topicSources} gaps={topic.gaps} />
-      </section>
+              </>
+            )
+
+            if (!href) {
+              return (
+                <div key={signal.label} className="topic-signal-row">
+                  {content}
+                </div>
+              )
+            }
+
+            return (
+              <a key={signal.label} className="topic-signal-row topic-signal-link" href={href}>
+                {content}
+              </a>
+            )
+          })}
+        </div>
+      </article>
 
       <section className="topic-output-panel panel">
         <div>
@@ -133,7 +204,7 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
         </div>
         <div className="topic-output-list">
           {topic.artifacts.map((artifact) => (
-            <a key={artifact} href={`/console/generate/${artifact.toLowerCase().replace(/\s+/g, '-')}`}>
+            <a key={artifact} href={`/console/generate/${generatorSlugFromIdentifier(artifact)}`}>
               {artifact}
             </a>
           ))}
