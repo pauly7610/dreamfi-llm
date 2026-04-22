@@ -1,4 +1,6 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+
+import { navigateConsole } from '../../utils/consoleRoutes'
 
 type ConsoleShellProps = {
   activePath: string
@@ -34,6 +36,9 @@ function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
 function ConsoleShell({ activePath, children }: ConsoleShellProps) {
   const connectorId = connectorIdForPath(activePath)
   const isConnectorDetail = connectorId !== null
+  const [isAskOverlayOpen, setIsAskOverlayOpen] = useState(false)
+  const [commandQuestion, setCommandQuestion] = useState('')
+  const commandInputRef = useRef<HTMLTextAreaElement | null>(null)
   const shellClassName = [
     'console-shell',
     isConnectorDetail ? 'console-shell-source-detail' : '',
@@ -44,15 +49,18 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsAskOverlayOpen(false)
+        return
+      }
+
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k' || shouldIgnoreShortcutTarget(event.target)) {
         return
       }
 
       event.preventDefault()
-
-      if (window.location.pathname !== '/console/knowledge/ask') {
-        window.location.assign('/console/knowledge/ask')
-      }
+      setCommandQuestion('')
+      setIsAskOverlayOpen(true)
     }
 
     window.addEventListener('keydown', handleKeydown)
@@ -61,6 +69,21 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
       window.removeEventListener('keydown', handleKeydown)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isAskOverlayOpen) {
+      return
+    }
+
+    commandInputRef.current?.focus()
+  }, [isAskOverlayOpen])
+
+  function submitCommandQuestion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const href = `/console/knowledge/ask${commandQuestion.trim() ? `?q=${encodeURIComponent(commandQuestion.trim())}` : ''}`
+    setIsAskOverlayOpen(false)
+    navigateConsole(href)
+  }
 
   return (
     <div className={shellClassName}>
@@ -88,6 +111,34 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
           </a>
         </nav>
       </header>
+      {isAskOverlayOpen ? (
+        <div
+          className="ask-command-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ask DreamFi from anywhere"
+          onClick={() => setIsAskOverlayOpen(false)}
+        >
+          <form className="ask-command-dialog panel" onSubmit={submitCommandQuestion} onClick={(event) => event.stopPropagation()}>
+            <div className="ask-command-header">
+              <span className="eyebrow">Ask from anywhere</span>
+              <button type="button" className="button ghost" onClick={() => setIsAskOverlayOpen(false)}>Close</button>
+            </div>
+            <label htmlFor="shell-ask-command">Question</label>
+            <textarea
+              ref={commandInputRef}
+              id="shell-ask-command"
+              value={commandQuestion}
+              onChange={(event) => setCommandQuestion(event.target.value)}
+              placeholder="What changed since the last readiness review?"
+            />
+            <div className="ask-box-actions">
+              <button type="submit" className="button primary">Open Ask</button>
+              <small>Ask stays in product flow now, then opens the full answer view only when you submit.</small>
+            </div>
+          </form>
+        </div>
+      ) : null}
       <main className="console-main">{children}</main>
     </div>
   )

@@ -5,8 +5,8 @@ node_modules/
 /*.egg-info/
 /build/
 /dist/
+/generators/web/dist/
 .venv/
 .ruff_cache/
 dreamfi_local.db
 dreamfi_server.*.log
-

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import ConsoleShell from './ConsoleShell'
@@ -29,5 +29,18 @@ describe('ConsoleShell', () => {
     expect(screen.queryByText('Artifacts')).toBeNull()
     expect(screen.queryByText('Review')).toBeNull()
     expect(screen.queryByText('Product Source Room')).toBeNull()
+  })
+
+  it('opens an ask overlay for the keyboard shortcut instead of hard navigating immediately', () => {
+    render(
+      <ConsoleShell activePath="/console">
+        <div>Homepage body</div>
+      </ConsoleShell>,
+    )
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+
+    expect(screen.getByRole('dialog', { name: 'Ask DreamFi from anywhere' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open Ask' })).toBeTruthy()
   })
 })

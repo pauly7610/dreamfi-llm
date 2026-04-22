@@ -6,7 +6,7 @@ import { productTopics, topicById } from '../content/productTopics'
 import type { ProductTopic } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
-import { generatorSlugFromIdentifier } from '../utils/consoleRoutes'
+import { generatorHrefForContext, generatorSlugFromIdentifier } from '../utils/consoleRoutes'
 
 type TopicRoomPageProps = {
   data: ConsolePayload | null
@@ -122,7 +122,7 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
           <a className="button primary" href={`/console/knowledge/ask?topic=${topic.id}&q=${encodeURIComponent(topic.question)}`}>
             Ask about this topic
           </a>
-          <a className="button secondary" href="/console/generate/weekly-brief">Generate brief</a>
+          <a className="button secondary" href={generatorHrefForContext({ topicId: topic.id, query: topic.question })}>Generate from this topic</a>
         </div>
         <div className="topic-topline-strip" aria-label="Top line metrics">
           {topic.toplineMetrics.map((metric) => {

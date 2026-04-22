@@ -24,6 +24,24 @@ const consolePayload: ConsolePayload = {
     published_artifact_count: 4,
     needs_review_count: 0,
   },
+  context_changes: [
+    {
+      id: 'ctx-1',
+      title: 'ACT-412 moved back to in review',
+      summary: 'Sponsor wording is still missing from the onboarding checklist.',
+      href: '/console/topics/onboarding',
+      changed_at: '2026-04-21T15:10:00Z',
+      tone: 'watch',
+    },
+    {
+      id: 'ctx-2',
+      title: 'KYC completion dropped 4.1 points',
+      summary: 'Document upload friction is higher than it was on Sunday.',
+      href: '/console/topics/kyc-conversion',
+      changed_at: '2026-04-21T13:45:00Z',
+      tone: 'critical',
+    },
+  ],
   skills: [],
   artifact_queue: [
     {
@@ -142,8 +160,11 @@ describe('OperatorConsolePage', () => {
     const sourcesMapped = screen.getByText('Mapped sources').closest('div')
     expect(sourcesMapped?.textContent).toContain('2')
     expect(screen.getByRole('link', { name: /Mapped sources/i }).getAttribute('href')).toBe('/console/integrations')
-    expect(screen.getByRole('link', { name: /Needs review/i }).getAttribute('href')).toBe('/console/review')
-    expect(screen.getByRole('link', { name: /Hard gate pass/i }).getAttribute('href')).toBe('/console/trust')
+    expect(screen.getByRole('link', { name: /Changed yesterday/i }).getAttribute('href')).toBe('/console/topics/onboarding')
+    expect(screen.getByRole('link', { name: /Need attention/i }).getAttribute('href')).toBe('/console/integrations')
+    expect(screen.queryByRole('link', { name: /Open full Ask view/i })).toBeNull()
+    expect(screen.getByText('Since you were last here')).toBeTruthy()
+    expect(screen.getByText('ACT-412 moved back to in review')).toBeTruthy()
   })
 
   it('lets starter questions drive the home chatbot composer', () => {

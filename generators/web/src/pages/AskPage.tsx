@@ -1,9 +1,12 @@
+import { useEffect, useMemo, useState } from 'react'
+
 import EvidenceReceipt from '../components/console/EvidenceReceipt'
 import { productTopics, starterTopics, topicById } from '../content/productTopics'
 import type { ProductTopic } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ProductWorkflowModel } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
+import { buildAskHref, generatorHrefForContext, navigateConsole } from '../utils/consoleRoutes'
 
 type AskPageProps = {
   data: ConsolePayload | null
@@ -28,7 +31,7 @@ function sourceListForAsk(
     return source ? [source] : []
   }
 
-  return integrations.filter((source) => ['metabase', 'posthog', 'klaviyo', 'jira'].includes(source.id))
+  return []
 }
 
 function answerPoints(
@@ -40,7 +43,7 @@ function answerPoints(
     return [
       `Current step: ${workflow.currentState.phase} -> ${workflow.currentState.step}. Jira currently reads ${workflow.currentState.jiraState}.`,
       `Decision required next: ${workflow.nextDecision}`,
-      `Missing before movement: ${workflow.missing.slice(0, 2).join('; ')}`,
+      ...workflow.missing.slice(0, 2).map((item) => `Missing before movement: ${item}`),
       ...topic.signals.slice(0, 2).map((signal) => `${signal.label}: ${signal.value}. ${signal.detail}`),
     ]
   }
@@ -66,15 +69,54 @@ function answerPoints(
 
 function AskPage({ data }: AskPageProps) {
   const searchParams = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search)
-  const query = searchParams.get('q') || fallbackQuestion
-  const selectedSourceId = searchParams.get('source')
-  const selectedTopic = topicById(searchParams.get('topic'))
-  const selectedWorkflow = workflowByTopicId(selectedTopic?.id ?? null)
+  const initialQuery = searchParams.get('q') || fallbackQuestion
+  const initialSourceId = searchParams.get('source')
+  const initialTopicId = searchParams.get('topic')
+  const [draftQuestion, setDraftQuestion] = useState(initialQuery)
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(initialTopicId)
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(initialSourceId)
   const integrations = data?.integrations ?? []
+  const selectedTopic = topicById(selectedTopicId)
+  const selectedWorkflow = workflowByTopicId(selectedTopic?.id ?? null)
   const selectedSource = integrations.find((source) => source.id === selectedSourceId) ?? null
   const receiptSources = sourceListForAsk(integrations, selectedTopic, selectedSourceId)
   const gaps = selectedTopic?.gaps ?? []
   const workflowQuestions = selectedWorkflow?.questionGroups ?? []
+  const showReceipt = receiptSources.length > 0 || gaps.length > 0
+  const askHref = useMemo(() => {
+    const params = new URLSearchParams()
+    params.set('q', draftQuestion || fallbackQuestion)
+    if (selectedTopic) {
+      params.set('topic', selectedTopic.id)
+    }
+    if (selectedSourceId) {
+      params.set('source', selectedSourceId)
+    }
+    return `/console/knowledge/ask?${params.toString()}`
+  }, [draftQuestion, selectedSourceId, selectedTopic])
+  const generateHref = generatorHrefForContext({
+    topicId: selectedTopic?.id,
+    sourceId: selectedSourceId,
+    query: draftQuestion,
+  })
+
+  useEffect(() => {
+    setDraftQuestion(initialQuery)
+    setSelectedTopicId(initialTopicId)
+    setSelectedSourceId(initialSourceId)
+  }, [initialQuery, initialSourceId, initialTopicId])
+
+  function syncAskUrl(nextTopicId: string | null, nextQuestion: string, nextSourceId: string | null) {
+    const params = new URLSearchParams()
+    params.set('q', nextQuestion)
+    if (nextTopicId) {
+      params.set('topic', nextTopicId)
+    }
+    if (nextSourceId) {
+      params.set('source', nextSourceId)
+    }
+    navigateConsole(`/console/knowledge/ask?${params.toString()}`, true)
+  }
 
   return (
     <div className="page-grid ask-page">
@@ -93,9 +135,25 @@ function AskPage({ data }: AskPageProps) {
             help you turn the answer into real product work.
           </p>
         </div>
-        <form className="ask-box" action="/console/knowledge/ask">
+        <form
+          className="ask-box"
+          action="/console/knowledge/ask"
+          onSubmit={(event) => {
+            event.preventDefault()
+            navigateConsole(askHref)
+          }}
+        >
           <label htmlFor="ask-query">Question</label>
-          <textarea id="ask-query" name="q" defaultValue={query} />
+          <textarea
+            id="ask-query"
+            name="q"
+            value={draftQuestion}
+            onChange={(event) => {
+              const nextQuestion = event.target.value
+              setDraftQuestion(nextQuestion)
+              syncAskUrl(selectedTopic?.id ?? null, nextQuestion, selectedSourceId)
+            }}
+          />
           <div className="ask-box-actions">
             {selectedSourceId ? <input type="hidden" name="source" value={selectedSourceId} /> : null}
             {selectedTopic ? <input type="hidden" name="topic" value={selectedTopic.id} /> : null}
@@ -119,13 +177,19 @@ function AskPage({ data }: AskPageProps) {
         </div>
         <div className="scope-chip-list">
           {productTopics.map((topic) => (
-            <a
+            <button
               key={topic.id}
+              type="button"
               className={selectedTopic?.id === topic.id ? 'active' : ''}
-              href={`/console/knowledge/ask?topic=${topic.id}&q=${encodeURIComponent(topic.question)}`}
+              onClick={() => {
+                setSelectedTopicId(topic.id)
+                setSelectedSourceId(null)
+                setDraftQuestion(topic.question)
+                syncAskUrl(topic.id, topic.question, null)
+              }}
             >
               {topic.title}
-            </a>
+            </button>
           ))}
         </div>
       </section>
@@ -163,21 +227,21 @@ function AskPage({ data }: AskPageProps) {
         </section>
       ) : null}
 
-      <section className="ask-answer-grid">
+      <section className={`ask-answer-grid${showReceipt ? '' : ' no-receipt'}`}>
         <article className="ask-answer-panel panel">
           <span className="eyebrow">Evidence-backed starter answer</span>
-          <h2>{query}</h2>
+          <h2>{draftQuestion}</h2>
           <div className="answer-points">
             {answerPoints(selectedTopic, selectedWorkflow, selectedSource).map((point) => (
               <p key={point}>{point}</p>
             ))}
           </div>
           <div className="answer-actions">
-            <a className="button primary" href="/console/generate/weekly-brief">Generate brief from this</a>
+            <a className="button primary" href={generateHref}>Generate from this</a>
             <a className="button secondary" href="/console/integrations">Inspect sources</a>
           </div>
         </article>
-        <EvidenceReceipt sources={receiptSources} gaps={gaps} />
+        {showReceipt ? <EvidenceReceipt sources={receiptSources} gaps={gaps} /> : null}
       </section>
 
       <section className="starter-question-panel panel">
@@ -194,7 +258,7 @@ function AskPage({ data }: AskPageProps) {
                 <span>{group.title}</span>
                 <div className="prompt-chips">
                   {group.questions.map((question) => (
-                    <a key={question} href={`/console/knowledge/ask?topic=${selectedWorkflow.topicId}&q=${encodeURIComponent(question)}`}>
+                    <a key={question} href={buildAskHref(selectedWorkflow.topicId, question)}>
                       {question}
                     </a>
                   ))}
@@ -205,7 +269,7 @@ function AskPage({ data }: AskPageProps) {
         ) : (
           <div className="prompt-chips">
             {starterTopics.map((topic) => (
-              <a key={topic.id} href={`/console/knowledge/ask?topic=${topic.id}&q=${encodeURIComponent(topic.question)}`}>
+              <a key={topic.id} href={buildAskHref(topic.id, topic.question)}>
                 {topic.question}
               </a>
             ))}

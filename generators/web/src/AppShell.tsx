@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 import ConsoleShell from './components/console/ConsoleShell'
 import LoadingSkeleton from './components/console/LoadingSkeleton'
 import useConsoleData from './hooks/useConsoleData'
@@ -9,12 +11,11 @@ import ReviewPage from './pages/ReviewPage'
 import SourceDetailPage from './pages/SourceDetailPage'
 import TopicRoomPage from './pages/TopicRoomPage'
 import TrustPage from './pages/TrustPage'
-import { generatorSlugFromIdentifier } from './utils/consoleRoutes'
-
-function currentPath(): string {
-  const pathname = window.location.pathname.replace(/\/$/, '')
-  return pathname || '/console'
-}
+import {
+  currentConsoleLocation,
+  generatorHrefForContext,
+  generatorSlugFromIdentifier,
+} from './utils/consoleRoutes'
 
 export function normalizeLegacyPath(path: string): string {
   if (path === '/console/knowledge') {
@@ -33,7 +34,7 @@ export function normalizeLegacyPath(path: string): string {
     return '/console/topics/onboarding'
   }
   if (path === '/console/generators' || path.startsWith('/console/generators/')) {
-    return '/console/generate/weekly-brief'
+    return '/console/generate'
   }
   if (path.startsWith('/console/generate/')) {
     const segments = path.split('/').filter(Boolean)
@@ -47,7 +48,14 @@ export function normalizeLegacyPath(path: string): string {
   return path
 }
 
-function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'], loading: boolean, error: string | null, retry: () => void) {
+function renderPage(
+  path: string,
+  search: string,
+  data: ReturnType<typeof useConsoleData>['data'],
+  loading: boolean,
+  error: string | null,
+  retry: () => void,
+) {
   if (loading && !data) {
     return <LoadingSkeleton />
   }
@@ -60,8 +68,18 @@ function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'
   if (path.startsWith('/console/trust')) {
     return <TrustPage data={data} />
   }
-  if (path.startsWith('/console/generate')) {
-    const templateName = path.split('/').pop() || 'weekly-brief'
+  if (path === '/console/generate') {
+    const searchParams = new URLSearchParams(search)
+    const href = generatorHrefForContext({
+      topicId: searchParams.get('topic'),
+      sourceId: searchParams.get('source'),
+      query: searchParams.get('q'),
+    })
+    const templateName = href.split('/').pop() || 'technical-prd'
+    return <GeneratePage data={data} templateName={templateName} />
+  }
+  if (path.startsWith('/console/generate/')) {
+    const templateName = path.split('/').pop() || 'technical-prd'
     return <GeneratePage data={data} templateName={templateName} />
   }
   if (path.startsWith('/console/knowledge/ask')) {
@@ -79,17 +97,33 @@ function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'
 }
 
 function AppShell() {
-  const rawPath = currentPath()
-  const path = normalizeLegacyPath(rawPath)
+  const [locationState, setLocationState] = useState(() => currentConsoleLocation())
   const { data, loading, error, retry } = useConsoleData()
+  const rawPath = locationState.path
+  const search = locationState.search
+  const path = normalizeLegacyPath(rawPath)
+
+  useEffect(() => {
+    function syncLocation() {
+      setLocationState(currentConsoleLocation())
+    }
+
+    window.addEventListener('popstate', syncLocation)
+    window.addEventListener('console:navigate', syncLocation)
+
+    return () => {
+      window.removeEventListener('popstate', syncLocation)
+      window.removeEventListener('console:navigate', syncLocation)
+    }
+  }, [])
 
   if (path !== rawPath) {
-    window.history.replaceState(null, '', `${path}${window.location.search}${window.location.hash}`)
+    window.history.replaceState(null, '', `${path}${search}${window.location.hash}`)
   }
 
   return (
     <ConsoleShell activePath={path}>
-      {renderPage(path, data, loading, error, retry)}
+      {renderPage(path, search, data, loading, error, retry)}
     </ConsoleShell>
   )
 }

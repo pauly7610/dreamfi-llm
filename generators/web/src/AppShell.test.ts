@@ -8,7 +8,7 @@ describe('normalizeLegacyPath', () => {
     expect(normalizeLegacyPath('/console/planning')).toBe('/console/topics')
     expect(normalizeLegacyPath('/console/metrics')).toBe('/console/integrations/metabase')
     expect(normalizeLegacyPath('/console/ui-support')).toBe('/console/topics/onboarding')
-    expect(normalizeLegacyPath('/console/generators')).toBe('/console/generate/weekly-brief')
+    expect(normalizeLegacyPath('/console/generators')).toBe('/console/generate')
     expect(normalizeLegacyPath('/console/generate/technical_prd')).toBe('/console/generate/technical-prd')
     expect(normalizeLegacyPath('/console/generate/weekly-pm-brief')).toBe('/console/generate/weekly-brief')
   })

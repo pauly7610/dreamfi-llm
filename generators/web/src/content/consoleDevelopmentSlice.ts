@@ -17,6 +17,32 @@ export const consoleDevelopmentSlice: ConsolePayload = {
     published_artifact_count: 5,
     needs_review_count: 1,
   },
+  context_changes: [
+    {
+      id: 'change-act-412',
+      title: 'ACT-412 moved back to in review',
+      summary: 'The onboarding checklist still needs sponsor wording before Product can call it ready.',
+      href: '/console/topics/onboarding',
+      changed_at: '2026-04-21T15:10:00Z',
+      tone: 'watch',
+    },
+    {
+      id: 'change-kyc-drop',
+      title: 'KYC completion dropped 4.1 points',
+      summary: 'PostHog and Metabase both show more friction after document upload than they did on Sunday.',
+      href: '/console/topics/kyc-conversion',
+      changed_at: '2026-04-21T13:45:00Z',
+      tone: 'critical',
+    },
+    {
+      id: 'change-klaviyo-lift',
+      title: 'Reminder flow is outperforming holdout again',
+      summary: 'Lifecycle messaging is still helping onboarding finish rates, but attribution needs one more pass.',
+      href: '/console/topics/lifecycle-messaging',
+      changed_at: '2026-04-21T11:20:00Z',
+      tone: 'neutral',
+    },
+  ],
   skills: [
     {
       skill_id: 'technical_prd',

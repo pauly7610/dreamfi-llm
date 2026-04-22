@@ -376,6 +376,46 @@ button {
   margin-top: 20px;
 }
 
+.context-change-strip {
+  display: grid;
+  gap: 14px;
+}
+
+.context-change-list {
+  display: grid;
+  gap: 10px;
+}
+
+.context-change-row {
+  display: grid;
+  gap: 5px;
+  padding: 15px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(74, 88, 108, 0.12);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.context-change-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 159, 154, 0.22);
+}
+
+.context-change-row p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.context-change-row.watch {
+  border-color: rgba(255, 191, 71, 0.24);
+}
+
+.context-change-row.critical {
+  border-color: rgba(230, 84, 84, 0.18);
+}
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -398,6 +438,12 @@ button {
   border-color: rgba(15, 159, 154, 0.2);
   background: rgba(255, 255, 255, 0.64);
   color: var(--teal-dark);
+}
+
+.button.ghost {
+  border-color: rgba(74, 88, 108, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
 }
 
 .error-banner {
@@ -1007,7 +1053,8 @@ button {
   gap: 8px;
 }
 
-.scope-chip-list a {
+.scope-chip-list a,
+.scope-chip-list button {
   padding: 8px 11px;
   border-radius: 999px;
   border: 1px solid rgba(15, 159, 154, 0.14);
@@ -1015,10 +1062,13 @@ button {
   color: var(--teal-dark);
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .scope-chip-list a.active,
-.scope-chip-list a:hover {
+.scope-chip-list a:hover,
+.scope-chip-list button.active,
+.scope-chip-list button:hover {
   background: rgba(15, 159, 154, 0.1);
 }
 
@@ -1028,6 +1078,10 @@ button {
   grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
   gap: 16px;
   align-items: start;
+}
+
+.ask-answer-grid.no-receipt {
+  grid-template-columns: 1fr;
 }
 
 .answer-points {
@@ -4137,6 +4191,60 @@ button {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.ask-command-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: start center;
+  padding: 84px 20px 20px;
+  background: rgba(19, 24, 33, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.ask-command-dialog {
+  width: min(720px, 100%);
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 28px 90px rgba(17, 24, 39, 0.18);
+}
+
+.ask-command-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ask-command-dialog label {
+  color: var(--teal-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ask-command-dialog textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 250, 240, 0.88);
+  color: var(--ink);
+  outline: none;
+}
+
+.ask-command-dialog textarea:focus {
+  border-color: rgba(15, 159, 154, 0.4);
+  box-shadow: 0 0 0 4px rgba(15, 159, 154, 0.08);
+}
+
+.ask-command-dialog small {
+  color: var(--subtle);
 }
 
 .console-shell-source-detail {

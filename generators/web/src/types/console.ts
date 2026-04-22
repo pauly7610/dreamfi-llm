@@ -74,6 +74,15 @@ export type QuickAction = {
   kind: 'primary' | 'secondary'
 }
 
+export type ConsoleContextChange = {
+  id: string
+  title: string
+  summary: string
+  href: string
+  changed_at: string
+  tone: 'neutral' | 'watch' | 'critical'
+}
+
 export type ConsoleDomainHealth = {
   domain: 'planning' | 'metrics' | 'generation' | 'publish'
   trust_score: number | null
@@ -107,6 +116,7 @@ export type ConsoleIntegration = {
 export type ConsolePayload = {
   headline: string
   summary: ConsoleSummary
+  context_changes?: ConsoleContextChange[]
   skills: SkillCard[]
   artifact_queue: ArtifactRecord[]
   publish_activity: PublishActivity[]

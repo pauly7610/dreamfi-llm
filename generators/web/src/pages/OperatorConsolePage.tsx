@@ -3,7 +3,6 @@ import { useState } from 'react'
 import IntegrationsPanel from '../components/console/IntegrationsPanel'
 import LoadingSkeleton from '../components/console/LoadingSkeleton'
 import TopicRoomsPanel from '../components/console/TopicRoomsPanel'
-import { formatPercent } from '../components/console/formatters'
 import { starterTopics } from '../content/productTopics'
 import type { ConsolePayload } from '../types/console'
 
@@ -15,14 +14,19 @@ type OperatorConsolePageProps = {
 }
 
 function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePageProps) {
+  const defaultQuestion = starterTopics[0]?.question ?? 'What should Product know before the next decision?'
+  const [draftQuestion, setDraftQuestion] = useState(defaultQuestion)
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+
   if (loading && !data) {
     return <LoadingSkeleton />
   }
 
-  const defaultQuestion = starterTopics[0]?.question ?? 'What should Product know before the next decision?'
-  const [draftQuestion, setDraftQuestion] = useState(defaultQuestion)
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
   const integrations = data?.integrations ?? []
+  const recentChanges = (data?.context_changes ?? []).slice(0, 2)
+  const changedRecentlyCount = data?.context_changes?.length ?? 0
+  const connectedCount = integrations.filter((integration) => integration.status === 'connected').length
+  const attentionCount = integrations.filter((integration) => integration.status === 'degraded').length
   const roomLinks = [
     {
       label: 'Mapped sources',
@@ -31,22 +35,22 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
       href: '/console/integrations',
     },
     {
-      label: 'Hard gate pass',
-      value: formatPercent(data?.summary.hard_gate_pass_rate),
-      note: 'Open trust',
-      href: '/console/trust',
+      label: 'Changed yesterday',
+      value: String(changedRecentlyCount || '0'),
+      note: 'Open latest changes',
+      href: recentChanges[0]?.href ?? '/console/topics',
     },
     {
-      label: 'Needs review',
-      value: String(data?.summary.needs_review_count ?? '—'),
-      note: 'Open review',
-      href: '/console/review',
+      label: 'Connected live',
+      value: String(connectedCount || '0'),
+      note: 'Open sources',
+      href: '/console/integrations',
     },
     {
-      label: 'Eval skills',
-      value: String(data?.summary.skill_count ?? '—'),
-      note: 'See coverage',
-      href: '/console/trust',
+      label: 'Need attention',
+      value: String(attentionCount || '0'),
+      note: 'Check source health',
+      href: '/console/integrations',
     },
   ]
 
@@ -106,11 +110,6 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
               ))}
             </div>
           </div>
-          <div className="hero-actions">
-            <a className="button secondary" href="/console/knowledge/ask">Open full Ask view</a>
-            <a className="button secondary" href="/console/topics">Open topic rooms</a>
-            <a className="button secondary" href="#sources">Browse connectors</a>
-          </div>
           {error ? (
             <div className="error-banner">
               <span>{error}</span>
@@ -135,6 +134,25 @@ function OperatorConsolePage({ data, loading, error, retry }: OperatorConsolePag
           </p>
         </aside>
       </section>
+
+      {recentChanges.length > 0 ? (
+        <section className="context-change-strip panel" aria-label="Since you were last here">
+          <div className="section-heading inline">
+            <div>
+              <span className="eyebrow">Since you were last here</span>
+              <h2>Pick up from the changes that matter.</h2>
+            </div>
+          </div>
+          <div className="context-change-list">
+            {recentChanges.map((change) => (
+              <a key={change.id} className={`context-change-row ${change.tone}`} href={change.href}>
+                <strong>{change.title}</strong>
+                <p>{change.summary}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <TopicRoomsPanel integrations={integrations} />
 
