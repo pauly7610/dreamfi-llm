@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
-from dreamfi.db.models import EvalRound, PromptVersion, Skill
+from dreamfi.db.models import EvalOutput, EvalRound, GoldDriftEvent, PromptVersion, Skill
 from dreamfi.evals.loader import parse_eval_template
 from dreamfi.skills.engine import SkillEngine
 from dreamfi.skills.registry import load_registry
@@ -27,6 +27,73 @@ class RoundSummary:
     previous_score: float | None
     improvement: float | None
     artifacts_path: str
+
+
+def _label_passed_any(outputs: list[EvalOutput]) -> dict[str, str]:
+    """Collapse per-attempt results to a label-level {label: pass|fail} map.
+
+    A label is considered 'pass' if at least one attempt passed in that round.
+    """
+    by_label: dict[str, str] = {}
+    for out in outputs:
+        prev = by_label.get(out.test_input_label)
+        if prev == "pass":
+            continue
+        by_label[out.test_input_label] = "pass" if out.pass_fail == "pass" else "fail"
+    return by_label
+
+
+def _prior_round(session: Session, *, skill_id: str, exclude_round_id: str) -> EvalRound | None:
+    """Most recent completed round for this skill other than the given one."""
+    stmt = (
+        select(EvalRound)
+        .where(
+            EvalRound.skill_id == skill_id,
+            EvalRound.round_id != exclude_round_id,
+            EvalRound.completed_at.is_not(None),
+        )
+        .order_by(desc(EvalRound.completed_at))
+        .limit(1)
+    )
+    return session.scalar(stmt)
+
+
+def _emit_drift_events(
+    session: Session, *, round_row: EvalRound, prompt_version_id: str
+) -> list[GoldDriftEvent]:
+    """Write GoldDriftEvent rows for labels that went pass → fail vs the prior round."""
+    prior = _prior_round(session, skill_id=round_row.skill_id, exclude_round_id=round_row.round_id)
+    if prior is None:
+        return []
+
+    prev_outputs = list(
+        session.scalars(select(EvalOutput).where(EvalOutput.round_id == prior.round_id))
+    )
+    new_outputs = list(
+        session.scalars(select(EvalOutput).where(EvalOutput.round_id == round_row.round_id))
+    )
+    previous = _label_passed_any(prev_outputs)
+    new = _label_passed_any(new_outputs)
+
+    events: list[GoldDriftEvent] = []
+    for label, new_result in new.items():
+        prev_result = previous.get(label)
+        if prev_result == "pass" and new_result == "fail":
+            ev = GoldDriftEvent(
+                workspace_id="",
+                skill_id=round_row.skill_id,
+                # No FK on gold_id — we use the label as the drift key.
+                gold_id=label,
+                prompt_version_id=prompt_version_id,
+                previous_result="pass",
+                new_result="fail",
+                round_id=round_row.round_id,
+            )
+            session.add(ev)
+            events.append(ev)
+    if events:
+        session.flush()
+    return events
 
 
 def _prev_active_score(session: Session, skill_id: str) -> float | None:
@@ -158,6 +225,8 @@ def run_round(
 
     round_row.completed_at = datetime.now(timezone.utc)
     session.flush()
+
+    _emit_drift_events(session, round_row=round_row, prompt_version_id=prompt_version_id)
 
     # Append to changelog
     skill_dir = artifacts.parent.parent  # evals/results/<skill>/

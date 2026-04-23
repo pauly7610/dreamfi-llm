@@ -145,6 +145,240 @@ class OnyxDocumentMap(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
 
 
+class ContextBundleRow(Base):
+    __tablename__ = "context_bundles"
+
+    bundle_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic: Mapped[str] = mapped_column(Text, nullable=False)
+    topic_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+    refreshed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now, index=True
+    )
+    ttl_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
+    freshness_score: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    coverage_score: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+
+    sources: Mapped[list[ContextSourceRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    entities: Mapped[list[ContextEntityRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    claims: Mapped[list[ContextClaimRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    open_questions: Mapped[list[OpenQuestionRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+
+
+class ContextSourceRow(Base):
+    __tablename__ = "context_sources"
+
+    source_row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    source_type: Mapped[str] = mapped_column(String, nullable=False)
+    source_id: Mapped[str] = mapped_column(String, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String, nullable=False)
+    raw_ref: Mapped[str] = mapped_column(Text, nullable=False)
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="sources")
+
+
+class ContextEntityRow(Base):
+    __tablename__ = "context_entities"
+
+    entity_row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    entity_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    canonical_name: Mapped[str] = mapped_column(Text, nullable=False)
+    relationships_json: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="entities")
+
+
+class ContextClaimRow(Base):
+    __tablename__ = "context_claims"
+
+    claim_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    sot_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    citation_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    confidence: Mapped[Decimal] = mapped_column(Numeric(4, 3), nullable=False, default=Decimal("0"))
+    last_verified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="claims")
+
+
+class OpenQuestionRow(Base):
+    __tablename__ = "open_questions"
+
+    question_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    why_open: Mapped[str] = mapped_column(String, nullable=False)
+    suggested_owner: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="open_questions")
+
+
+class ContextQuestionRow(Base):
+    """Memory layer (C7) — every Ask call writes a row so repeat questions can
+    surface prior answers."""
+
+    __tablename__ = "context_questions"
+
+    question_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    asker: Mapped[str] = mapped_column(String, nullable=False, default="")
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    question_norm: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    answer_excerpt: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    tokens_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    asked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class ContextChangeRow(Base):
+    """C6 — diff event emitted by the watcher when a bundle refreshed and
+    something material changed."""
+
+    __tablename__ = "context_changes"
+
+    change_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    topic_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_type: Mapped[str] = mapped_column(String, nullable=False)  # claim_added/removed/source_lost/question_resolved
+    detail: Mapped[str] = mapped_column(Text, nullable=False)
+    old_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    new_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class MetricCatalogRow(Base):
+    """T2' — source-of-truth metric catalog."""
+
+    __tablename__ = "metric_catalog"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "metric_id", name="uq_metric_catalog_ws_metric"
+        ),
+    )
+
+    row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    metric_id: Mapped[str] = mapped_column(String, nullable=False)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    definition: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    owner: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_systems_json: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
+
+
+class MetricSnapshotRow(Base):
+    """T2' — point-in-time metric reading; enables discrepancy checks."""
+
+    __tablename__ = "metric_snapshots"
+
+    snapshot_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    metric_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    source_system: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    value: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class TopicRow(Base):
+    """Canonical topic node in the Topic Graph (C5)."""
+
+    __tablename__ = "topics"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "canonical_name", "type", name="uq_topics_ws_name_type"
+        ),
+    )
+
+    topic_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    canonical_name: Mapped[str] = mapped_column(String, nullable=False)
+    attributes_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+    aliases: Mapped[list[TopicAliasRow]] = relationship(
+        back_populates="topic", cascade="all, delete-orphan"
+    )
+
+
+class TopicAliasRow(Base):
+    __tablename__ = "topic_aliases"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "alias_norm", name="uq_topic_aliases_ws_norm"),
+    )
+
+    alias_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    alias: Mapped[str] = mapped_column(String, nullable=False)
+    alias_norm: Mapped[str] = mapped_column(String, nullable=False)
+
+    topic: Mapped[TopicRow] = relationship(back_populates="aliases")
+
+
+class TopicRelationRow(Base):
+    __tablename__ = "topic_relations"
+
+    relation_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    from_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    to_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    relation_type: Mapped[str] = mapped_column(String, nullable=False)
+    confidence: Mapped[Decimal] = mapped_column(
+        Numeric(4, 3), nullable=False, default=Decimal("1.000")
+    )
+    source_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class GoldDriftEvent(Base):
     __tablename__ = "gold_drift_events"
 
@@ -161,14 +395,26 @@ class GoldDriftEvent(Base):
 
 __all__ = [
     "Base",
+    "ContextBundleRow",
+    "ContextChangeRow",
+    "ContextClaimRow",
+    "ContextEntityRow",
+    "ContextQuestionRow",
+    "ContextSourceRow",
+    "MetricCatalogRow",
+    "MetricSnapshotRow",
     "EvalOutput",
     "EvalRound",
     "GoldDriftEvent",
     "GoldExample",
     "GoldRole",
     "OnyxDocumentMap",
+    "OpenQuestionRow",
     "PromptVersion",
     "PublishLog",
     "ResultStatus",
     "Skill",
+    "TopicAliasRow",
+    "TopicRelationRow",
+    "TopicRow",
 ]

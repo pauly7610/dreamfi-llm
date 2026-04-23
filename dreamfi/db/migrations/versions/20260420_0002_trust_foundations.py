@@ -5,6 +5,8 @@ Revises: 20260419_0001
 Create Date: 2026-04-20
 """
 
+from typing import Any
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
@@ -17,16 +19,16 @@ depends_on = None
 
 
 def _dialect_name() -> str:
-    return op.get_bind().dialect.name
+    return str(op.get_bind().dialect.name)
 
 
-def _json_type():
+def _json_type() -> Any:
     if _dialect_name() == "postgresql":
-        return postgresql.JSONB(astext_type=sa.Text())
+        return postgresql.JSONB(astext_type=sa.Text())  # type: ignore[no-untyped-call]
     return sa.JSON()
 
 
-def _id_type():
+def _id_type() -> Any:
     if _dialect_name() == "postgresql":
         return postgresql.UUID(as_uuid=False)
     return sa.String()

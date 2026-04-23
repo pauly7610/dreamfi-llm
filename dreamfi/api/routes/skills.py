@@ -10,8 +10,8 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session
-from dreamfi.db.models import EvalRound, PromptVersion, Skill
-from dreamfi.promotion.gate import PromotionGate
+from dreamfi.db.models import EvalRound, GoldDriftEvent, PromptVersion, Skill
+from dreamfi.promotion.gate import GoldResult, PromotionGate
 
 router = APIRouter()
 
@@ -76,8 +76,19 @@ def promote(
         if previous_round is not None:
             previous_score = float(previous_round.score)
 
+    drift_rows = list(
+        session.scalars(
+            select(GoldDriftEvent).where(GoldDriftEvent.round_id == target_round.round_id)
+        )
+    )
+    regression_failures = [
+        GoldResult(gold_id=r.gold_id, prev="pass", new="fail") for r in drift_rows
+    ]
+
     decision = PromotionGate().decide(
-        new_score=float(target_round.score), previous_score=previous_score
+        new_score=float(target_round.score),
+        previous_score=previous_score,
+        regression_failures=regression_failures,
     )
     if not decision.promotable:
         raise HTTPException(status_code=409, detail=decision.reason)
