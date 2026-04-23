@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
@@ -477,6 +477,11 @@ def _resolve_asset_path(asset_path: str) -> Path:
     if not candidate.exists() or not candidate.is_file():
         raise HTTPException(status_code=404, detail="asset not found")
     return candidate
+
+
+@router.get("/")
+def root_redirect() -> RedirectResponse:
+    return RedirectResponse(url="/console", status_code=307)
 
 
 @router.get("/api/console")
