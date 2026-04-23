@@ -53,6 +53,7 @@ export function isKnownConsoleHref(href: string): boolean {
     path === '/console/artifacts' ||
     path === '/console/review' ||
     path === '/console/trust' ||
+    path === '/console/methodology' ||
     path === '/console/knowledge/ask' ||
     path === '/console/topics' ||
     path.startsWith('/console/topics/') ||

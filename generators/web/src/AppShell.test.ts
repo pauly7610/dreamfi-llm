@@ -15,6 +15,7 @@ describe('normalizeLegacyPath', () => {
 
   it('leaves current routes alone', () => {
     expect(normalizeLegacyPath('/console')).toBe('/console')
+    expect(normalizeLegacyPath('/console/methodology')).toBe('/console/methodology')
     expect(normalizeLegacyPath('/console/knowledge/ask')).toBe('/console/knowledge/ask')
     expect(normalizeLegacyPath('/console/integrations/posthog')).toBe('/console/integrations/posthog')
   })

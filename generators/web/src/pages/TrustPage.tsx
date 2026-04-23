@@ -54,9 +54,12 @@ function TrustPage({ data }: TrustPageProps) {
       />
       <section className="split-grid">
         <section className="panel methodology-panel">
-          <div className="section-heading">
-            <span className="eyebrow">Methodology</span>
-            <h2>How DreamFi works</h2>
+          <div className="section-heading inline">
+            <div>
+              <span className="eyebrow">Methodology</span>
+              <h2>How DreamFi works</h2>
+            </div>
+            <a className="text-link" href="/console/methodology">Open full methodology</a>
           </div>
           <ul className="detail-list">
             {methodologyPoints.map((item) => (

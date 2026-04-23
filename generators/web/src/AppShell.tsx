@@ -4,6 +4,7 @@ import useConsoleData from './hooks/useConsoleData'
 import AskPage from './pages/AskPage'
 import ArtifactsPage from './pages/ArtifactsPage'
 import GeneratePage from './pages/GeneratePage'
+import MethodologyPage from './pages/MethodologyPage'
 import OperatorConsolePage from './pages/OperatorConsolePage'
 import ReviewPage from './pages/ReviewPage'
 import SourceDetailPage from './pages/SourceDetailPage'
@@ -59,6 +60,9 @@ function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'
   }
   if (path.startsWith('/console/trust')) {
     return <TrustPage data={data} />
+  }
+  if (path.startsWith('/console/methodology')) {
+    return <MethodologyPage />
   }
   if (path.startsWith('/console/generate')) {
     const templateName = path.split('/').pop() || 'weekly-brief'
