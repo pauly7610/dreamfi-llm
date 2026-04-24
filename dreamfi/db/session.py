@@ -11,7 +11,7 @@ from dreamfi.config import get_settings
 
 
 def make_engine(url: str | None = None) -> Engine:
-    return create_engine(url or get_settings().database_url, future=True)
+    return create_engine(url or get_settings().resolved_database_url, future=True)
 
 
 _engine: Engine | None = None
