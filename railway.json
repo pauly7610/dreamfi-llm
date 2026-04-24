@@ -5,7 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'alembic upgrade head && uvicorn dreamfi.api.app:app --host 0.0.0.0 --port ${PORT:-5001}'",
     "healthcheckPath": "/ready",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
