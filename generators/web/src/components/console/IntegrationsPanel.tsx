@@ -77,13 +77,15 @@ function IntegrationsPanel({
 
   return (
     <section id="sources" className="integrations-panel panel">
-      <div className="section-heading inline">
-        <div>
+      <div className="section-heading inline integrations-panel-header">
+        <div className="integrations-panel-copy">
           <span className="eyebrow">Integrations</span>
           <h2>{title}</h2>
           <p className="section-subtle">{description}</p>
         </div>
-        <a className="text-link" href="/console/integrations">Open source directory</a>
+        <a className="text-link integrations-panel-cta" href="/console/integrations">
+          Open source directory
+        </a>
       </div>
       <div className="source-choice-strip" aria-label="How to use the source room">
         <span>
