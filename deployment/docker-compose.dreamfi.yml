@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: deployment/Dockerfile
+      dockerfile: Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://dreamfi:dreamfi@postgres:5432/dreamfi
       ONYX_BASE_URL: ${ONYX_BASE_URL:-http://host.docker.internal:8080}

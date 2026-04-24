@@ -16,4 +16,4 @@ RUN pip install -U pip && pip install .
 
 EXPOSE 5001
 
-CMD ["sh", "-c", "uvicorn dreamfi.api.app:app --host 0.0.0.0 --port ${PORT:-5001}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn dreamfi.api.app:app --host 0.0.0.0 --port ${PORT:-5001}"]
