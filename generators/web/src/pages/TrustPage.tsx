@@ -1,6 +1,8 @@
 import DomainHealthGrid from '../components/console/DomainHealthGrid'
+import LivePulsePanel from '../components/console/LivePulsePanel'
 import IntegrationsPanel from '../components/console/IntegrationsPanel'
 import SkillSnapshot from '../components/console/SkillSnapshot'
+import TrustActionRail from '../components/console/TrustActionRail'
 import type { ConsolePayload } from '../types/console'
 
 const methodologyPoints = [
@@ -39,6 +41,80 @@ type TrustPageProps = {
 }
 
 function TrustPage({ data }: TrustPageProps) {
+  const latestAlert = data?.alerts[0] ?? null
+  const latestArtifact = data?.artifact_queue[0] ?? null
+  const latestPublish = data?.publish_activity[0] ?? null
+  const degradedSource = (data?.integrations ?? []).find((integration) => integration.status === 'degraded') ?? null
+  const livePulseItems = [
+    latestAlert
+      ? {
+          label: 'Alert',
+          value: latestAlert.title,
+          detail: latestAlert.message,
+          href: latestAlert.href ?? '/console/trust',
+          hrefLabel: latestAlert.href ? 'Open issue' : 'Stay here',
+        }
+      : null,
+    latestArtifact
+      ? {
+          label: 'Draft state',
+          value: latestArtifact.test_input_label,
+          detail: `${latestArtifact.skill_display_name ?? 'Artifact'} is ${latestArtifact.status.replace('_', ' ')} with confidence ${latestArtifact.confidence ?? '--'}.`,
+          href: '/console/review',
+          hrefLabel: 'Open review',
+        }
+      : null,
+    latestPublish
+      ? {
+          label: 'Latest publish',
+          value: latestPublish.destination_ref ?? latestPublish.destination,
+          detail: `DreamFi most recently ${latestPublish.decision} work into the shared product system.`,
+          href: '/console/methodology',
+          hrefLabel: 'Open methodology',
+        }
+      : null,
+    degradedSource
+      ? {
+          label: 'Connector risk',
+          value: degradedSource.name,
+          detail: 'The current trust posture is being shaped by an unhealthy source connector.',
+          href: degradedSource.href,
+          hrefLabel: 'Inspect source',
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
+  const trustActions = [
+    latestAlert?.href
+      ? {
+          title: latestAlert.title,
+          detail: latestAlert.message,
+          href: latestAlert.href,
+          hrefLabel: 'Resolve from source',
+          tone: (latestAlert.severity === 'warning' || latestAlert.severity === 'critical' ? 'warning' : 'info') as
+            | 'warning'
+            | 'info',
+        }
+      : null,
+    degradedSource
+      ? {
+          title: `Inspect ${degradedSource.name}`,
+          detail: 'The trust surface should link directly into the connector that is shaping the current caveat.',
+          href: degradedSource.href,
+          hrefLabel: 'Open connector',
+          tone: 'warning' as const,
+        }
+      : null,
+    latestArtifact
+      ? {
+          title: 'Review the latest governed draft',
+          detail: 'Trust should point straight at the draft that most needs a decision, not just summarize the queue.',
+          href: '/console/review',
+          hrefLabel: 'Open review queue',
+          tone: 'ready' as const,
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
+
   return (
     <div className="page-grid">
       <section className="panel page-intro">
@@ -46,6 +122,16 @@ function TrustPage({ data }: TrustPageProps) {
         <h2>Why work is healthy vs risky</h2>
         <p>See the live trust surfaces and the system mechanics behind grounding, evaluation, reconstruction, and publish safety.</p>
       </section>
+      <LivePulsePanel
+        title="Trust should feel live, not archival"
+        description="These signals tie the trust model back to the current product world so the page feels operational instead of purely descriptive."
+        items={livePulseItems}
+      />
+      <TrustActionRail
+        title="Act on the current trust posture"
+        description="Use this page to move into the exact alert, source, or draft that is driving today's trust state."
+        actions={trustActions}
+      />
       <DomainHealthGrid items={data?.domain_health ?? []} />
       <IntegrationsPanel
         items={data?.integrations ?? []}

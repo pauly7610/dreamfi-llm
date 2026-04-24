@@ -19,17 +19,19 @@ describe('GeneratePage', () => {
 
     expect(screen.getByRole('heading', { name: 'Risk BRD' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Stay inside the same product thread while you switch outputs.' })).toBeTruthy()
-    expect(screen.getByText('Topic · KYC conversion')).toBeTruthy()
-    expect(screen.getByText('Source · Socure')).toBeTruthy()
+    expect(screen.getByText('Topic - KYC conversion')).toBeTruthy()
+    expect(screen.getByText('Source - Socure')).toBeTruthy()
     expect(screen.getByText('Why did KYC conversion move this week?')).toBeTruthy()
+    expect(screen.getByText('Trust review should stay inline during this run.')).toBeTruthy()
+    expect(screen.getByText('Back to receipts')).toBeTruthy()
 
-    const technicalPrdLink = screen.getByRole('link', { name: 'Create Technical PRD' })
+    const technicalPrdLink = screen.getByRole('link', { name: /Create Technical PRD/i })
     const technicalPrdUrl = new URL(technicalPrdLink.getAttribute('href') ?? '', 'https://dreamfi.test')
     expect(technicalPrdUrl.pathname).toBe('/console/generate/technical-prd')
     expect(technicalPrdUrl.searchParams.get('topic')).toBe('kyc-conversion')
     expect(technicalPrdUrl.searchParams.get('source')).toBe('socure')
     expect(technicalPrdUrl.searchParams.get('q')).toBe('Why did KYC conversion move this week?')
 
-    expect(screen.getByRole('link', { name: 'Open trust dashboard' }).getAttribute('href')).toBe('/console/trust')
+    expect(screen.getByRole('link', { name: 'Open trust rails' }).getAttribute('href')).toBe('/console/trust')
   })
 })

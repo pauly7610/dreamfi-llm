@@ -3,11 +3,38 @@ import type { ConsoleIntegration } from '../types/console'
 import { generatorSlugFromIdentifier, generatorTitleFromSlug } from './consoleRoutes'
 
 type GeneratorRecommendationOptions = {
+  question?: string | null
   source?: ConsoleIntegration | null
   topicId?: string | null
 }
 
-export function recommendedGeneratorSlugForContext({ source, topicId }: GeneratorRecommendationOptions): string {
+function fallbackGeneratorSlugForQuestion(question: string | null | undefined): string {
+  const normalizedQuestion = question?.trim().toLowerCase() ?? ''
+
+  if (!normalizedQuestion) {
+    return 'weekly-brief'
+  }
+
+  if (/(risk|fraud|kyc|identity|policy|review)/.test(normalizedQuestion)) {
+    return 'risk-brd'
+  }
+
+  if (/(brief|weekly|summary|update|what changed)/.test(normalizedQuestion)) {
+    return 'weekly-brief'
+  }
+
+  if (/(campaign|lifecycle|messaging|growth|business|market)/.test(normalizedQuestion)) {
+    return 'business-prd'
+  }
+
+  if (/(launch|delivery|technical|flow|onboarding|funding|integration)/.test(normalizedQuestion)) {
+    return 'technical-prd'
+  }
+
+  return 'weekly-brief'
+}
+
+export function recommendedGeneratorSlugForContext({ question, source, topicId }: GeneratorRecommendationOptions): string {
   const topic = topicById(topicId ?? null)
   if (topic?.defaultGeneratorSlug) {
     return topic.defaultGeneratorSlug
@@ -17,7 +44,21 @@ export function recommendedGeneratorSlugForContext({ source, topicId }: Generato
     return generatorSlugFromIdentifier(source.used_for[0])
   }
 
-  return 'weekly-brief'
+  if (source) {
+    if (source.category === 'risk' || source.category === 'identity') {
+      return 'risk-brd'
+    }
+
+    if (source.category === 'marketing' || source.category === 'marketing_analytics') {
+      return 'business-prd'
+    }
+
+    if (source.category === 'planning' || source.category === 'payments' || source.category === 'product_analytics') {
+      return 'technical-prd'
+    }
+  }
+
+  return fallbackGeneratorSlugForQuestion(question)
 }
 
 export function recommendedGeneratorTitleForContext(options: GeneratorRecommendationOptions): string {
