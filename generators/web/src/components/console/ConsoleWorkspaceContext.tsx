@@ -200,7 +200,7 @@ export function ConsoleWorkspaceProvider({ children, integrations, location }: C
     setPaletteQuestionState(defaultPaletteQuestion)
     setPaletteTopicId(currentTopicId)
     setPaletteSourceId(currentSourceId)
-  }, [currentSourceId, currentTopicId, defaultPaletteQuestion, isAskPaletteOpen, location.href])
+  }, [location.href])
 
   useEffect(() => {
     if (!location.path.startsWith('/console/knowledge/ask') || !currentQuestion) {
@@ -307,10 +307,12 @@ export function ConsoleWorkspaceProvider({ children, integrations, location }: C
   const paletteTopic = topicById(paletteTopicId)
   const paletteSource = integrations.find((source) => source.id === paletteSourceId) ?? null
   const recommendedGeneratorSlug = recommendedGeneratorSlugForContext({
+    question: currentQuestion,
     source: currentSource,
     topicId: currentTopicId,
   })
   const recommendedGeneratorTitle = recommendedGeneratorTitleForContext({
+    question: currentQuestion,
     source: currentSource,
     topicId: currentTopicId,
   })

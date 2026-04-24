@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ConsolePayload } from '../types/console'
+import { renderWithConsoleWorkspace } from '../test/renderWithConsoleWorkspace'
 import OperatorConsolePage from './OperatorConsolePage'
 
 afterEach(() => {
   cleanup()
+  window.history.replaceState(null, '', '/')
+  window.localStorage.clear()
 })
 
 const consolePayload: ConsolePayload = {
@@ -22,7 +25,7 @@ const consolePayload: ConsolePayload = {
     blocked_artifact_count: 1,
     publish_ready_count: 2,
     published_artifact_count: 4,
-    needs_review_count: 0,
+    needs_review_count: 1,
   },
   skills: [],
   artifact_queue: [
@@ -113,41 +116,34 @@ const consolePayload: ConsolePayload = {
 }
 
 describe('OperatorConsolePage', () => {
-  it('leads with the shared source-room experience', () => {
-    render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
+  it('proves the product-thread story from the first screen', () => {
+    renderWithConsoleWorkspace(
+      <OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />,
+      { path: '/console' },
+    )
 
-    expect(screen.getByRole('heading', { name: 'Ask across every product system. Get answers with evidence.' })).toBeTruthy()
-    expect(screen.getByText("What do you want to understand today? Start with a product question and I'll pull the right evidence.")).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: 'Start with a question' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Ask once. DreamFi pulls the product context, receipts, and next artifact.' })).toBeTruthy()
+    expect(screen.getByText(/This is not chat plus tabs/i)).toBeTruthy()
+    expect(screen.getByText(/I know the rooms, sources, and trust rails/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Ask DreamFi' })).toBeTruthy()
-    expect(screen.getByText('Browse the sources Product can inspect.')).toBeTruthy()
-    expect(screen.getAllByLabelText('Jira connector').length).toBeGreaterThan(0)
-    expect(screen.getAllByLabelText('PostHog connector').length).toBeGreaterThan(0)
-    expect(screen.getByText('Planning + docs')).toBeTruthy()
-    expect(screen.getByText('Metrics + growth')).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: 'Generate Risk BRD' })[0].getAttribute('href')).toContain('/console/generate/risk-brd')
+    expect(screen.getByText('Knows the room')).toBeTruthy()
+    expect(screen.getByText('Pulls live sources')).toBeTruthy()
+    expect(screen.getByText('Carries trust')).toBeTruthy()
+    expect(screen.getByText('Why this beats tabs')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'The product world is changing right now' })).toBeTruthy()
+    expect(screen.getByText('Latest draft')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Act on trust without leaving the thread' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open review' }).getAttribute('href')).toBe('/console/review')
     expect(screen.getByText('Problem rooms')).toBeTruthy()
-    const kycTopicLink = screen
-      .getAllByRole('link', { name: /KYC conversion/i })
-      .find((link) => link.getAttribute('href') === '/console/topics/kyc-conversion')
-    expect(kycTopicLink?.getAttribute('href')).toBe('/console/topics/kyc-conversion')
-    expect(screen.getByText('Pick a connector')).toBeTruthy()
-    expect(screen.getByText('View its data slice')).toBeTruthy()
-    expect(screen.queryByText('Ways Product uses the source room')).toBeNull()
-    expect(screen.queryByText(/queue/i)).toBeNull()
-    const posthogLink = screen
-      .getAllByRole('link')
-      .find((link) => link.getAttribute('href') === '/console/integrations/posthog' && link.textContent?.includes('View data'))
-    expect(posthogLink?.getAttribute('href')).toBe('/console/integrations/posthog')
-    expect(posthogLink?.textContent).toContain('View data')
-    const sourcesMapped = screen.getByText('Mapped sources').closest('div')
-    expect(sourcesMapped?.textContent).toContain('2')
-    expect(screen.getByRole('link', { name: /Mapped sources/i }).getAttribute('href')).toBe('/console/integrations')
-    expect(screen.getByRole('link', { name: /Needs review/i }).getAttribute('href')).toBe('/console/review')
-    expect(screen.getByRole('link', { name: /Hard gate pass/i }).getAttribute('href')).toBe('/console/trust')
+    expect(screen.getByRole('link', { name: 'Open source directory' }).getAttribute('href')).toBe('/console/integrations')
   })
 
-  it('lets starter questions drive the home chatbot composer', () => {
-    render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
+  it('lets starter questions drive both ask and generate-from-context', () => {
+    renderWithConsoleWorkspace(
+      <OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />,
+      { path: '/console' },
+    )
 
     const textarea = screen.getByRole('textbox', { name: 'Start with a question' }) as HTMLTextAreaElement
 
@@ -155,16 +151,36 @@ describe('OperatorConsolePage', () => {
 
     expect(textarea.value).toBe('Which lifecycle messages are helping users finish onboarding?')
     expect(screen.getByDisplayValue('lifecycle-messaging')).toBeTruthy()
+
+    const generateLink = screen.getAllByRole('link', { name: 'Generate Business PRD' })[0]
+    const generateUrl = new URL(generateLink.getAttribute('href') ?? '', 'https://dreamfi.test')
+    expect(generateUrl.pathname).toBe('/console/generate/business-prd')
+    expect(generateUrl.searchParams.get('topic')).toBe('lifecycle-messaging')
+    expect(generateUrl.searchParams.get('q')).toBe('Which lifecycle messages are helping users finish onboarding?')
   })
 
-  it('keeps the home page focused on ask, topics, and sources', () => {
-    const { container } = render(<OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />)
+  it('surfaces recent thread memory on the home page', () => {
+    window.localStorage.setItem(
+      'dreamfi.console.recent-asks',
+      JSON.stringify([
+        {
+          question: 'Why did KYC conversion move this week?',
+          topicId: 'kyc-conversion',
+          sourceId: null,
+        },
+      ]),
+    )
 
-    expect(container.querySelector('.action-center')).toBeNull()
-    expect(screen.queryByText('Create from context')).toBeNull()
-    expect(screen.queryByText('Quiet system pulse')).toBeNull()
-    expect(screen.queryByText('The machinery is still here, just not shouting.')).toBeNull()
-    expect(screen.getByText('Problem rooms')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Open source directory' }).getAttribute('href')).toBe('/console/integrations')
+    renderWithConsoleWorkspace(
+      <OperatorConsolePage data={consolePayload} loading={false} error={null} retry={vi.fn()} />,
+      { path: '/console' },
+    )
+
+    expect(screen.getByText('Resume recent thread')).toBeTruthy()
+    const resumeLink = screen.getByRole('link', { name: 'Reopen with receipts' })
+    const resumeUrl = new URL(resumeLink.getAttribute('href') ?? '', 'https://dreamfi.test')
+    expect(resumeUrl.pathname).toBe('/console/knowledge/ask')
+    expect(resumeUrl.searchParams.get('q')).toBe('Why did KYC conversion move this week?')
+    expect(resumeUrl.searchParams.get('topic')).toBe('kyc-conversion')
   })
 })

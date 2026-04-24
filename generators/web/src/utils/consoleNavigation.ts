@@ -73,6 +73,10 @@ function scrollToConsoleTarget(current: ConsoleLocation, next: ConsoleLocation) 
   }
 
   if (next.path !== current.path || next.search !== current.search) {
+    if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) {
+      return
+    }
+
     try {
       window.scrollTo({ top: 0, left: 0 })
     } catch {

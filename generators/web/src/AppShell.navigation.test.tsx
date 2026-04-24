@@ -19,7 +19,7 @@ describe('AppShell navigation', () => {
 
     render(<AppShell />)
 
-    expect(await screen.findByRole('heading', { name: 'Ask across every product system. Get answers with evidence.' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Ask once. DreamFi pulls the product context, receipts, and next artifact.' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('link', { name: 'Open source directory' }))
 
@@ -28,7 +28,7 @@ describe('AppShell navigation', () => {
 
     fireEvent.click(screen.getByRole('link', { name: 'Product Source Room' }))
 
-    expect(await screen.findByRole('heading', { name: 'Ask across every product system. Get answers with evidence.' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Ask once. DreamFi pulls the product context, receipts, and next artifact.' })).toBeTruthy()
 
     const textarea = screen.getByRole('textbox', { name: 'Start with a question' })
     fireEvent.change(textarea, { target: { value: 'Where are users getting stuck before first funding?' } })
@@ -46,7 +46,7 @@ describe('AppShell navigation', () => {
 
     render(<AppShell />)
 
-    expect(await screen.findByRole('heading', { name: 'Ask across every product system. Get answers with evidence.' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Ask once. DreamFi pulls the product context, receipts, and next artifact.' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('link', { name: 'Browse connectors' }))
 

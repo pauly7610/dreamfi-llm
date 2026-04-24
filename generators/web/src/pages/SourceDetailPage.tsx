@@ -1,9 +1,12 @@
+import ContextContinuationPanel from '../components/console/ContextContinuationPanel'
 import ConnectorLogo from '../components/console/ConnectorLogo'
 import ConnectorWorkspace from '../components/console/ConnectorWorkspace'
 import SocureWorkspace from '../components/console/SocureWorkspace'
+import TrustActionRail from '../components/console/TrustActionRail'
 import { getConnectorWorkspace } from '../content/connectorWorkspaces'
 import { topicsForSource } from '../content/productTopics'
 import type { ConsoleIntegration, ConsolePayload, IntegrationCategory } from '../types/console'
+import { generatorSlugFromIdentifier, generatorTitleFromSlug } from '../utils/consoleRoutes'
 
 type SourceDetailPageProps = {
   data: ConsolePayload | null
@@ -188,8 +191,67 @@ function SourceDetailPage({ data, sourceId }: SourceDetailPageProps) {
 
   const workspace = getConnectorWorkspace(source)
   const relatedTopics = topicsForSource(source.id)
+  const primaryTopic = relatedTopics[0] ?? null
+  const recommendedGeneratorSlug = generatorSlugFromIdentifier(primaryTopic?.defaultGeneratorSlug ?? source.used_for[0] ?? 'weekly-brief')
+  const recommendedGeneratorTitle = generatorTitleFromSlug(recommendedGeneratorSlug)
+  const starterQuestion = primaryTopic?.question ?? `What should Product know from ${source.name}?`
+  const askHref = `/console/knowledge/ask?source=${source.id}&q=${encodeURIComponent(starterQuestion)}${primaryTopic ? `&topic=${primaryTopic.id}` : ''}`
+  const generateHref = `/console/generate/${recommendedGeneratorSlug}?source=${source.id}&q=${encodeURIComponent(starterQuestion)}${primaryTopic ? `&topic=${primaryTopic.id}` : ''}`
   const actionContent = actionContentForSource(source)
   const heroDescription = workspace.connector.description
+  const trustActions = [
+    {
+      title: `Ask directly from ${source.name}`,
+      detail: 'The source workspace should be a continuation of the product thread, not a detour away from the question.',
+      href: askHref,
+      hrefLabel: 'Ask with this source',
+      tone: 'info' as const,
+    },
+    source.status === 'degraded'
+      ? {
+          title: `Keep ${source.name} limitations visible`,
+          detail: 'This connector is degraded, so the trust rail should keep that warning attached while you inspect and generate.',
+          href: '/console/trust',
+          hrefLabel: 'Open trust rails',
+          tone: 'warning' as const,
+        }
+      : null,
+    {
+      title: `Generate ${recommendedGeneratorTitle} from this source`,
+      detail: 'The best artifact path should stay source-aware so Product can move from evidence to output without rebuilding context.',
+      href: generateHref,
+      hrefLabel: `Generate ${recommendedGeneratorTitle}`,
+      tone: 'ready' as const,
+    },
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
+  const continuityCards = [
+    primaryTopic
+      ? {
+          label: 'Best room to continue',
+          value: primaryTopic.title,
+          detail: primaryTopic.summary,
+          href: `/console/topics/${primaryTopic.id}`,
+          hrefLabel: 'Open topic room',
+        }
+      : null,
+    {
+      label: 'Best artifact next',
+      value: recommendedGeneratorTitle,
+      detail: `${source.name} already supports this workflow, so generation should begin with the current connector in scope.`,
+      href: generateHref,
+      hrefLabel: `Generate ${recommendedGeneratorTitle}`,
+    },
+    {
+      label: 'Trust posture',
+      value: STATUS_LABEL[source.status],
+      detail:
+        source.status === 'degraded'
+          ? 'This connector is live enough to inspect but should carry a visible trust caveat into downstream work.'
+          : 'This source is ready to keep the question grounded while you move into ask or generation.',
+      href: source.status === 'degraded' ? '/console/trust' : askHref,
+      hrefLabel: source.status === 'degraded' ? 'Open trust rails' : 'Ask with receipts',
+    },
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item))
 
   return (
     <div className={`page-grid source-detail-page source-page-${source.id}`}>
@@ -216,6 +278,29 @@ function SourceDetailPage({ data, sourceId }: SourceDetailPageProps) {
           <small>{workspace.connector.freshness}</small>
         </aside>
       </section>
+
+      <ContextContinuationPanel
+        title="Stay inside this connector while you decide"
+        description="The source workspace should recommend the next room and artifact automatically, so continuity feels ambient instead of manual."
+        cards={continuityCards}
+        actions={[
+          {
+            label: 'Ask with this source',
+            href: askHref,
+            kind: 'primary',
+          },
+          {
+            label: `Generate ${recommendedGeneratorTitle}`,
+            href: generateHref,
+          },
+        ]}
+      />
+
+      <TrustActionRail
+        title="Use trust as an active guide from the source view"
+        description="Source health, open review work, and the next governed artifact should stay visible while you are inside the connector."
+        actions={trustActions}
+      />
 
       {source.id === 'socure' ? (
         <SocureWorkspace workspace={workspace} relatedTopics={relatedTopics} />
