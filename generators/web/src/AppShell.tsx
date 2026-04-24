@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 import ConsoleShell from './components/console/ConsoleShell'
 import LoadingSkeleton from './components/console/LoadingSkeleton'
 import useConsoleData from './hooks/useConsoleData'
@@ -11,11 +13,11 @@ import SourceDetailPage from './pages/SourceDetailPage'
 import TopicRoomPage from './pages/TopicRoomPage'
 import TrustPage from './pages/TrustPage'
 import { generatorSlugFromIdentifier } from './utils/consoleRoutes'
-
-function currentPath(): string {
-  const pathname = window.location.pathname.replace(/\/$/, '')
-  return pathname || '/console'
-}
+import {
+  CONSOLE_NAVIGATE_EVENT,
+  currentConsoleLocation,
+  navigateConsole,
+} from './utils/consoleNavigation'
 
 export function normalizeLegacyPath(path: string): string {
   if (path === '/console/knowledge') {
@@ -83,13 +85,29 @@ function renderPage(path: string, data: ReturnType<typeof useConsoleData>['data'
 }
 
 function AppShell() {
-  const rawPath = currentPath()
-  const path = normalizeLegacyPath(rawPath)
+  const [location, setLocation] = useState(currentConsoleLocation)
   const { data, loading, error, retry } = useConsoleData()
+  const path = normalizeLegacyPath(location.path)
 
-  if (path !== rawPath) {
-    window.history.replaceState(null, '', `${path}${window.location.search}${window.location.hash}`)
-  }
+  useEffect(() => {
+    function syncLocation() {
+      setLocation(currentConsoleLocation())
+    }
+
+    window.addEventListener('popstate', syncLocation)
+    window.addEventListener(CONSOLE_NAVIGATE_EVENT, syncLocation as EventListener)
+
+    return () => {
+      window.removeEventListener('popstate', syncLocation)
+      window.removeEventListener(CONSOLE_NAVIGATE_EVENT, syncLocation as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (path !== location.path) {
+      navigateConsole(`${path}${location.search}${location.hash}`, { replace: true })
+    }
+  }, [location.hash, location.path, location.search, path])
 
   return (
     <ConsoleShell activePath={path}>
