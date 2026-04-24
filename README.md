@@ -1,9 +1,10 @@
 # DreamFi
 
-DreamFi is a FastAPI service and operator console that sits on top of [Onyx](https://github.com/onyx-dot-app/onyx). It runs grounded generation for a fixed set of skills, evaluates every output against locked skill-specific gates, scores trust signals like freshness and citations, and only allows promotion or publish when the artifact clears policy.
+This repo is DreamFi's internal product team OS, built on top of [Onyx](https://github.com/onyx-dot-app/onyx). DreamFi is the fintech company; this system is the shared product-source-room and artifact workflow used by its product organization. The frontend is designed as a calm workspace where the product team can start from a question, inspect evidence across connected systems, work inside topic-specific decision rooms, and turn grounded context into reusable artifacts. Underneath that experience, the system runs a governed skill layer that handles prompt rendering, retrieval, evaluation, confidence scoring, and publish safety.
 
 ## What the system does
 
+- Gives DreamFi's product team a shared frontend for asking questions, browsing source systems, reviewing topic rooms, and managing generated work.
 - Seeds one Onyx document set and one Onyx persona per DreamFi skill.
 - Renders Jinja prompt templates for the active prompt version of each skill.
 - Sends prompts through `dreamfi.onyx.client.OnyxClient`, captures citations, and reads source freshness from retrieved documents.
@@ -13,9 +14,27 @@ DreamFi is a FastAPI service and operator console that sits on top of [Onyx](htt
 - Computes export readiness for artifacts that may be safe to review or publish.
 - Exposes an operator console plus HTTP endpoints for round execution, history, promotion, and publish decisions.
 
-## Locked skills
+## Product Team OS
 
-DreamFi currently ships 9 locked skills:
+The current frontend is oriented around product context first, not model mechanics first. It is the operating surface for DreamFi's product team. The main product surfaces are:
+
+- `Ask`: start with a product question, gather evidence from the right systems, and keep receipts attached to the answer.
+- `Topic rooms`: work inside recurring decision spaces like KYC conversion, onboarding, funding, and lifecycle messaging.
+- `Source workspaces`: open connected systems such as Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, NetXD, Sardine, Socure, and Google Analytics in a product-friendly workspace view.
+- `Generated artifacts`: turn grounded context into workflows like weekly PM briefs, technical PRDs, business PRDs, and risk BRDs.
+- `Trust review`: inspect blocked work, risky work, publish readiness, and the health of the connected evidence behind each artifact.
+
+The intended operating model is:
+
+1. Start with the product question.
+2. Narrow into the right topic room or source workspace.
+3. Inspect the evidence and gaps.
+4. Generate a reusable artifact from that grounded context.
+5. Let trust rails determine whether the output needs review, can move forward, or can publish.
+
+## Skill layer
+
+DreamFi currently ships a fixed skill layer of 9 locked eval-backed skills:
 
 - `meeting_summary`
 - `cold_email`
@@ -26,6 +45,8 @@ DreamFi currently ships 9 locked skills:
 - `short_form_script`
 - `agent_system_prompt`
 - `support_agent`
+
+Those skills are the governed generation substrate underneath the product team OS. They provide the current prompt versioning, eval, scoring, promotion, and publish rails that keep the frontend workflows grounded and reviewable.
 
 ## Core flow
 
@@ -74,9 +95,19 @@ The current backend exposes:
 - `GET /api/console` - JSON payload for the operator console.
 - `GET /console` - operator UI, backed by the checked-in React build when present.
 
-## Operator console
+## Frontend and review surfaces
 
-The console is the review surface for the system. Today it summarizes:
+The frontend is more than a single dashboard. Today it includes:
+
+- a home/product source room for cross-system product questions
+- ask flows with evidence receipts
+- topic rooms for recurring product decisions
+- source directories and connector-specific workspaces
+- artifact views for generated work
+- review queues for blocked and risky artifacts
+- trust and methodology pages that explain system health and operating model
+
+The review layer summarizes:
 
 - skill coverage and active prompt versions
 - recent round scores and improvement history
