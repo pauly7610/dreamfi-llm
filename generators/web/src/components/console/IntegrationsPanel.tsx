@@ -77,64 +77,15 @@ function IntegrationsPanel({
 
   return (
     <section id="sources" className="integrations-panel panel">
-      <div
-        className="section-heading inline"
-        style={{
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '18px 24px',
-        }}
-      >
-        <div
-          style={{
-            flex: '1 1 560px',
-            minWidth: 0,
-            maxWidth: 760,
-          }}
-        >
+      <div className="section-heading inline integrations-panel-header">
+        <div className="integrations-panel-copy">
           <span className="eyebrow">Integrations</span>
-          <h2
-            style={{
-              margin: '10px 0 8px',
-              maxWidth: '15ch',
-              fontSize: 'clamp(2rem, 3.1vw, 3.15rem)',
-              letterSpacing: '-0.05em',
-              lineHeight: 1.02,
-            }}
-          >
-            {title}
-          </h2>
-          <p
-            className="section-subtle"
-            style={{
-              margin: 0,
-              fontSize: '1rem',
-              lineHeight: 1.55,
-              maxWidth: '44ch',
-            }}
-          >
-            {description}
-          </p>
+          <h2 className="integrations-panel-title">{title}</h2>
+          <p className="section-subtle integrations-panel-description">{description}</p>
         </div>
-        <a
-          className="text-link"
-          href="/console/integrations"
-          style={{
-            flex: '0 0 auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            minHeight: 44,
-            padding: '0 16px',
-            borderRadius: 999,
-            border: '1px solid rgba(15, 159, 154, 0.16)',
-            background: 'rgba(255, 255, 255, 0.66)',
-            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.75)',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <a className="text-link integrations-panel-cta" href="/console/integrations">
           Open source directory
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true">-&gt;</span>
         </a>
       </div>
       <div className="source-choice-strip" aria-label="How to use the source room">
@@ -168,10 +119,12 @@ function IntegrationsPanel({
                   <span>
                     <strong>{item.name}</strong>
                     <small>
-                      View data · {STATUS_LABEL[item.status]} · {item.purpose}
+                      View data - {STATUS_LABEL[item.status]} - {item.purpose}
                     </small>
                   </span>
-                  <span className="source-chip-arrow" aria-hidden="true">Open</span>
+                  <span className="source-chip-arrow" aria-hidden="true">
+                    Open
+                  </span>
                 </a>
               ))}
             </div>
