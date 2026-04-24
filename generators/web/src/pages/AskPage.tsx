@@ -1,9 +1,14 @@
+import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import EvidenceReceipt from '../components/console/EvidenceReceipt'
 import { productTopics, starterTopics, topicById } from '../content/productTopics'
 import type { ProductTopic } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ProductWorkflowModel } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
+import {
+  recommendedGeneratorSlugForContext,
+  recommendedGeneratorTitleForContext,
+} from '../utils/generatorRecommendations'
 
 type AskPageProps = {
   data: ConsolePayload | null
@@ -65,6 +70,7 @@ function answerPoints(
 }
 
 function AskPage({ data }: AskPageProps) {
+  const { buildGenerateHref } = useConsoleWorkspace()
   const searchParams = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search)
   const query = searchParams.get('q') || fallbackQuestion
   const selectedSourceId = searchParams.get('source')
@@ -75,6 +81,19 @@ function AskPage({ data }: AskPageProps) {
   const receiptSources = sourceListForAsk(integrations, selectedTopic, selectedSourceId)
   const gaps = selectedTopic?.gaps ?? []
   const workflowQuestions = selectedWorkflow?.questionGroups ?? []
+  const recommendedGeneratorSlug = recommendedGeneratorSlugForContext({
+    source: selectedSource,
+    topicId: selectedTopic?.id ?? null,
+  })
+  const recommendedGeneratorTitle = recommendedGeneratorTitleForContext({
+    source: selectedSource,
+    topicId: selectedTopic?.id ?? null,
+  })
+  const generateHref = buildGenerateHref(recommendedGeneratorSlug, {
+    question: query,
+    topicId: selectedTopic?.id ?? null,
+    sourceId: selectedSourceId,
+  })
 
   return (
     <div className="page-grid ask-page">
@@ -173,7 +192,7 @@ function AskPage({ data }: AskPageProps) {
             ))}
           </div>
           <div className="answer-actions">
-            <a className="button primary" href="/console/generate/weekly-brief">Generate brief from this</a>
+            <a className="button primary" href={generateHref}>Generate {recommendedGeneratorTitle}</a>
             <a className="button secondary" href="/console/integrations">Inspect sources</a>
           </div>
         </article>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
+import AskPalette from './components/console/AskPalette'
 import ConsoleShell from './components/console/ConsoleShell'
+import { ConsoleWorkspaceProvider } from './components/console/ConsoleWorkspaceContext'
 import LoadingSkeleton from './components/console/LoadingSkeleton'
 import useConsoleData from './hooks/useConsoleData'
 import AskPage from './pages/AskPage'
@@ -88,6 +90,14 @@ function AppShell() {
   const [location, setLocation] = useState(currentConsoleLocation)
   const { data, loading, error, retry } = useConsoleData()
   const path = normalizeLegacyPath(location.path)
+  const normalizedLocation = path === location.path
+    ? location
+    : {
+        path,
+        search: location.search,
+        hash: location.hash,
+        href: `${path}${location.search}${location.hash}`,
+      }
 
   useEffect(() => {
     function syncLocation() {
@@ -110,9 +120,12 @@ function AppShell() {
   }, [location.hash, location.path, location.search, path])
 
   return (
-    <ConsoleShell activePath={path}>
-      {renderPage(path, data, loading, error, retry)}
-    </ConsoleShell>
+    <ConsoleWorkspaceProvider location={normalizedLocation} integrations={data?.integrations ?? []}>
+      <ConsoleShell activePath={path}>
+        {renderPage(path, data, loading, error, retry)}
+      </ConsoleShell>
+      <AskPalette />
+    </ConsoleWorkspaceProvider>
   )
 }
 

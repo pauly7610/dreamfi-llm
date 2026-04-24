@@ -19,6 +19,7 @@ export type ProductTopic = {
   question: string
   sources: string[]
   artifacts: string[]
+  defaultGeneratorSlug?: string
   toplineMetrics: ProductTopicMetric[]
   signals: ProductTopicSignal[]
   gaps: string[]
@@ -34,6 +35,7 @@ export const productTopics: ProductTopic[] = [
     question: 'Why did KYC conversion move this week?',
     sources: ['metabase', 'posthog', 'socure', 'sardine', 'jira', 'confluence'],
     artifacts: ['Weekly PM Brief', 'Technical PRD', 'Risk BRD'],
+    defaultGeneratorSlug: 'risk-brd',
     toplineMetrics: [
       {
         label: 'Approved KYC',
@@ -83,6 +85,7 @@ export const productTopics: ProductTopic[] = [
     question: 'What changed in onboarding since the last roadmap review?',
     sources: ['posthog', 'metabase', 'jira', 'confluence', 'dragonboat'],
     artifacts: ['Technical PRD', 'Weekly PM Brief'],
+    defaultGeneratorSlug: 'technical-prd',
     toplineMetrics: [
       {
         label: 'Replay watchlist',
@@ -132,6 +135,7 @@ export const productTopics: ProductTopic[] = [
     question: 'Where are users getting stuck before first funding?',
     sources: ['metabase', 'posthog', 'netxd', 'jira', 'confluence'],
     artifacts: ['Business PRD', 'Technical PRD'],
+    defaultGeneratorSlug: 'technical-prd',
     toplineMetrics: [
       {
         label: 'Funding-ready accounts',
@@ -181,6 +185,7 @@ export const productTopics: ProductTopic[] = [
     question: 'Which lifecycle messages are helping users finish onboarding?',
     sources: ['klaviyo', 'ga', 'posthog', 'metabase', 'confluence'],
     artifacts: ['Business PRD', 'Weekly PM Brief'],
+    defaultGeneratorSlug: 'business-prd',
     toplineMetrics: [
       {
         label: 'Nudge open rate',

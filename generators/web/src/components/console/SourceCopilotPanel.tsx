@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import type { SourceDataPreview } from '../../content/sourceDataPreviews'
 import type { ConsoleIntegration } from '../../types/console'
+import { generatorSlugFromIdentifier } from '../../utils/consoleRoutes'
+import { useConsoleWorkspace } from './ConsoleWorkspaceContext'
 
 type SourceCopilotPanelProps = {
   source: ConsoleIntegration
@@ -78,6 +80,7 @@ function primaryActionLabel(source: ConsoleIntegration): string {
 }
 
 function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
+  const { buildGenerateHref } = useConsoleWorkspace()
   const prioritized = useMemo(() => prioritizedQuestions(source, preview), [preview, source])
   const fallbackQuestion = starterQuestion(source, preview)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -90,6 +93,18 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
     setSelectedIndex(0)
     setDraftQuestion(prioritized[0]?.question ?? fallbackQuestion)
   }, [fallbackQuestion, prioritized])
+
+  function workflowHref(href: string): string {
+    if (!href.startsWith('/console/generate/')) {
+      return href
+    }
+
+    const slug = generatorSlugFromIdentifier(href.split('/').filter(Boolean).pop())
+    return buildGenerateHref(slug, {
+      question: draftQuestion,
+      sourceId: source.id,
+    })
+  }
 
   return (
     <aside className={`source-copilot-panel source-copilot-${source.id} panel`}>
@@ -148,10 +163,10 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
               .filter((row) => row.label === activeRow?.label || row.label === preview.rows[0]?.label)
               .slice(0, 2)
               .map((row) => (
-              <li key={row.label}>
-                <strong>{row.label}</strong>: {row.value}. {row.detail}
-              </li>
-            ))}
+                <li key={row.label}>
+                  <strong>{row.label}</strong>: {row.value}. {row.detail}
+                </li>
+              ))}
           </ul>
           {activeQuestion ? (
             <p>
@@ -187,7 +202,7 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
             {primaryActionLabel(source)}
           </button>
           {preview.workflows[0] ? (
-            <a className="button secondary" href={preview.workflows[0].href}>
+            <a className="button secondary" href={workflowHref(preview.workflows[0].href)}>
               {preview.workflows[0].title}
             </a>
           ) : null}
@@ -197,7 +212,7 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
       {extraWorkflows.length > 0 ? (
         <div className="source-copilot-workflows">
           {extraWorkflows.map((workflow) => (
-            <a key={workflow.title} href={workflow.href}>
+            <a key={workflow.title} href={workflowHref(workflow.href)}>
               {workflow.title}
             </a>
           ))}

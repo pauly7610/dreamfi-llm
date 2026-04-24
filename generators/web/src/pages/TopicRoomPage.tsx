@@ -1,3 +1,4 @@
+import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import ConnectorCoveragePanel from '../components/console/ConnectorCoveragePanel'
 import ConnectorLogo from '../components/console/ConnectorLogo'
 import EvidenceReceipt from '../components/console/EvidenceReceipt'
@@ -6,7 +7,7 @@ import { productTopics, topicById } from '../content/productTopics'
 import type { ProductTopic } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
-import { generatorSlugFromIdentifier } from '../utils/consoleRoutes'
+import { generatorSlugFromIdentifier, generatorTitleFromSlug } from '../utils/consoleRoutes'
 
 type TopicRoomPageProps = {
   data: ConsolePayload | null
@@ -91,6 +92,8 @@ function TopicNotFound() {
 }
 
 function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
+  const { buildAskHref, buildGenerateHref } = useConsoleWorkspace()
+
   if (!topicId) {
     return <TopicDirectory data={data} />
   }
@@ -103,6 +106,13 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
   const integrations = data?.integrations ?? []
   const topicSources = sourcesForTopic(topic, integrations)
   const workflow = workflowByTopicId(topic.id)
+  const recommendedGeneratorSlug = topic.defaultGeneratorSlug ?? 'weekly-brief'
+  const recommendedGeneratorTitle = generatorTitleFromSlug(recommendedGeneratorSlug)
+  const askHref = buildAskHref({ question: topic.question, topicId: topic.id })
+  const generateHref = buildGenerateHref(recommendedGeneratorSlug, {
+    question: topic.question,
+    topicId: topic.id,
+  })
 
   return (
     <div className="page-grid topic-page">
@@ -119,10 +129,10 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
         <h2>{topic.title}</h2>
         <p>{topic.summary}</p>
         <div className="hero-actions">
-          <a className="button primary" href={`/console/knowledge/ask?topic=${topic.id}&q=${encodeURIComponent(topic.question)}`}>
+          <a className="button primary" href={askHref}>
             Ask about this topic
           </a>
-          <a className="button secondary" href="/console/generate/weekly-brief">Generate brief</a>
+          <a className="button secondary" href={generateHref}>Generate {recommendedGeneratorTitle}</a>
         </div>
         <div className="topic-topline-strip" aria-label="Top line metrics">
           {topic.toplineMetrics.map((metric) => {
@@ -203,11 +213,20 @@ function TopicRoomPage({ data, topicId }: TopicRoomPageProps) {
           <h2>Work this room can produce</h2>
         </div>
         <div className="topic-output-list">
-          {topic.artifacts.map((artifact) => (
-            <a key={artifact} href={`/console/generate/${generatorSlugFromIdentifier(artifact)}`}>
-              {artifact}
-            </a>
-          ))}
+          {topic.artifacts.map((artifact) => {
+            const slug = generatorSlugFromIdentifier(artifact)
+            return (
+              <a
+                key={artifact}
+                href={buildGenerateHref(slug, {
+                  question: topic.question,
+                  topicId: topic.id,
+                })}
+              >
+                {artifact}
+              </a>
+            )
+          })}
         </div>
       </section>
     </div>

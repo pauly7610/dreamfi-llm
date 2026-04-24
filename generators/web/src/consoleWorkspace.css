@@ -1,0 +1,94 @@
+.ask-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 24px 32px;
+  background: rgba(24, 34, 56, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.ask-palette {
+  width: min(760px, 100%);
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid rgba(24, 34, 56, 0.08);
+  background: rgba(255, 252, 244, 0.97);
+  box-shadow: 0 28px 80px rgba(24, 34, 56, 0.18);
+}
+
+.ask-palette-form textarea {
+  min-height: 132px;
+}
+
+.ask-palette-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ask-palette-close {
+  align-self: flex-start;
+}
+
+.ask-palette-recent {
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.ask-palette-recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ask-palette-recent-list button {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-align: left;
+}
+
+.ask-palette-recent-list button:hover {
+  border-color: rgba(15, 159, 154, 0.32);
+  color: var(--teal-dark);
+}
+
+.generate-context-panel {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.generate-context-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.generate-context-question {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+@media (max-width: 760px) {
+  .ask-palette-backdrop {
+    padding: 56px 16px 24px;
+  }
+
+  .ask-palette {
+    padding: 20px;
+  }
+}
