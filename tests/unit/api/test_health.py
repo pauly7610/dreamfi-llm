@@ -14,6 +14,12 @@ def client() -> TestClient:
     return TestClient(create_app())
 
 
+def test_ready_reports_service_is_ready(client: TestClient) -> None:
+    r = client.get("/ready")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ready"}
+
+
 @respx.mock
 def test_health_reports_onyx_reachable(client: TestClient) -> None:
     respx.get("http://localhost:8080/api/health").mock(return_value=httpx.Response(200))
