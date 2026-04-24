@@ -62,6 +62,25 @@ export function hrefForConsoleNavigation(href: string): string {
   return `${path}${url.search}${url.hash}`
 }
 
+function scrollToConsoleTarget(current: ConsoleLocation, next: ConsoleLocation) {
+  if (next.hash) {
+    const targetId = decodeURIComponent(next.hash.slice(1))
+    const target = document.getElementById(targetId)
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ block: 'start' })
+      return
+    }
+  }
+
+  if (next.path !== current.path || next.search !== current.search) {
+    try {
+      window.scrollTo({ top: 0, left: 0 })
+    } catch {
+      // jsdom does not implement scrollTo; browsers do.
+    }
+  }
+}
+
 export function navigateConsole(href: string, options: { replace?: boolean } = {}): string {
   const current = currentConsoleLocation()
   const nextHref = hrefForConsoleNavigation(href)
@@ -74,21 +93,13 @@ export function navigateConsole(href: string, options: { replace?: boolean } = {
 
   window.dispatchEvent(new CustomEvent(CONSOLE_NAVIGATE_EVENT, { detail: currentConsoleLocation() }))
 
-  window.requestAnimationFrame(() => {
-    const next = currentConsoleLocation()
+  const scheduleScroll = typeof window.requestAnimationFrame === 'function'
+    ? window.requestAnimationFrame.bind(window)
+    : (callback: FrameRequestCallback) => window.setTimeout(callback, 0)
 
-    if (next.hash) {
-      const targetId = decodeURIComponent(next.hash.slice(1))
-      const target = document.getElementById(targetId)
-      if (target) {
-        target.scrollIntoView({ block: 'start' })
-        return
-      }
-    }
-
-    if (next.path !== current.path || next.search !== current.search) {
-      window.scrollTo({ top: 0, left: 0 })
-    }
+  scheduleScroll(() => {
+    scrollToConsoleTarget(current, currentConsoleLocation())
+    return 0
   })
 
   return nextHref
