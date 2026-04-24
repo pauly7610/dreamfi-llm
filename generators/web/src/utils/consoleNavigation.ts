@@ -81,6 +81,15 @@ function scrollToConsoleTarget(current: ConsoleLocation, next: ConsoleLocation) 
   }
 }
 
+function scheduleConsoleScroll(callback: () => void) {
+  if (typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(() => callback())
+    return
+  }
+
+  window.setTimeout(callback, 0)
+}
+
 export function navigateConsole(href: string, options: { replace?: boolean } = {}): string {
   const current = currentConsoleLocation()
   const nextHref = hrefForConsoleNavigation(href)
@@ -93,13 +102,8 @@ export function navigateConsole(href: string, options: { replace?: boolean } = {
 
   window.dispatchEvent(new CustomEvent(CONSOLE_NAVIGATE_EVENT, { detail: currentConsoleLocation() }))
 
-  const scheduleScroll = typeof window.requestAnimationFrame === 'function'
-    ? window.requestAnimationFrame.bind(window)
-    : (callback: FrameRequestCallback) => window.setTimeout(callback, 0)
-
-  scheduleScroll(() => {
+  scheduleConsoleScroll(() => {
     scrollToConsoleTarget(current, currentConsoleLocation())
-    return 0
   })
 
   return nextHref
