@@ -1,4 +1,10 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+
+import {
+  currentConsoleLocation,
+  isInternalConsoleHref,
+  navigateConsole,
+} from '../../utils/consoleNavigation'
 
 type ConsoleShellProps = {
   activePath: string
@@ -31,6 +37,59 @@ function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
 }
 
+function shouldBrowserHandleLink(event: MouseEvent<Element>, anchor: HTMLAnchorElement): boolean {
+  if (event.defaultPrevented || event.button !== 0) {
+    return true
+  }
+
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return true
+  }
+
+  if (anchor.target && anchor.target !== '_self') {
+    return true
+  }
+
+  if (anchor.hasAttribute('download')) {
+    return true
+  }
+
+  return false
+}
+
+function hrefForConsoleForm(form: HTMLFormElement): string | null {
+  const method = (form.getAttribute('method') || form.method || 'get').toLowerCase()
+  if (method !== 'get') {
+    return null
+  }
+
+  const actionAttr = form.getAttribute('action') || currentConsoleLocation().href
+  if (!isInternalConsoleHref(actionAttr)) {
+    return null
+  }
+
+  const action = new URL(actionAttr, window.location.origin)
+  const params = new URLSearchParams(action.search)
+  const clearedKeys = new Set<string>()
+  const formData = new FormData(form)
+
+  formData.forEach((value, key) => {
+    if (typeof value !== 'string') {
+      return
+    }
+
+    if (!clearedKeys.has(key)) {
+      params.delete(key)
+      clearedKeys.add(key)
+    }
+
+    params.append(key, value)
+  })
+
+  action.search = params.toString() ? `?${params.toString()}` : ''
+  return `${action.pathname}${action.search}${action.hash}`
+}
+
 function ConsoleShell({ activePath, children }: ConsoleShellProps) {
   const connectorId = connectorIdForPath(activePath)
   const isConnectorDetail = connectorId !== null
@@ -51,7 +110,7 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
       event.preventDefault()
 
       if (window.location.pathname !== '/console/knowledge/ask') {
-        window.location.assign('/console/knowledge/ask')
+        navigateConsole('/console/knowledge/ask')
       }
     }
 
@@ -62,8 +121,43 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
     }
   }, [])
 
+  function handleConsoleClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) {
+      return
+    }
+
+    const anchor = target.closest('a[href]')
+    if (!(anchor instanceof HTMLAnchorElement) || !event.currentTarget.contains(anchor)) {
+      return
+    }
+
+    const href = anchor.getAttribute('href')
+    if (!href || !isInternalConsoleHref(href) || shouldBrowserHandleLink(event, anchor)) {
+      return
+    }
+
+    event.preventDefault()
+    navigateConsole(href)
+  }
+
+  function handleConsoleSubmit(event: FormEvent<HTMLDivElement>) {
+    const target = event.target
+    if (!(target instanceof HTMLFormElement) || !event.currentTarget.contains(target)) {
+      return
+    }
+
+    const href = hrefForConsoleForm(target)
+    if (!href) {
+      return
+    }
+
+    event.preventDefault()
+    navigateConsole(href)
+  }
+
   return (
-    <div className={shellClassName}>
+    <div className={shellClassName} onClickCapture={handleConsoleClick} onSubmitCapture={handleConsoleSubmit}>
       <header className={`shell-header${isConnectorDetail ? ' shell-header-compact' : ''}`}>
         <a className="shell-brand shell-brand-link" href="/console" aria-label="DreamFi home">
           <span className="brand-chip">DreamFi</span>
