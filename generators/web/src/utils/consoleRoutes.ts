@@ -15,6 +15,21 @@ const GENERATOR_ROUTE_ALIASES: Record<string, string> = {
   'risk brd': 'risk-brd',
 }
 
+const GENERATOR_TITLES: Record<string, string> = {
+  'weekly-brief': 'Weekly PM Brief',
+  'technical-prd': 'Technical PRD',
+  'business-prd': 'Business PRD',
+  'risk-brd': 'Risk BRD',
+}
+
+function prettifyGeneratorSlug(value: string): string {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 export function generatorSlugFromIdentifier(value: string | null | undefined): string {
   if (!value) {
     return 'artifact'
@@ -32,6 +47,11 @@ export function generatorSlugFromIdentifier(value: string | null | undefined): s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+export function generatorTitleFromSlug(value: string | null | undefined): string {
+  const slug = generatorSlugFromIdentifier(value)
+  return GENERATOR_TITLES[slug] ?? prettifyGeneratorSlug(slug)
 }
 
 export function isKnownConsoleHref(href: string): boolean {
