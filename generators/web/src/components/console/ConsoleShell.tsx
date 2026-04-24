@@ -5,6 +5,7 @@ import {
   isInternalConsoleHref,
   navigateConsole,
 } from '../../utils/consoleNavigation'
+import { useConsoleWorkspace } from './ConsoleWorkspaceContext'
 
 type ConsoleShellProps = {
   activePath: string
@@ -91,6 +92,7 @@ function hrefForConsoleForm(form: HTMLFormElement): string | null {
 }
 
 function ConsoleShell({ activePath, children }: ConsoleShellProps) {
+  const { openAskPalette } = useConsoleWorkspace()
   const connectorId = connectorIdForPath(activePath)
   const isConnectorDetail = connectorId !== null
   const shellClassName = [
@@ -108,10 +110,7 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
       }
 
       event.preventDefault()
-
-      if (window.location.pathname !== '/console/knowledge/ask') {
-        navigateConsole('/console/knowledge/ask')
-      }
+      openAskPalette()
     }
 
     window.addEventListener('keydown', handleKeydown)
@@ -119,7 +118,7 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
     return () => {
       window.removeEventListener('keydown', handleKeydown)
     }
-  }, [])
+  }, [openAskPalette])
 
   function handleConsoleClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target
@@ -129,6 +128,12 @@ function ConsoleShell({ activePath, children }: ConsoleShellProps) {
 
     const anchor = target.closest('a[href]')
     if (!(anchor instanceof HTMLAnchorElement) || !event.currentTarget.contains(anchor)) {
+      return
+    }
+
+    if (anchor.classList.contains('shell-ask-button') && !shouldBrowserHandleLink(event, anchor)) {
+      event.preventDefault()
+      openAskPalette()
       return
     }
 
