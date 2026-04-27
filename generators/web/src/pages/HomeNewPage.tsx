@@ -2,6 +2,7 @@ import { productTopics } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
+import { OpeningHeroGraphic } from '../components/system/OpeningHeroGraphic'
 import { Chip, Cite, KPI, SectionHead, Spark, connectorKeyFromId } from '../components/system/atoms'
 import {
   labelForIntegrationStatus,
@@ -36,11 +37,23 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
 
   return (
     <div className="page">
-      <div className="eyebrow" style={{ marginBottom: 12 }}>HOME</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.08fr) minmax(340px, 0.92fr)', gap: 20, alignItems: 'stretch', marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="eyebrow" style={{ marginBottom: 12 }}>HOME</div>
 
-      <h1 className="display-question" style={{ marginBottom: 24, maxWidth: 880 }}>
-        Good morning. <em>The product room</em> is ready.
-      </h1>
+          <h1 className="display-question" style={{ marginBottom: 16, maxWidth: 760 }}>
+            Good morning. <em>The product room</em> is ready.
+          </h1>
+
+          <p style={{ margin: 0, maxWidth: 620, color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.6 }}>
+            Open with one grounded question, trace the signal across connectors, and turn the answer into a decision-ready artifact.
+          </p>
+        </div>
+
+        <div className="surface" style={{ padding: 16, minHeight: 320 }}>
+          <OpeningHeroGraphic />
+        </div>
+      </div>
 
       {error ? (
         <div className="banner" style={{ marginBottom: 20 }}>

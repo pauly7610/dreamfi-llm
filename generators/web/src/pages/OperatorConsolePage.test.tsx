@@ -19,6 +19,7 @@ describe('OperatorConsolePage', () => {
     )
 
     expect(screen.getByText(/Good morning/i)).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'DreamFi opening illustration' })).toBeTruthy()
     expect(screen.getByText('Open threads')).toBeTruthy()
     expect(screen.getByText('Source health')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Browse connectors' }).getAttribute('href')).toBe('/console/integrations')
