@@ -1,8 +1,10 @@
+import { useEffect, useMemo, useState } from 'react'
+
 import { topicById, topicsForSource, type ProductTopic } from '../content/productTopics'
 import { workflowByTopicId, workflowQuestionsForTopic, type ProductWorkflowModel } from '../content/productWorkflows'
 import type { ConsoleIntegration, ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
-import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
+import { useConsoleWorkspace, type RecentAsk } from '../components/console/ConsoleWorkspaceContext'
 import { Chip, Cite, KPI, SectionHead, ConnectorLogo, connectorKeyFromId } from '../components/system/atoms'
 import { labelForIntegrationStatus, sourceHref, topicHref, toneForIntegrationStatus, toneForWorkflowTone } from './redesignSupport'
 
@@ -25,7 +27,205 @@ type AskResultCard = {
   sourceId: string
 }
 
+type AskSuggestion = {
+  question: string
+  note: string
+  kind: 'recent' | 'topic' | 'signal' | 'connector'
+  sourceId?: string | null
+  topicId?: string | null
+}
+
 type AskMode = 'why' | 'where' | 'decision' | 'what'
+
+function normalizeText(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function queryTokens(value: string): string[] {
+  return normalizeText(value)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 1)
+}
+
+function recentAskScopeLabel(recentAsk: RecentAsk, integrations: ConsoleIntegration[]): string {
+  if (recentAsk.topicId) {
+    return topicById(recentAsk.topicId)?.title ?? 'Topic room'
+  }
+
+  if (recentAsk.sourceId) {
+    return integrations.find((integration) => integration.id === recentAsk.sourceId)?.name ?? 'Source'
+  }
+
+  return 'Recent question'
+}
+
+function dedupeSuggestions(suggestions: AskSuggestion[], currentQuestion: string): AskSuggestion[] {
+  const normalizedCurrentQuestion = normalizeText(currentQuestion)
+  const seen = new Set<string>()
+
+  return suggestions.filter((suggestion) => {
+    const normalizedQuestion = normalizeText(suggestion.question)
+    if (!normalizedQuestion || normalizedQuestion === normalizedCurrentQuestion || seen.has(normalizedQuestion)) {
+      return false
+    }
+
+    seen.add(normalizedQuestion)
+    return true
+  })
+}
+
+function buildSuggestionCandidates(
+  recentAsks: RecentAsk[],
+  integrations: ConsoleIntegration[],
+  selectedSources: ConsoleIntegration[],
+  currentTopic: ProductTopic | null,
+  currentSource: ConsoleIntegration | null,
+  workflow: ProductWorkflowModel | null,
+  currentQuestion: string,
+): AskSuggestion[] {
+  const sourcePool = selectedSources.length > 0 ? selectedSources : integrations.slice(0, 5)
+
+  const recentSuggestions: AskSuggestion[] = recentAsks.map((recentAsk) => ({
+    question: recentAsk.question,
+    note: `Recent · ${recentAskScopeLabel(recentAsk, integrations)}`,
+    kind: 'recent',
+    topicId: recentAsk.topicId,
+    sourceId: recentAsk.sourceId,
+  }))
+
+  const topicSuggestions: AskSuggestion[] = currentTopic
+    ? [
+        {
+          question: currentTopic.question,
+          note: `Topic room · ${currentTopic.title}`,
+          kind: 'topic',
+          topicId: currentTopic.id,
+        },
+        ...workflowQuestionsForTopic(currentTopic.id).map((question) => ({
+          question,
+          note: `Workflow question · ${currentTopic.title}`,
+          kind: 'topic' as const,
+          topicId: currentTopic.id,
+        })),
+        ...currentTopic.toplineMetrics.map((metric) => ({
+          question: `Why is ${metric.label.toLowerCase()} at ${metric.value}?`,
+          note: `Metric signal · ${metric.detail}`,
+          kind: 'signal' as const,
+          topicId: currentTopic.id,
+          sourceId: metric.sourceId ?? null,
+        })),
+        ...currentTopic.signals.map((signal) => ({
+          question: `What should Product know about ${signal.label.toLowerCase()}?`,
+          note: `Connector signal · ${signal.detail}`,
+          kind: 'signal' as const,
+          topicId: currentTopic.id,
+          sourceId: signal.sourceId ?? null,
+        })),
+      ]
+    : []
+
+  const sourceSuggestions: AskSuggestion[] = currentSource
+    ? [
+        {
+          question: `What should Product know from ${currentSource.name}?`,
+          note: `Connector scope · ${currentSource.purpose}`,
+          kind: 'connector',
+          sourceId: currentSource.id,
+        },
+        {
+          question: `What changed in ${currentSource.name} that affects Product?`,
+          note: `Connector context · ${currentSource.used_for.join(', ') || 'grounded product work'}`,
+          kind: 'connector',
+          sourceId: currentSource.id,
+        },
+        ...topicsForSource(currentSource.id).map((topic) => ({
+          question: topic.question,
+          note: `Related topic · ${topic.title}`,
+          kind: 'topic' as const,
+          topicId: topic.id,
+          sourceId: currentSource.id,
+        })),
+      ]
+    : []
+
+  const connectorSuggestions: AskSuggestion[] = sourcePool.flatMap((integration) => {
+    const topicTitle = currentTopic?.title ?? 'this decision'
+    const topicQuestion = currentTopic?.question ?? currentQuestion
+
+    return [
+      {
+        question: `What does ${integration.name} say about ${topicTitle.toLowerCase()}?`,
+        note: `From connected data · ${integration.purpose}`,
+        kind: 'connector' as const,
+        sourceId: integration.id,
+      },
+      {
+        question: topicQuestion
+          ? `${topicQuestion.replace(/\?$/, '')} according to ${integration.name}?`
+          : `What changed in ${integration.name} that Product should know?`,
+        note: `Connector evidence · ${integration.used_for.join(', ') || integration.category}`,
+        kind: 'connector' as const,
+        sourceId: integration.id,
+      },
+    ]
+  })
+
+  return dedupeSuggestions(
+    [
+      ...recentSuggestions,
+      ...topicSuggestions,
+      ...sourceSuggestions,
+      ...connectorSuggestions,
+    ],
+    currentQuestion,
+  )
+}
+
+function suggestionScore(suggestion: AskSuggestion, query: string): number {
+  const normalizedQuery = normalizeText(query)
+  if (!normalizedQuery) {
+    return suggestion.kind === 'recent' ? 60 : suggestion.kind === 'topic' ? 40 : suggestion.kind === 'signal' ? 30 : 20
+  }
+
+  const haystack = `${normalizeText(suggestion.question)} ${normalizeText(suggestion.note)}`
+  const tokens = queryTokens(query)
+  let score = suggestion.kind === 'recent' ? 8 : suggestion.kind === 'topic' ? 6 : suggestion.kind === 'signal' ? 5 : 4
+
+  if (normalizeText(suggestion.question).startsWith(normalizedQuery)) {
+    score += 60
+  } else if (normalizeText(suggestion.question).includes(normalizedQuery)) {
+    score += 36
+  }
+
+  for (const token of tokens) {
+    if (normalizeText(suggestion.question).includes(token)) {
+      score += 14
+    } else if (haystack.includes(token)) {
+      score += 7
+    }
+  }
+
+  return score
+}
+
+function topSuggestions(suggestions: AskSuggestion[], query: string): AskSuggestion[] {
+  return suggestions
+    .map((suggestion) => ({ suggestion, score: suggestionScore(suggestion, query) }))
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score)
+    .map(({ suggestion }) => suggestion)
+    .slice(0, 6)
+}
+
+function visibleSuggestions(suggestions: AskSuggestion[], query: string): AskSuggestion[] {
+  const recent = suggestions.filter((suggestion) => suggestion.kind === 'recent').slice(0, 2)
+  const remaining = topSuggestions(
+    suggestions.filter((suggestion) => suggestion.kind !== 'recent'),
+    query,
+  )
+
+  return dedupeSuggestions([...recent, ...remaining], '').slice(0, 6)
+}
 
 function questionMode(question: string): AskMode {
   const normalizedQuestion = question.trim().toLowerCase()
@@ -328,11 +528,34 @@ export function AskNewPage({ data }: AskNewPageProps) {
     currentQuestion ||
     currentTopic?.question ||
     (currentSource ? `What should Product know from ${currentSource.name}?` : 'Ask the company what it already knows.')
+  const [draftQuestion, setDraftQuestion] = useState(headline)
+
+  useEffect(() => {
+    setDraftQuestion(headline)
+  }, [headline])
+
   const mode = questionMode(headline)
   const primarySource = selectedSources[0] ?? null
   const insights = buildInsights(mode, workflow, currentTopic, currentSource)
   const resultCards = buildResultCards(selectedSources, workflow, currentTopic)
   const followUps = buildFollowUps(headline, currentTopic, currentSource)
+  const autosuggestCandidates = useMemo(
+    () =>
+      buildSuggestionCandidates(
+        recentAsks,
+        integrations,
+        selectedSources,
+        currentTopic,
+        currentSource,
+        workflow,
+        currentQuestion,
+      ),
+    [currentQuestion, currentSource, currentTopic, integrations, recentAsks, selectedSources, workflow],
+  )
+  const autosuggestions = useMemo(
+    () => visibleSuggestions(autosuggestCandidates, draftQuestion),
+    [autosuggestCandidates, draftQuestion],
+  )
   const recentAskLinks = recentAsks.filter((ask) => ask.question !== headline).slice(0, 4)
   const sourceTopics = currentSource ? topicsForSource(currentSource.id).slice(0, 3) : []
   const topicScope = currentTopic ?? topicById(currentTopicId)
@@ -356,8 +579,10 @@ export function AskNewPage({ data }: AskNewPageProps) {
                   <textarea
                     id="ask-page-question"
                     name="q"
-                    defaultValue={headline}
+                    value={draftQuestion}
+                    onChange={(event) => setDraftQuestion(event.target.value)}
                     rows={2}
+                    autoComplete="off"
                     style={{
                       width: '100%',
                       resize: 'vertical',
@@ -370,6 +595,9 @@ export function AskNewPage({ data }: AskNewPageProps) {
                       lineHeight: 1.45,
                     }}
                   />
+                  <div style={{ marginTop: 10, color: 'var(--ink-3)', fontSize: 11 }}>
+                    Recent questions and connector-aware autofill update as you type.
+                  </div>
                   {currentTopicId ? <input name="topic" type="hidden" value={currentTopicId} /> : null}
                   {currentSourceId ? <input name="source" type="hidden" value={currentSourceId} /> : null}
                 </div>
@@ -405,6 +633,50 @@ export function AskNewPage({ data }: AskNewPageProps) {
             <span style={{ color: 'var(--ink-2)' }}>confidence</span>
             <b style={{ fontFamily: 'var(--font-mono)' }}>{formatPercent(data?.summary.average_confidence)}</b>
           </div>
+
+          {autosuggestions.length > 0 ? (
+            <div style={{ marginBottom: 18 }}>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>AUTOFILL</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {autosuggestions.map((suggestion) => {
+                  const citedSource = suggestion.sourceId
+                    ? integrations.find((integration) => integration.id === suggestion.sourceId) ?? null
+                    : null
+
+                  return (
+                    <button
+                      key={`${suggestion.question}-${suggestion.kind}-${suggestion.sourceId ?? 'none'}-${suggestion.topicId ?? 'none'}`}
+                      type="button"
+                      onClick={() => setDraftQuestion(suggestion.question)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px 14px',
+                        borderRadius: 14,
+                        border: '1px solid var(--line)',
+                        background: 'var(--bg-soft)',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div className="row" style={{ alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <div style={{ color: 'var(--ink-0)', fontSize: 14, lineHeight: 1.45, flex: 1 }}>{suggestion.question}</div>
+                        <Chip tone={suggestion.kind === 'recent' ? 'signal' : 'ready'}>
+                          {suggestion.kind === 'recent' ? 'recent' : 'autofill'}
+                        </Chip>
+                      </div>
+                      <div style={{ color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5 }}>{suggestion.note}</div>
+                      {citedSource ? (
+                        <div style={{ marginTop: 8 }}>
+                          <Cite connector={connectorKeyFromId(citedSource.id)} label={citedSource.name} />
+                        </div>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {followUps.slice(0, 4).map((question) => (

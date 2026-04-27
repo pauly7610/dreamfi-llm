@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react'
+import { cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
@@ -8,6 +8,7 @@ import AskPage from './AskPage'
 
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
   window.history.replaceState(null, '', '/')
 })
 
@@ -49,5 +50,35 @@ describe('AskPage', () => {
     expect(generateUrl.searchParams.get('source')).toBe('klaviyo')
 
     expect(screen.getByRole('link', { name: 'Inspect' }).getAttribute('href')).toBe('/console/integrations/klaviyo')
+  })
+
+  it('offers recent and connector-aware autofill suggestions inside the ask composer', () => {
+    window.localStorage.setItem(
+      'dreamfi.console.recent-asks',
+      JSON.stringify([
+        {
+          question: 'Should we change the manual review threshold?',
+          topicId: 'kyc-conversion',
+          sourceId: 'socure',
+        },
+      ]),
+    )
+
+    renderWithConsoleWorkspace(<AskPage data={consoleDevelopmentSlice} />, {
+      path: '/console/knowledge/ask?topic=funding',
+    })
+
+    expect(screen.getByText('Recent questions and connector-aware autofill update as you type.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Should we change the manual review threshold\?/i })).toBeTruthy()
+
+    const textarea = screen.getByRole('textbox', { name: 'Question' }) as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: 'fund' } })
+
+    const autofillSuggestion = screen.getByRole('button', { name: /Where are users getting stuck before first funding\?/i })
+    expect(autofillSuggestion).toBeTruthy()
+
+    fireEvent.click(autofillSuggestion)
+    expect(textarea.value).toBe('Where are users getting stuck before first funding?')
+    expect(screen.getAllByText(/Metabase|PostHog|NetXD/i).length).toBeGreaterThan(0)
   })
 })
