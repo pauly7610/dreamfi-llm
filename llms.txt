@@ -1,0 +1,58 @@
+# DreamFi
+
+DreamFi is an internal product team OS built on top of Onyx. It gives product, risk, and operations teams a shared workspace for asking grounded questions, reviewing evidence across connected systems, generating reusable artifacts, and enforcing trust gates before work is promoted or published.
+
+## Primary docs
+
+- `README.md` - product overview, local setup, repo layout, deployment notes, and API summary.
+- `docs/architecture/onyx-integration.md` - how DreamFi talks to Onyx, which endpoints are used, and how citations/documents flow into confidence scoring.
+- `docs/adr/009-onyx-substrate.md` - architectural decision record for treating Onyx as the retrieval and persona substrate.
+- `docs/adr/010-dreamfi-db-minimal.md` - architectural decision record for the minimal DreamFi database model.
+- `AGENTS.md` - repository rules for agents and contributors.
+
+## Product surfaces
+
+- `Ask` - start from a question, retrieve evidence, and keep receipts attached to answers.
+- `Topic rooms` - recurring decision spaces such as onboarding, KYC conversion, funding, and lifecycle messaging.
+- `Source workspaces` - product-facing views over systems like Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, NetXD, Sardine, Socure, and Google Analytics.
+- `Generated artifacts` - weekly PM briefs, technical PRDs, business PRDs, risk BRDs, and similar outputs.
+- `Trust review` - blocked work, risky work, publish readiness, and system-health visibility.
+
+## Architecture
+
+- Backend: `dreamfi/`
+- Frontend source: `generators/web/src/`
+- Frontend build output served by the API: `generators/web/dist/`
+- Locked eval templates and runners: `evals/`
+- Tests: `tests/`
+
+DreamFi uses a governed skill layer underneath the frontend. Prompt templates are rendered from active prompt versions, sent through `dreamfi.onyx.client.OnyxClient`, evaluated by locked runners, scored for confidence/export readiness, and then surfaced for review or publish.
+
+## Key backend routes
+
+- `GET /ready` - deploy liveness check.
+- `GET /health` - service and Onyx reachability.
+- `GET /api/console` - JSON payload for the product console.
+- `GET /console` - React console UI.
+- `GET /v1/skills/{skill_id}/history` - recent eval rounds.
+- `POST /v1/skills/{skill_id}/eval-round` - run an eval round.
+- `POST /v1/skills/{skill_id}/promote` - activate a prompt version when rules pass.
+- `POST /v1/skills/{skill_id}/publish` - record and enforce publish policy.
+
+## Development commands
+
+- `make bootstrap` - install/start local dependencies and DreamFi.
+- `make dreamfi-up` - start the DreamFi stack when Onyx already exists.
+- `make seed` - seed skills and Onyx personas/document sets.
+- `make test` - local unit and mocked integration coverage.
+- `make test-live` - live Onyx tests only.
+- `make lint` - Ruff checks.
+- `make format` - Ruff formatting.
+
+## Contributor notes for language models
+
+- Do not modify locked eval templates or runners under `evals/`.
+- Do not hand-edit shipped Alembic revisions; create new migrations instead.
+- All Onyx HTTP must go through `dreamfi.onyx.client.OnyxClient`.
+- Unit tests should mock Onyx with `respx`; avoid network calls in unit tests.
+- The frontend served in production comes from checked-in assets under `generators/web/dist/`, so rebuild the web app after frontend changes that affect shipped UI.

@@ -157,3 +157,21 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert jira['category'] == 'planning'
     assert 'technical-prd' in jira['used_for']
     assert body['publish_activity'][0]['decision'] == 'published'
+
+
+def test_console_favicon_is_served(client: TestClient) -> None:
+    response = client.get('/console/favicon.svg')
+
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('image/svg+xml')
+    assert b'<svg' in response.content
+    assert b'DreamFi favicon' in response.content
+
+
+def test_llms_txt_is_served(client: TestClient) -> None:
+    response = client.get('/llms.txt')
+
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('text/plain')
+    assert '# DreamFi' in response.text
+    assert 'dreamfi.onyx.client.OnyxClient' in response.text

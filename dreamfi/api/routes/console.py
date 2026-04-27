@@ -17,6 +17,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 FRONTEND_DIST_DIR = REPO_ROOT / "generators" / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
+FRONTEND_PUBLIC_DIR = REPO_ROOT / "generators" / "web" / "public"
+LLMS_TXT_PATH = REPO_ROOT / "llms.txt"
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html"]),
@@ -479,6 +481,17 @@ def _resolve_asset_path(asset_path: str) -> Path:
     return candidate
 
 
+def _resolve_public_path(path: str) -> Path:
+    candidate = (FRONTEND_PUBLIC_DIR / path).resolve()
+    try:
+        candidate.relative_to(FRONTEND_PUBLIC_DIR.resolve())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="asset not found") from exc
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="asset not found")
+    return candidate
+
+
 @router.get("/")
 def root_redirect() -> RedirectResponse:
     return RedirectResponse(url="/console", status_code=307)
@@ -492,6 +505,19 @@ def console_data(session: Session = Depends(get_db_session)) -> dict[str, Any]:
 @router.get("/console/assets/{asset_path:path}")
 def console_asset(asset_path: str) -> FileResponse:
     return FileResponse(_resolve_asset_path(asset_path))
+
+
+@router.get("/favicon.svg")
+@router.get("/console/favicon.svg")
+def console_favicon() -> FileResponse:
+    return FileResponse(_resolve_public_path("favicon.svg"))
+
+
+@router.get("/llms.txt")
+def llms_txt() -> FileResponse:
+    if not LLMS_TXT_PATH.exists() or not LLMS_TXT_PATH.is_file():
+        raise HTTPException(status_code=404, detail="llms.txt not found")
+    return FileResponse(LLMS_TXT_PATH)
 
 
 @router.get("/console", response_class=HTMLResponse)
