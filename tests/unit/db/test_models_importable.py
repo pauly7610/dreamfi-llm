@@ -5,6 +5,7 @@ from __future__ import annotations
 def test_models_importable() -> None:
     from dreamfi.db.models import (
         Base,
+        ConsoleTopic,
         EvalOutput,
         EvalRound,
         GoldExample,
@@ -15,5 +16,5 @@ def test_models_importable() -> None:
     )
 
     assert Base.metadata.tables
-    for cls in (Skill, PromptVersion, EvalRound, EvalOutput, GoldExample, PublishLog, OnyxDocumentMap):
+    for cls in (Skill, PromptVersion, EvalRound, EvalOutput, GoldExample, PublishLog, ConsoleTopic, OnyxDocumentMap):
         assert cls.__tablename__ in Base.metadata.tables

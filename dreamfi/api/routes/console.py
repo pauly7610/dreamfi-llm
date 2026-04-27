@@ -1,17 +1,18 @@
 """Minimal operator console (server-rendered Jinja)."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session
-from dreamfi.db.models import EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.db.models import ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -19,12 +20,109 @@ FRONTEND_DIST_DIR = REPO_ROOT / "generators" / "web" / "dist"
 FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 FRONTEND_PUBLIC_DIR = REPO_ROOT / "generators" / "web" / "public"
 LLMS_TXT_PATH = REPO_ROOT / "llms.txt"
+TOPIC_GENERATOR_SLUGS = {"weekly-brief", "technical-prd", "business-prd", "risk-brd"}
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html"]),
 )
 
 router = APIRouter()
+
+
+def _normalize_topic_id(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-") or "new-topic"
+
+
+def _next_topic_id(session: Session, preferred_topic_id: str) -> str:
+    existing_ids = set(session.scalars(select(ConsoleTopic.topic_id)).all())
+    topic_id = _normalize_topic_id(preferred_topic_id)
+    if topic_id not in existing_ids:
+        return topic_id
+
+    suffix = 2
+    while f"{topic_id}-{suffix}" in existing_ids:
+        suffix += 1
+    return f"{topic_id}-{suffix}"
+
+
+def _valid_integration_ids() -> set[str]:
+    return {str(integration["id"]) for integration in _integrations()}
+
+
+def _serialize_console_topic(topic: ConsoleTopic) -> dict[str, object]:
+    return {
+        "id": topic.topic_id,
+        "title": topic.title,
+        "summary": topic.summary,
+        "question": topic.question,
+        "source_ids": list(topic.source_ids_json),
+        "default_generator_slug": topic.default_generator_slug,
+        "created_at": topic.created_at.isoformat(),
+    }
+
+
+def _serialize_console_topics(session: Session) -> list[dict[str, object]]:
+    topics = session.scalars(
+        select(ConsoleTopic).order_by(desc(ConsoleTopic.created_at))
+    ).all()
+    return [_serialize_console_topic(topic) for topic in topics]
+
+
+def _coerce_string(value: Any, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must be a string",
+        )
+    normalized_value = value.strip()
+    if not normalized_value:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} is required",
+        )
+    return normalized_value
+
+
+def _normalize_source_ids(value: Any) -> list[str]:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="source_ids must be a list of connector ids",
+        )
+
+    normalized_source_ids = list(dict.fromkeys(item.strip() for item in value if item.strip()))
+    if not normalized_source_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="source_ids must include at least one connector id",
+        )
+
+    valid_source_ids = _valid_integration_ids()
+    invalid_source_ids = [source_id for source_id in normalized_source_ids if source_id not in valid_source_ids]
+    if invalid_source_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"unknown connector ids: {', '.join(invalid_source_ids)}",
+        )
+
+    return normalized_source_ids
+
+
+def _normalize_default_generator_slug(value: Any) -> str:
+    if value is None:
+        return "weekly-brief"
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="default_generator_slug must be a string",
+        )
+    normalized_slug = value.strip() or "weekly-brief"
+    if normalized_slug not in TOPIC_GENERATOR_SLUGS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="default_generator_slug is not supported",
+        )
+    return normalized_slug
 
 
 def _serialize_round(round_row: EvalRound) -> dict[str, object]:
@@ -428,6 +526,7 @@ def _console_payload(session: Session) -> dict[str, Any]:
         ),
         "quick_actions": _quick_actions(),
         "integrations": _integrations(),
+        "custom_topics": _serialize_console_topics(session),
         "domain_health": _domain_health(
             average_latest_score=round(sum(latest_scores) / len(latest_scores), 3) if latest_scores else None,
             average_confidence=round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
@@ -500,6 +599,41 @@ def root_redirect() -> RedirectResponse:
 @router.get("/api/console")
 def console_data(session: Session = Depends(get_db_session)) -> dict[str, Any]:
     return _console_payload(session)
+
+
+@router.post("/api/console/topics", status_code=status.HTTP_201_CREATED)
+def create_console_topic(payload: dict[str, Any], session: Session = Depends(get_db_session)) -> dict[str, object]:
+    title = _coerce_string(payload.get("title"), field_name="title")
+    question = _coerce_string(payload.get("question"), field_name="question")
+    summary_value = payload.get("summary")
+    if summary_value is None:
+        summary = f"Track {title.lower()} across the connected product evidence."
+    elif isinstance(summary_value, str):
+        summary = summary_value.strip() or f"Track {title.lower()} across the connected product evidence."
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="summary must be a string",
+        )
+
+    source_ids = _normalize_source_ids(payload.get("source_ids"))
+    default_generator_slug = _normalize_default_generator_slug(payload.get("default_generator_slug"))
+    requested_topic_id = payload.get("id")
+    topic_id_seed = requested_topic_id if isinstance(requested_topic_id, str) and requested_topic_id.strip() else title
+    topic_id = _next_topic_id(session, topic_id_seed)
+
+    topic = ConsoleTopic(
+        topic_id=topic_id,
+        title=title,
+        summary=summary,
+        question=question if question.endswith(("?", "!", ".")) else f"{question}?",
+        source_ids_json=source_ids,
+        default_generator_slug=default_generator_slug,
+    )
+    session.add(topic)
+    session.commit()
+    session.refresh(topic)
+    return _serialize_console_topic(topic)
 
 
 @router.get("/console/assets/{asset_path:path}")

@@ -35,6 +35,7 @@ def test_upgrade_head_creates_tables(alembic_cfg: Config) -> None:
         "eval_outputs",
         "gold_examples",
         "publish_log",
+        "console_topics",
         "onyx_document_map",
         "alembic_version",
     }
