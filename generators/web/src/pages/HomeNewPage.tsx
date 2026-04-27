@@ -1,6 +1,6 @@
-import { productTopics } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import type { ConsolePayload } from '../types/console'
+import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import { formatPercent } from '../components/console/formatters'
 import { OpeningHeroGraphic } from '../components/system/OpeningHeroGraphic'
 import { Chip, Cite, KPI, SectionHead, Spark, connectorKeyFromId } from '../components/system/atoms'
@@ -20,9 +20,10 @@ type HomeNewPageProps = {
 }
 
 export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
+  const { topics } = useConsoleWorkspace()
   const summary = data?.summary
   const integrations = data?.integrations ?? []
-  const topicRows = productTopics.slice(0, 4).map((topic) => {
+  const topicRows = topics.slice(0, 4).map((topic) => {
     const workflow = workflowByTopicId(topic.id)
     return {
       href: topicHref(topic.id),
@@ -126,7 +127,7 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
         <div className="surface">
           <SectionHead title="Topic pulse" eyebrow="LAST 14 DAYS" />
           <div style={{ padding: '8px 0' }}>
-            {productTopics.slice(0, 4).map((topic, index) => {
+            {topics.slice(0, 4).map((topic, index) => {
               const workflow = workflowByTopicId(topic.id)
               const tone = workflow ? toneForWorkflowTone(workflow.currentState.tone) : 'ready'
               const state = workflow?.currentState.phase ?? 'active'

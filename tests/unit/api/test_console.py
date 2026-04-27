@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from dreamfi.api.app import create_app
 from dreamfi.api.deps import get_db_session
-from dreamfi.db.models import Base, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.db.models import Base, ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
 from dreamfi.skills.registry import seed_registry
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -107,6 +107,16 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
             reason=None,
         )
     )
+    session.add(
+        ConsoleTopic(
+            topic_id="card-disputes",
+            title="Card disputes",
+            summary="Track dispute spikes across support and fraud evidence.",
+            question="Where do card disputes create the most support load?",
+            source_ids_json=["jira", "sardine"],
+            default_generator_slug="risk-brd",
+        )
+    )
     session.commit()
 
     response = client.get('/api/console')
@@ -157,6 +167,31 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert jira['category'] == 'planning'
     assert 'technical-prd' in jira['used_for']
     assert body['publish_activity'][0]['decision'] == 'published'
+    assert len(body['custom_topics']) == 1
+    assert body['custom_topics'][0]['id'] == 'card-disputes'
+    assert body['custom_topics'][0]['default_generator_slug'] == 'risk-brd'
+
+
+def test_console_topic_create_persists_and_returns_saved_topic(client: TestClient, session: Session) -> None:
+    response = client.post(
+        '/api/console/topics',
+        json={
+            'title': 'Card disputes',
+            'summary': 'Track dispute spikes across support and fraud evidence.',
+            'question': 'Where do card disputes create the most support load',
+            'source_ids': ['jira', 'sardine'],
+            'default_generator_slug': 'risk-brd',
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body['id'] == 'card-disputes'
+    assert body['question'] == 'Where do card disputes create the most support load?'
+    assert body['source_ids'] == ['jira', 'sardine']
+    saved_topic = session.get(ConsoleTopic, 'card-disputes')
+    assert saved_topic is not None
+    assert saved_topic.default_generator_slug == 'risk-brd'
 
 
 def test_console_favicon_is_served(client: TestClient) -> None:

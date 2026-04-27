@@ -104,6 +104,16 @@ export type ConsoleIntegration = {
   href: string
 }
 
+export type ConsoleTopicRecord = {
+  id: string
+  title: string
+  summary: string
+  question: string
+  source_ids: string[]
+  default_generator_slug: string
+  created_at: string
+}
+
 export type ConsolePayload = {
   headline: string
   summary: ConsoleSummary
@@ -113,5 +123,6 @@ export type ConsolePayload = {
   alerts: ConsoleAlert[]
   quick_actions: QuickAction[]
   integrations: ConsoleIntegration[]
+  custom_topics: ConsoleTopicRecord[]
   domain_health: ConsoleDomainHealth[]
 }

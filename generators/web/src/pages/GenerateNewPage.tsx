@@ -2,7 +2,6 @@ import type { ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
 import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import { Chip, Cite, SectionHead, connectorKeyFromId } from '../components/system/atoms'
-import { topicById } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import { generatorTitleFromSlug } from '../utils/consoleRoutes'
 import { sourceHref, topicHref, toneForIntegrationStatus } from './redesignSupport'
@@ -19,10 +18,9 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
     currentQuestion,
     currentSource,
     currentSourceId,
-    currentTopic,
+    currentTopic: topic,
     currentTopicId,
   } = useConsoleWorkspace()
-  const topic = topicById(currentTopicId)
   const workflow = workflowByTopicId(currentTopicId)
   const templateTitle = generatorTitleFromSlug(templateName)
   const sourceList = topic

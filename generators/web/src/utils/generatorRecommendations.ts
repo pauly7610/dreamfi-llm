@@ -1,3 +1,4 @@
+import type { ProductTopic } from '../content/productTopics'
 import { topicById } from '../content/productTopics'
 import type { ConsoleIntegration } from '../types/console'
 import { generatorSlugFromIdentifier, generatorTitleFromSlug } from './consoleRoutes'
@@ -5,6 +6,7 @@ import { generatorSlugFromIdentifier, generatorTitleFromSlug } from './consoleRo
 type GeneratorRecommendationOptions = {
   question?: string | null
   source?: ConsoleIntegration | null
+  topic?: ProductTopic | null
   topicId?: string | null
 }
 
@@ -34,10 +36,10 @@ function fallbackGeneratorSlugForQuestion(question: string | null | undefined): 
   return 'weekly-brief'
 }
 
-export function recommendedGeneratorSlugForContext({ question, source, topicId }: GeneratorRecommendationOptions): string {
-  const topic = topicById(topicId ?? null)
-  if (topic?.defaultGeneratorSlug) {
-    return topic.defaultGeneratorSlug
+export function recommendedGeneratorSlugForContext({ question, source, topic, topicId }: GeneratorRecommendationOptions): string {
+  const scopedTopic = topic ?? topicById(topicId ?? null)
+  if (scopedTopic?.defaultGeneratorSlug) {
+    return scopedTopic.defaultGeneratorSlug
   }
 
   if (source?.used_for.length) {

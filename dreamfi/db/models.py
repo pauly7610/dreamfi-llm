@@ -137,6 +137,18 @@ class PublishLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
 
 
+class ConsoleTopic(Base):
+    __tablename__ = "console_topics"
+
+    topic_id: Mapped[str] = mapped_column(String, primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    source_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    default_generator_slug: Mapped[str] = mapped_column(String, nullable=False, default="weekly-brief")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+
+
 class OnyxDocumentMap(Base):
     __tablename__ = "onyx_document_map"
 
@@ -161,6 +173,7 @@ class GoldDriftEvent(Base):
 
 __all__ = [
     "Base",
+    "ConsoleTopic",
     "EvalOutput",
     "EvalRound",
     "GoldDriftEvent",

@@ -47,9 +47,13 @@ function queryTokens(value: string): string[] {
     .filter((token) => token.length > 1)
 }
 
-function recentAskScopeLabel(recentAsk: RecentAsk, integrations: ConsoleIntegration[]): string {
+function recentAskScopeLabel(
+  recentAsk: RecentAsk,
+  integrations: ConsoleIntegration[],
+  lookupTopicById: (topicId: string | null) => ProductTopic | null = topicById,
+): string {
   if (recentAsk.topicId) {
-    return topicById(recentAsk.topicId)?.title ?? 'Topic room'
+    return lookupTopicById(recentAsk.topicId)?.title ?? 'Topic room'
   }
 
   if (recentAsk.sourceId) {
@@ -82,6 +86,8 @@ function buildSuggestionCandidates(
   currentSource: ConsoleIntegration | null,
   workflow: ProductWorkflowModel | null,
   currentQuestion: string,
+  lookupTopicById: (topicId: string | null) => ProductTopic | null = topicById,
+  relatedTopicsForSource: (sourceId: string) => ProductTopic[] = topicsForSource,
 ): AskSuggestion[] {
   const sourcePool = selectedSources.length > 0 ? selectedSources : integrations.slice(0, 5)
 
@@ -513,6 +519,8 @@ export function AskNewPage({ data }: AskNewPageProps) {
     recentAsks,
     recommendedGeneratorSlug,
     recommendedGeneratorTitle,
+    topicById: topicLookup,
+    topicsForSource: relatedTopicsForSource,
   } = useConsoleWorkspace()
   const integrations = data?.integrations ?? []
   const selectedSources = currentTopic
@@ -549,16 +557,18 @@ export function AskNewPage({ data }: AskNewPageProps) {
         currentSource,
         workflow,
         currentQuestion,
+        topicLookup,
+        relatedTopicsForSource,
       ),
-    [currentQuestion, currentSource, currentTopic, integrations, recentAsks, selectedSources, workflow],
+    [currentQuestion, currentSource, currentTopic, integrations, recentAsks, relatedTopicsForSource, selectedSources, topicLookup, workflow],
   )
   const autosuggestions = useMemo(
     () => visibleSuggestions(autosuggestCandidates, draftQuestion),
     [autosuggestCandidates, draftQuestion],
   )
   const recentAskLinks = recentAsks.filter((ask) => ask.question !== headline).slice(0, 4)
-  const sourceTopics = currentSource ? topicsForSource(currentSource.id).slice(0, 3) : []
-  const topicScope = currentTopic ?? topicById(currentTopicId)
+  const sourceTopics = currentSource ? relatedTopicsForSource(currentSource.id).slice(0, 3) : []
+  const topicScope = currentTopic ?? topicLookup(currentTopicId)
 
   return (
     <div className="page page-narrow">
@@ -798,7 +808,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
                 >
                   <div style={{ color: 'var(--ink-0)', fontSize: 14, lineHeight: 1.45 }}>{recentAsk.question}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 12 }}>
-                    {recentAsk.topicId ? topicById(recentAsk.topicId)?.title ?? 'Topic' : recentAsk.sourceId ? integrations.find((source) => source.id === recentAsk.sourceId)?.name ?? 'Source' : 'General'}
+                    {recentAsk.topicId ? topicLookup(recentAsk.topicId)?.title ?? 'Topic' : recentAsk.sourceId ? integrations.find((source) => source.id === recentAsk.sourceId)?.name ?? 'Source' : 'General'}
                   </div>
                 </a>
               )) : (

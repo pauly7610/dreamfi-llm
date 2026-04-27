@@ -219,6 +219,7 @@ export const consoleDevelopmentSlice: ConsolePayload = {
       href: '/console/integrations/socure',
     },
   ],
+  custom_topics: [],
   domain_health: [
     {
       domain: 'planning',
