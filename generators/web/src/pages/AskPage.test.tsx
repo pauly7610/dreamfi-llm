@@ -18,8 +18,10 @@ describe('AskPage', () => {
     })
 
     expect(screen.getByRole('heading', { name: 'Why did KYC conversion move?' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: /Reasoning/i })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /How this answer was built/i })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Suggested follow-ups/i })).toBeTruthy()
     expect(screen.getByRole('heading', { name: /Next moves/i })).toBeTruthy()
+    expect((screen.getByRole('textbox', { name: 'Question' }) as HTMLTextAreaElement).value).toBe('Why did KYC conversion move?')
     expect(screen.getAllByRole('link', { name: 'Metabase' })[0].getAttribute('href')).toBe('/console/integrations/metabase')
     expect(screen.getByRole('link', { name: 'Open room' }).getAttribute('href')).toBe('/console/topics/kyc-conversion')
 
@@ -37,7 +39,8 @@ describe('AskPage', () => {
 
     expect(screen.getByRole('heading', { name: 'What should Product know from Klaviyo?' })).toBeTruthy()
     expect(screen.getAllByText('Klaviyo').length).toBeGreaterThan(0)
-    expect(screen.getByText('source-scoped')).toBeTruthy()
+    expect(screen.getByText('single source scope')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Source results/i })).toBeTruthy()
 
     const generateLink = screen.getByRole('link', { name: 'Compose' })
     const generateUrl = new URL(generateLink.getAttribute('href') ?? '', 'https://dreamfi.test')
