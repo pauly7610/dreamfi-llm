@@ -1,8 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import AppShell from './AppShell'
-import './console.css'
-import './consoleWorkspace.css'
+import './styles/tokens.css'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

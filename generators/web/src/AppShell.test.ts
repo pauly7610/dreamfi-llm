@@ -11,6 +11,7 @@ describe('normalizeLegacyPath', () => {
     expect(normalizeLegacyPath('/console/generators')).toBe('/console/generate/weekly-brief')
     expect(normalizeLegacyPath('/console/generate/technical_prd')).toBe('/console/generate/technical-prd')
     expect(normalizeLegacyPath('/console/generate/weekly-pm-brief')).toBe('/console/generate/weekly-brief')
+    expect(normalizeLegacyPath('/console/inbox')).toBe('/console/review')
   })
 
   it('leaves current routes alone', () => {

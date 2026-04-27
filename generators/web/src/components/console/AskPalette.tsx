@@ -54,8 +54,8 @@ function AskPalette() {
         }
       }}
     >
-      <div className="ask-palette panel" role="dialog" aria-modal="true" aria-label="Ask DreamFi">
-        <div className="section-heading inline">
+      <div className="ask-palette surface" role="dialog" aria-modal="true" aria-label="Ask DreamFi">
+        <div className="section-heading">
           <div>
             <span className="eyebrow">Ask from anywhere</span>
             <h2>Keep the product thread going.</h2>
@@ -63,13 +63,13 @@ function AskPalette() {
               Start from the current question, then move into grounded answers and generated work without losing context.
             </p>
           </div>
-          <button type="button" className="button secondary ask-palette-close" onClick={closeAskPalette}>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={closeAskPalette}>
             Close
           </button>
         </div>
 
         <form
-          className="ask-box ask-palette-form"
+          className="ask-palette-form"
           onSubmit={(event) => {
             event.preventDefault()
             submitPaletteAsk()
@@ -82,22 +82,24 @@ function AskPalette() {
             value={paletteQuestion}
             onChange={(event) => setPaletteQuestion(event.target.value)}
           />
+
           {(paletteTopicLabel || paletteSourceLabel) ? (
             <div className="ask-palette-scope">
-              {paletteTopicLabel ? <span className="subtle-chip">Topic · {paletteTopicLabel}</span> : null}
-              {paletteSourceLabel ? <span className="subtle-chip">Source · {paletteSourceLabel}</span> : null}
+              {paletteTopicLabel ? <span className="subtle-chip">{`Topic · ${paletteTopicLabel}`}</span> : null}
+              {paletteSourceLabel ? <span className="subtle-chip">{`Source · ${paletteSourceLabel}`}</span> : null}
             </div>
           ) : null}
-          <div className="ask-box-actions">
-            <button type="submit" className="button primary">Ask with receipts</button>
-            <button type="button" className="button secondary" onClick={closeAskPalette}>Dismiss</button>
+
+          <div className="ask-palette-actions">
+            <button type="submit" className="btn btn-primary">Ask with receipts</button>
+            <button type="button" className="btn btn-ghost" onClick={closeAskPalette}>Dismiss</button>
           </div>
         </form>
 
         {recentAsks.length > 0 ? (
           <section className="ask-palette-recent">
             <span className="eyebrow">Recent questions</span>
-            <div className="prompt-chips ask-palette-recent-list">
+            <div className="ask-palette-recent-list">
               {recentAsks.slice(0, 3).map((recentAsk) => (
                 <button
                   key={`${recentAsk.question}-${recentAsk.topicId ?? 'topic'}-${recentAsk.sourceId ?? 'source'}`}

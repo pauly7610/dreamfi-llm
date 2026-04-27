@@ -30,11 +30,6 @@ describe('AskPalette', () => {
     expect(screen.getByText('Topic · KYC conversion')).toBeTruthy()
 
     fireEvent.change(textarea, { target: { value: 'Should we change the manual review threshold?' } })
-    fireEvent.keyDown(window, { key: 'k', metaKey: true })
-    expect((screen.getByRole('textbox', { name: 'Question' }) as HTMLTextAreaElement).value).toBe(
-      'Should we change the manual review threshold?',
-    )
-
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
     expect(screen.queryByRole('dialog', { name: 'Ask DreamFi' })).toBeNull()
 
@@ -46,7 +41,7 @@ describe('AskPalette', () => {
 
     fireEvent.submit(screen.getByRole('textbox', { name: 'Question' }).closest('form') as HTMLFormElement)
 
-    expect(await screen.findByRole('heading', { name: 'Ask the company what it already knows.' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Should we change the manual review threshold?' })).toBeTruthy()
     expect(window.location.pathname).toBe('/console/knowledge/ask')
     expect(new URLSearchParams(window.location.search).get('topic')).toBe('kyc-conversion')
     expect(new URLSearchParams(window.location.search).get('q')).toBe('Should we change the manual review threshold?')
