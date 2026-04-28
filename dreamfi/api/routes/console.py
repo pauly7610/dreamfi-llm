@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session
+from dreamfi.config import get_settings
 from dreamfi.db.models import ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -21,6 +23,7 @@ FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 FRONTEND_PUBLIC_DIR = REPO_ROOT / "generators" / "web" / "public"
 LLMS_TXT_PATH = REPO_ROOT / "llms.txt"
 TOPIC_GENERATOR_SLUGS = {"weekly-brief", "technical-prd", "business-prd", "risk-brd"}
+TOPIC_STATUSES = {"discovery", "in_review", "ready", "blocked", "done"}
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html"]),
@@ -50,11 +53,17 @@ def _valid_integration_ids() -> set[str]:
 
 
 def _serialize_console_topic(topic: ConsoleTopic) -> dict[str, object]:
+    target_decision_at = topic.target_decision_at
+    if target_decision_at is not None and target_decision_at.tzinfo is None:
+        target_decision_at = target_decision_at.replace(tzinfo=timezone.utc)
     return {
         "id": topic.topic_id,
         "title": topic.title,
         "summary": topic.summary,
         "question": topic.question,
+        "owner": topic.owner,
+        "status": topic.status,
+        "target_decision_at": target_decision_at.isoformat() if target_decision_at else None,
         "source_ids": list(topic.source_ids_json),
         "default_generator_slug": topic.default_generator_slug,
         "created_at": topic.created_at.isoformat(),
@@ -125,6 +134,46 @@ def _normalize_default_generator_slug(value: Any) -> str:
     return normalized_slug
 
 
+def _normalize_topic_status(value: Any) -> str:
+    if value is None:
+        return "discovery"
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="status must be a string",
+        )
+    normalized = value.strip().lower() or "discovery"
+    if normalized not in TOPIC_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"status must be one of: {', '.join(sorted(TOPIC_STATUSES))}",
+        )
+    return normalized
+
+
+def _normalize_topic_owner(value: Any) -> str:
+    if value is None:
+        return "unassigned"
+    return _coerce_string(value, field_name="owner")
+
+
+def _normalize_topic_decision_date(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="target_decision_at must be an ISO datetime string",
+        )
+    parsed = _parse_created_at(value)
+    if parsed is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="target_decision_at must be an ISO datetime string",
+        )
+    return parsed
+
+
 def _serialize_round(round_row: EvalRound) -> dict[str, object]:
     return {
         "round_id": round_row.round_id,
@@ -177,9 +226,49 @@ def _serialize_artifact(
         "export_readiness": float(output.export_readiness) if output.export_readiness is not None else None,
         "created_at": output.created_at.isoformat(),
         "status": _artifact_status(output, latest_publish),
+        "policy_checks": _policy_checks(output, latest_publish),
         "artifacts_path": round_row.artifacts_path if round_row is not None else None,
         "latest_publish": _serialize_publish(latest_publish) if latest_publish is not None else None,
     }
+
+
+def _policy_checks(output: EvalOutput, latest_publish: PublishLog | None) -> dict[str, object]:
+    settings = get_settings()
+    confidence = float(output.confidence) if output.confidence is not None else None
+    checks = [
+        {
+            "name": "hard_gate",
+            "passed": output.pass_fail == "pass",
+            "detail": "pass_fail must be pass",
+        },
+        {
+            "name": "confidence_threshold",
+            "passed": confidence is not None and confidence >= settings.dreamfi_confidence_threshold,
+            "detail": (
+                f"confidence={confidence:.3f} threshold={settings.dreamfi_confidence_threshold:.3f}"
+                if confidence is not None
+                else "confidence missing"
+            ),
+        },
+        {
+            "name": "export_readiness",
+            "passed": output.export_readiness is not None and float(output.export_readiness) >= 0.8,
+            "detail": (
+                f"export_readiness={float(output.export_readiness):.3f} threshold=0.800"
+                if output.export_readiness is not None
+                else "export_readiness missing"
+            ),
+        },
+    ]
+    if latest_publish is not None:
+        checks.append(
+            {
+                "name": "publish_attempt",
+                "passed": latest_publish.decision == "published",
+                "detail": latest_publish.reason or latest_publish.decision,
+            }
+        )
+    return {"checks": checks}
 
 
 def _console_alerts(
@@ -415,6 +504,143 @@ def _domain_health(
     ]
 
 
+def _parse_created_at(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _bucket_days(days: int) -> str:
+    return f"{days}d"
+
+
+def _historical_metrics(
+    outputs: list[EvalOutput],
+    publishes: list[PublishLog],
+    *,
+    now: datetime | None = None,
+) -> dict[str, dict[str, float | int | None]]:
+    ref = now or datetime.now(timezone.utc)
+    windows = [7, 30, 90]
+    rows: dict[str, dict[str, float | int | None]] = {}
+    for days in windows:
+        start = ref - timedelta(days=days)
+        window_outputs = [row for row in outputs if _as_utc(row.created_at) >= start]
+        window_publishes = [row for row in publishes if _as_utc(row.created_at) >= start]
+        output_count = len(window_outputs)
+        pass_count = sum(1 for row in window_outputs if row.pass_fail == "pass")
+        blocked_count = sum(1 for row in window_outputs if row.pass_fail != "pass")
+        published_count = sum(1 for row in window_publishes if row.decision == "published")
+        rows[_bucket_days(days)] = {
+            "output_count": output_count,
+            "pass_rate": round(pass_count / output_count, 3) if output_count else None,
+            "blocked_rate": round(blocked_count / output_count, 3) if output_count else None,
+            "publish_success_rate": (
+                round(published_count / len(window_publishes), 3) if window_publishes else None
+            ),
+        }
+    return rows
+
+
+def _confidence_calibration(outputs: list[EvalOutput]) -> list[dict[str, object]]:
+    bins = [(0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 0.9), (0.9, 1.01)]
+    rows: list[dict[str, object]] = []
+    for start, end in bins:
+        bucket = [
+            row
+            for row in outputs
+            if row.confidence is not None and start <= float(row.confidence) < end
+        ]
+        count = len(bucket)
+        pass_rate = sum(1 for row in bucket if row.pass_fail == "pass") / count if count else None
+        rows.append(
+            {
+                "bucket": f"{start:.2f}-{min(end, 1.0):.2f}",
+                "count": count,
+                "observed_pass_rate": round(pass_rate, 3) if pass_rate is not None else None,
+            }
+        )
+    return rows
+
+
+def _failure_clusters(outputs: list[EvalOutput]) -> list[dict[str, object]]:
+    clusters: dict[str, dict[str, object]] = {}
+    for output in outputs:
+        if output.pass_fail == "pass":
+            continue
+        criteria = output.criteria_json if isinstance(output.criteria_json, dict) else {}
+        failed = sorted(
+            key
+            for key, value in criteria.items()
+            if value is False or value in {"fail", "failed", "false"}
+        )
+        cluster_key = ",".join(failed) if failed else "unclassified"
+        record = clusters.setdefault(
+            cluster_key,
+            {
+                "cluster_id": cluster_key,
+                "count": 0,
+                "sample_output_ids": [],
+                "recommended_action": (
+                    "Review failed criteria and add targeted prompt instructions."
+                    if failed
+                    else "Add richer eval criteria diagnostics for failed outputs."
+                ),
+            },
+        )
+        record["count"] = int(record["count"]) + 1
+        if len(record["sample_output_ids"]) < 3:
+            record["sample_output_ids"].append(output.output_id)
+    return sorted(clusters.values(), key=lambda row: int(row["count"]), reverse=True)
+
+
+def _slo_status(summary: dict[str, float | int | None]) -> dict[str, object]:
+    settings = get_settings()
+    hard_gate = summary.get("hard_gate_pass_rate")
+    blocked = summary.get("blocked_artifact_count")
+    total = (summary.get("blocked_artifact_count") or 0) + (summary.get("publish_ready_count") or 0) + (
+        summary.get("published_artifact_count") or 0
+    ) + (summary.get("needs_review_count") or 0)
+    blocked_rate = (float(blocked) / float(total)) if total else None
+    publish_success = summary.get("publish_success_rate")
+    checks = [
+        {
+            "name": "hard_gate_pass_rate",
+            "target": settings.dreamfi_slo_hard_gate_pass_rate,
+            "actual": hard_gate,
+            "met": hard_gate is not None and float(hard_gate) >= settings.dreamfi_slo_hard_gate_pass_rate,
+        },
+        {
+            "name": "blocked_rate",
+            "target": settings.dreamfi_slo_blocked_rate,
+            "actual": round(blocked_rate, 3) if blocked_rate is not None else None,
+            "met": blocked_rate is not None and blocked_rate <= settings.dreamfi_slo_blocked_rate,
+        },
+        {
+            "name": "publish_success_rate",
+            "target": settings.dreamfi_slo_publish_success_rate,
+            "actual": publish_success,
+            "met": publish_success is not None and float(publish_success) >= settings.dreamfi_slo_publish_success_rate,
+        },
+    ]
+    return {
+        "checks": checks,
+        "all_met": all(bool(item["met"]) for item in checks),
+    }
+
+
 def _console_payload(session: Session) -> dict[str, Any]:
     skills = session.scalars(select(Skill).order_by(Skill.skill_id)).all()
     active_prompt_versions = session.scalars(
@@ -498,22 +724,24 @@ def _console_payload(session: Session) -> dict[str, Any]:
 
     publish_total = len(publishes)
     published_total = sum(1 for log in publishes if log.decision == "published")
-
+    summary: dict[str, float | int | None] = {
+        "skill_count": len(skills),
+        "active_prompt_count": len(active_prompt_versions),
+        "average_latest_score": round(sum(latest_scores) / len(latest_scores), 3) if latest_scores else None,
+        "average_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
+        "average_export_readiness": round(sum(readiness_values) / len(readiness_values), 3) if readiness_values else None,
+        "publish_success_rate": round(published_total / publish_total, 3) if publish_total else None,
+        "hard_gate_pass_rate": round(pass_count / len(outputs), 3) if outputs else None,
+        "blocked_artifact_count": blocked_count,
+        "publish_ready_count": publish_ready_count,
+        "published_artifact_count": published_count,
+        "needs_review_count": needs_review_count,
+    }
+    output_ids = {output.output_id for output in outputs}
+    recent_publishes = [log for log in publish_log_rows if log.output_id in output_ids]
     return {
         "headline": "Trust, measured.",
-        "summary": {
-            "skill_count": len(skills),
-            "active_prompt_count": len(active_prompt_versions),
-            "average_latest_score": round(sum(latest_scores) / len(latest_scores), 3) if latest_scores else None,
-            "average_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
-            "average_export_readiness": round(sum(readiness_values) / len(readiness_values), 3) if readiness_values else None,
-            "publish_success_rate": round(published_total / publish_total, 3) if publish_total else None,
-            "hard_gate_pass_rate": round(pass_count / len(outputs), 3) if outputs else None,
-            "blocked_artifact_count": blocked_count,
-            "publish_ready_count": publish_ready_count,
-            "published_artifact_count": published_count,
-            "needs_review_count": needs_review_count,
-        },
+        "summary": summary,
         "skills": skill_cards,
         "artifact_queue": artifact_queue,
         "publish_activity": [_serialize_publish(log) for log in publishes],
@@ -527,6 +755,22 @@ def _console_payload(session: Session) -> dict[str, Any]:
         "quick_actions": _quick_actions(),
         "integrations": _integrations(),
         "custom_topics": _serialize_console_topics(session),
+        "historical_metrics": _historical_metrics(outputs, recent_publishes),
+        "confidence_calibration": _confidence_calibration(outputs),
+        "failure_clusters": _failure_clusters(outputs),
+        "slo_status": _slo_status(summary),
+        "scenario_packs": [
+            {
+                "id": "trust-review-drill",
+                "title": "Trust review drill",
+                "description": "Practice queue triage with blocked and borderline artifacts.",
+            },
+            {
+                "id": "prompt-regression-drill",
+                "title": "Prompt regression drill",
+                "description": "Run eval rounds and verify promotion eligibility before rollout.",
+            },
+        ],
         "domain_health": _domain_health(
             average_latest_score=round(sum(latest_scores) / len(latest_scores), 3) if latest_scores else None,
             average_confidence=round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else None,
@@ -601,6 +845,27 @@ def console_data(session: Session = Depends(get_db_session)) -> dict[str, Any]:
     return _console_payload(session)
 
 
+@router.get("/api/console/metrics")
+def console_metrics(session: Session = Depends(get_db_session)) -> dict[str, object]:
+    payload = _console_payload(session)
+    return {
+        "summary": payload["summary"],
+        "historical_metrics": payload["historical_metrics"],
+        "confidence_calibration": payload["confidence_calibration"],
+        "slo_status": payload["slo_status"],
+    }
+
+
+@router.get("/api/console/simulator")
+def console_simulator(session: Session = Depends(get_db_session)) -> dict[str, object]:
+    payload = _console_payload(session)
+    return {
+        "scenarios": payload["scenario_packs"],
+        "failure_clusters": payload["failure_clusters"],
+        "sample_queue": payload["artifact_queue"][:5],
+    }
+
+
 @router.post("/api/console/topics", status_code=status.HTTP_201_CREATED)
 def create_console_topic(payload: dict[str, Any], session: Session = Depends(get_db_session)) -> dict[str, object]:
     title = _coerce_string(payload.get("title"), field_name="title")
@@ -618,6 +883,9 @@ def create_console_topic(payload: dict[str, Any], session: Session = Depends(get
 
     source_ids = _normalize_source_ids(payload.get("source_ids"))
     default_generator_slug = _normalize_default_generator_slug(payload.get("default_generator_slug"))
+    owner = _normalize_topic_owner(payload.get("owner"))
+    topic_status = _normalize_topic_status(payload.get("status"))
+    target_decision_at = _normalize_topic_decision_date(payload.get("target_decision_at"))
     requested_topic_id = payload.get("id")
     topic_id_seed = requested_topic_id if isinstance(requested_topic_id, str) and requested_topic_id.strip() else title
     topic_id = _next_topic_id(session, topic_id_seed)
@@ -627,10 +895,46 @@ def create_console_topic(payload: dict[str, Any], session: Session = Depends(get
         title=title,
         summary=summary,
         question=question if question.endswith(("?", "!", ".")) else f"{question}?",
+        owner=owner,
+        status=topic_status,
+        target_decision_at=target_decision_at,
         source_ids_json=source_ids,
         default_generator_slug=default_generator_slug,
     )
     session.add(topic)
+    session.commit()
+    session.refresh(topic)
+    return _serialize_console_topic(topic)
+
+
+@router.patch("/api/console/topics/{topic_id}")
+def update_console_topic(
+    topic_id: str,
+    payload: dict[str, Any],
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
+    topic = session.get(ConsoleTopic, topic_id)
+    if topic is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
+
+    if "title" in payload:
+        topic.title = _coerce_string(payload.get("title"), field_name="title")
+    if "summary" in payload:
+        topic.summary = _coerce_string(payload.get("summary"), field_name="summary")
+    if "question" in payload:
+        question = _coerce_string(payload.get("question"), field_name="question")
+        topic.question = question if question.endswith(("?", "!", ".")) else f"{question}?"
+    if "owner" in payload:
+        topic.owner = _normalize_topic_owner(payload.get("owner"))
+    if "status" in payload:
+        topic.status = _normalize_topic_status(payload.get("status"))
+    if "target_decision_at" in payload:
+        topic.target_decision_at = _normalize_topic_decision_date(payload.get("target_decision_at"))
+    if "source_ids" in payload:
+        topic.source_ids_json = _normalize_source_ids(payload.get("source_ids"))
+    if "default_generator_slug" in payload:
+        topic.default_generator_slug = _normalize_default_generator_slug(payload.get("default_generator_slug"))
+
     session.commit()
     session.refresh(topic)
     return _serialize_console_topic(topic)

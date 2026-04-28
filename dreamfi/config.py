@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     dreamfi_confidence_threshold: float = Field(default=0.75)  # 0–1
     dreamfi_improvement_threshold: float = Field(default=0.02)  # fraction, e.g. 0.02 == 2%
     dreamfi_freshness_halflife_days: float = Field(default=14.0)  # days
+    dreamfi_slo_hard_gate_pass_rate: float = Field(default=0.8)  # 0–1
+    dreamfi_slo_blocked_rate: float = Field(default=0.2)  # 0–1
+    dreamfi_slo_publish_success_rate: float = Field(default=0.75)  # 0–1
 
     model_config = SettingsConfigDict(
         env_file=".env",

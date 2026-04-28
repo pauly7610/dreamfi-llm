@@ -144,6 +144,8 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     blocked_artifact = next(item for item in body['artifact_queue'] if item['status'] == 'blocked')
     assert published_artifact['latest_publish']['decision'] == 'published'
     assert blocked_artifact['latest_publish'] is None
+    assert blocked_artifact['policy_checks']['checks'][0]['name'] == 'hard_gate'
+    assert blocked_artifact['policy_checks']['checks'][0]['passed'] is False
     assert len(body['alerts']) == 1
     assert body['alerts'][0]['id'] == 'blocked-artifacts'
     assert len(body['quick_actions']) == 6
@@ -170,6 +172,13 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert len(body['custom_topics']) == 1
     assert body['custom_topics'][0]['id'] == 'card-disputes'
     assert body['custom_topics'][0]['default_generator_slug'] == 'risk-brd'
+    assert body['custom_topics'][0]['owner'] == 'unassigned'
+    assert body['custom_topics'][0]['status'] == 'discovery'
+    assert body['historical_metrics']['7d']['output_count'] == 2
+    assert len(body['confidence_calibration']) == 5
+    assert body['failure_clusters'][0]['count'] == 1
+    assert body['slo_status']['all_met'] is False
+    assert len(body['scenario_packs']) == 2
 
 
 def test_console_topic_create_persists_and_returns_saved_topic(client: TestClient, session: Session) -> None:
@@ -189,9 +198,49 @@ def test_console_topic_create_persists_and_returns_saved_topic(client: TestClien
     assert body['id'] == 'card-disputes'
     assert body['question'] == 'Where do card disputes create the most support load?'
     assert body['source_ids'] == ['jira', 'sardine']
+    assert body['owner'] == 'unassigned'
+    assert body['status'] == 'discovery'
     saved_topic = session.get(ConsoleTopic, 'card-disputes')
     assert saved_topic is not None
     assert saved_topic.default_generator_slug == 'risk-brd'
+
+
+def test_console_metrics_and_simulator_endpoints(client: TestClient) -> None:
+    metrics = client.get('/api/console/metrics')
+    simulator = client.get('/api/console/simulator')
+
+    assert metrics.status_code == 200
+    assert simulator.status_code == 200
+    assert 'historical_metrics' in metrics.json()
+    assert 'slo_status' in metrics.json()
+    assert 'scenarios' in simulator.json()
+
+
+def test_console_topic_patch_updates_lifecycle_fields(client: TestClient, session: Session) -> None:
+    topic = ConsoleTopic(
+        topic_id='kyc-conversion',
+        title='KYC conversion',
+        summary='Investigate KYC conversion.',
+        question='What is blocking KYC conversion?',
+        source_ids_json=['jira'],
+    )
+    session.add(topic)
+    session.commit()
+
+    response = client.patch(
+        '/api/console/topics/kyc-conversion',
+        json={
+            'owner': 'Product Ops',
+            'status': 'in_review',
+            'target_decision_at': '2026-05-15T00:00:00Z',
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body['owner'] == 'Product Ops'
+    assert body['status'] == 'in_review'
+    assert body['target_decision_at'] == '2026-05-15T00:00:00+00:00'
 
 
 def test_console_favicon_is_served(client: TestClient) -> None:

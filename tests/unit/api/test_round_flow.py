@@ -166,3 +166,27 @@ def test_promote_blocked_on_regression(
     )
     assert resp.status_code == 409
     assert "REGRESSION" in resp.json()["detail"]
+
+
+@respx.mock
+def test_promotion_preview_endpoint(
+    client: TestClient, session: Session
+) -> None:
+    _mock_onyx_success()
+    round_response = client.post(
+        "/v1/skills/meeting_summary/eval-round",
+        json={"n_outputs_per_input": 1},
+    )
+    assert round_response.status_code == 200
+    round_id = round_response.json()["round_id"]
+
+    preview = client.post(
+        "/v1/skills/meeting_summary/promotion-preview",
+        json={"round_id": round_id},
+    )
+    assert preview.status_code == 200
+    body = preview.json()
+    assert body["round_id"] == round_id
+    assert body["skill_id"] == "meeting_summary"
+    assert "promotable" in body
+    assert "reason" in body
