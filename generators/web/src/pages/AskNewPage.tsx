@@ -187,6 +187,114 @@ function buildSuggestionCandidates(
   )
 }
 
+function buildDynamicSuggestionCandidates(
+  recentAsks: RecentAsk[],
+  integrations: ConsoleIntegration[],
+  selectedSources: ConsoleIntegration[],
+  currentTopic: ProductTopic | null,
+  currentSource: ConsoleIntegration | null,
+  currentQuestion: string,
+  lookupTopicById: (topicId: string | null) => ProductTopic | null,
+  relatedTopicsForSource: (sourceId: string) => ProductTopic[],
+): AskSuggestion[] {
+  const sourcePool = selectedSources.length > 0 ? selectedSources : integrations.slice(0, 5)
+
+  const recentSuggestions: AskSuggestion[] = recentAsks.map((recentAsk) => ({
+    question: recentAsk.question,
+    note: `Recent / ${recentAskScopeLabel(recentAsk, integrations, lookupTopicById)}`,
+    kind: 'recent',
+    topicId: recentAsk.topicId,
+    sourceId: recentAsk.sourceId,
+  }))
+
+  const topicSuggestions: AskSuggestion[] = currentTopic
+    ? [
+        {
+          question: currentTopic.question,
+          note: `Topic room / ${currentTopic.title}`,
+          kind: 'topic',
+          topicId: currentTopic.id,
+        },
+        ...workflowQuestionsForTopic(currentTopic.id).map((question) => ({
+          question,
+          note: `Workflow question / ${currentTopic.title}`,
+          kind: 'topic' as const,
+          topicId: currentTopic.id,
+        })),
+        ...currentTopic.toplineMetrics.map((metric) => ({
+          question: `Why is ${metric.label.toLowerCase()} at ${metric.value}?`,
+          note: `Metric signal / ${metric.detail}`,
+          kind: 'signal' as const,
+          topicId: currentTopic.id,
+          sourceId: metric.sourceId ?? null,
+        })),
+        ...currentTopic.signals.map((signal) => ({
+          question: `What should Product know about ${signal.label.toLowerCase()}?`,
+          note: `Connector signal / ${signal.detail}`,
+          kind: 'signal' as const,
+          topicId: currentTopic.id,
+          sourceId: signal.sourceId ?? null,
+        })),
+      ]
+    : []
+
+  const sourceSuggestions: AskSuggestion[] = currentSource
+    ? [
+        {
+          question: `What should Product know from ${currentSource.name}?`,
+          note: `Connector scope / ${currentSource.purpose}`,
+          kind: 'connector',
+          sourceId: currentSource.id,
+        },
+        {
+          question: `What changed in ${currentSource.name} that affects Product?`,
+          note: `Connector context / ${currentSource.used_for.join(', ') || 'grounded product work'}`,
+          kind: 'connector',
+          sourceId: currentSource.id,
+        },
+        ...relatedTopicsForSource(currentSource.id).map((topic) => ({
+          question: topic.question,
+          note: `Related topic / ${topic.title}`,
+          kind: 'topic' as const,
+          topicId: topic.id,
+          sourceId: currentSource.id,
+        })),
+      ]
+    : []
+
+  const connectorSuggestions: AskSuggestion[] = sourcePool.flatMap((integration) => {
+    const topicTitle = currentTopic?.title ?? 'this decision'
+    const topicQuestion = currentTopic?.question ?? currentQuestion
+
+    return [
+      {
+        question: `What does ${integration.name} say about ${topicTitle.toLowerCase()}?`,
+        note: `From connected data / ${integration.purpose}`,
+        kind: 'connector' as const,
+        sourceId: integration.id,
+      },
+      {
+        question: topicQuestion
+          ? `${topicQuestion.replace(/\?$/, '')} according to ${integration.name}?`
+          : `What changed in ${integration.name} that Product should know?`,
+        note: `Connector evidence / ${integration.used_for.join(', ') || integration.category}`,
+        kind: 'connector' as const,
+        sourceId: integration.id,
+      },
+    ]
+  })
+
+  return dedupeSuggestions(
+    [
+      ...recentSuggestions,
+      ...topicSuggestions,
+      ...sourceSuggestions,
+      ...connectorSuggestions,
+    ],
+    currentQuestion,
+  )
+}
+
 function suggestionScore(suggestion: AskSuggestion, query: string): number {
   const normalizedQuery = normalizeText(query)
   if (!normalizedQuery) {
@@ -507,6 +615,45 @@ function buildFollowUps(
   ).slice(0, 6)
 }
 
+function buildDynamicFollowUps(
+  currentQuestion: string,
+  currentTopic: ProductTopic | null,
+  currentSource: ConsoleIntegration | null,
+  relatedTopicsForSource: (sourceId: string) => ProductTopic[],
+): string[] {
+  if (currentTopic) {
+    return uniqueQuestions(
+      [
+        ...workflowQuestionsForTopic(currentTopic.id),
+        ...currentTopic.signals.map((signal) => `What should Product know about ${signal.label.toLowerCase()}?`),
+        currentTopic.question,
+      ],
+      currentQuestion,
+    ).slice(0, 6)
+  }
+
+  if (currentSource) {
+    return uniqueQuestions(
+      [
+        `What should Product know from ${currentSource.name}?`,
+        ...relatedTopicsForSource(currentSource.id).map((topic) => topic.question),
+        `Which decisions depend most on ${currentSource.name}?`,
+      ],
+      currentQuestion,
+    ).slice(0, 6)
+  }
+
+  return uniqueQuestions(
+    [
+      'Where are users getting stuck before first funding?',
+      'Why did KYC conversion move this week?',
+      'What changed in onboarding since the last roadmap review?',
+      'Which lifecycle messages are helping users finish onboarding?',
+    ],
+    currentQuestion,
+  ).slice(0, 6)
+}
+
 export function AskNewPage({ data }: AskNewPageProps) {
   const {
     buildAskHref,
@@ -546,21 +693,20 @@ export function AskNewPage({ data }: AskNewPageProps) {
   const primarySource = selectedSources[0] ?? null
   const insights = buildInsights(mode, workflow, currentTopic, currentSource)
   const resultCards = buildResultCards(selectedSources, workflow, currentTopic)
-  const followUps = buildFollowUps(headline, currentTopic, currentSource)
+  const followUps = buildDynamicFollowUps(headline, currentTopic, currentSource, relatedTopicsForSource)
   const autosuggestCandidates = useMemo(
     () =>
-      buildSuggestionCandidates(
+      buildDynamicSuggestionCandidates(
         recentAsks,
         integrations,
         selectedSources,
         currentTopic,
         currentSource,
-        workflow,
         currentQuestion,
         topicLookup,
         relatedTopicsForSource,
       ),
-    [currentQuestion, currentSource, currentTopic, integrations, recentAsks, relatedTopicsForSource, selectedSources, topicLookup, workflow],
+    [currentQuestion, currentSource, currentTopic, integrations, recentAsks, relatedTopicsForSource, selectedSources, topicLookup],
   )
   const autosuggestions = useMemo(
     () => visibleSuggestions(autosuggestCandidates, draftQuestion),
@@ -578,10 +724,10 @@ export function AskNewPage({ data }: AskNewPageProps) {
 
       <div className="surface" style={{ marginBottom: 20 }}>
         <div style={{ padding: '22px 24px 18px' }}>
-          <div className="row" style={{ alignItems: 'flex-start', gap: 18, marginBottom: 14 }}>
+          <div className="ask-composer-shell">
             <div style={{ flex: 1 }}>
               <div className="eyebrow" style={{ marginBottom: 10 }}>QUESTION COMPOSER</div>
-              <form action="/console/knowledge/ask" method="get" style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+              <form action="/console/knowledge/ask" method="get" className="ask-composer-form">
                 <div style={{ flex: 1 }}>
                   <label htmlFor="ask-page-question" style={{ display: 'block', color: 'var(--ink-2)', fontSize: 12, marginBottom: 8 }}>
                     Question
@@ -617,7 +763,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
               </form>
             </div>
 
-            <div style={{ minWidth: 240, maxWidth: 260 }}>
+            <div className="ask-answer-mode">
               <div className="eyebrow" style={{ marginBottom: 10 }}>ANSWER MODE</div>
               <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
                 <Chip tone={workflow ? toneForWorkflowTone(workflow.currentState.tone) : 'signal'}>
@@ -712,7 +858,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.45fr) minmax(280px, 0.8fr)', gap: 20, marginBottom: 20 }}>
+      <div className="ask-main-grid">
         <div className="surface">
           <div style={{ padding: '22px 24px 8px' }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>BEST ANSWER</div>
@@ -724,7 +870,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', borderTop: '1px solid var(--line)' }}>
+          <div className="kpi-grid" style={{ borderTop: '1px solid var(--line)' }}>
             <KPI
               label="SCOPE"
               value={currentTopic?.title ?? currentSource?.name ?? 'Company'}
@@ -821,7 +967,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(280px, 0.85fr)', gap: 20, marginBottom: 20 }}>
+      <div className="ask-secondary-grid">
         <div className="surface">
           <SectionHead title="How this answer was built" eyebrow="REASONING" />
           <div style={{ padding: '8px 0' }}>
@@ -927,8 +1073,8 @@ export function AskNewPage({ data }: AskNewPageProps) {
 
       <div className="surface">
         <SectionHead title="Next moves" eyebrow="WHAT TO DO" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderTop: '1px solid var(--line)' }}>
-          <div style={{ padding: '18px 22px', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="ask-next-grid">
+          <div className="ask-next-card">
             <div className="eyebrow">01</div>
             <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{currentTopic ? 'Open topic room' : 'Browse topic rooms'}</div>
             <div style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>
@@ -938,7 +1084,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
               {currentTopic ? 'Open room' : 'Browse'}
             </a>
           </div>
-          <div style={{ padding: '18px 22px', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="ask-next-card">
             <div className="eyebrow">02</div>
             <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{`Generate ${recommendedGeneratorTitle}`}</div>
             <div style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>Carry the same question, topic, and source context into the draft.</div>
@@ -946,7 +1092,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
               Compose
             </a>
           </div>
-          <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="ask-next-card">
             <div className="eyebrow">03</div>
             <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{currentSource ? 'Inspect connector' : 'Open source directory'}</div>
             <div style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>
@@ -962,15 +1108,9 @@ export function AskNewPage({ data }: AskNewPageProps) {
       {sourceTopics.length > 0 ? (
         <div className="surface" style={{ marginTop: 20 }}>
           <SectionHead title="Related topic rooms" eyebrow="TURN THIS INTO A RECURRING THREAD" />
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(sourceTopics.length, 3)}, minmax(0, 1fr))`, borderTop: '1px solid var(--line)' }}>
-            {sourceTopics.map((topic, index) => (
-              <div
-                key={topic.id}
-                style={{
-                  padding: '18px 22px',
-                  borderRight: index < sourceTopics.length - 1 ? '1px solid var(--line)' : 'none',
-                }}
-              >
+          <div className="ask-related-grid">
+            {sourceTopics.map((topic) => (
+              <div className="ask-related-card" key={topic.id}>
                 <div className="eyebrow" style={{ marginBottom: 8 }}>TOPIC ROOM</div>
                 <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500, marginBottom: 6 }}>{topic.title}</div>
                 <div style={{ color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.55, marginBottom: 12 }}>{topic.summary}</div>
