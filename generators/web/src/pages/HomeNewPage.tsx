@@ -38,7 +38,7 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
 
   return (
     <div className="page">
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.08fr) minmax(340px, 0.92fr)', gap: 20, alignItems: 'stretch', marginBottom: 20 }}>
+      <div className="home-hero-grid" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div className="eyebrow" style={{ marginBottom: 12 }}>HOME</div>
 
@@ -71,7 +71,7 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
       ) : null}
 
       <div className="surface" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+        <div className="kpi-grid">
           <KPI label="OPEN THREADS" value={topicRows.length} delta={`${summary?.needs_review_count ?? 0} require review`} />
           <KPI
             label="DECISIONS PENDING"
@@ -93,35 +93,37 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20 }}>
+      <div className="home-thread-grid">
         <div className="surface">
           <SectionHead title="Open threads" eyebrow="YOUR ATTENTION" right={<a className="btn btn-sm btn-ghost" href="/console/knowledge/ask">Ask new question</a>} />
-          <table className="dfi-table">
-            <tbody>
-              {topicRows.map((row) => (
-                <tr key={row.topic.id}>
-                  <td style={{ width: '52%' }}>
-                    <a className="strong" href={row.href} style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.3 }}>
-                      {row.label}
-                    </a>
-                    <div className="muted">{row.status}</div>
-                  </td>
-                  <td>
-                    <Chip tone={row.tone}>{row.topic.title}</Chip>
-                  </td>
-                  <td>
-                    <div className="num">{row.metric}</div>
-                    <div className="muted">{row.metricLabel}</div>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <a className="btn btn-sm" href={row.href}>
-                      Open
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-scroll table-scroll-medium">
+            <table className="dfi-table">
+              <tbody>
+                {topicRows.map((row) => (
+                  <tr key={row.topic.id}>
+                    <td style={{ width: '52%' }}>
+                      <a className="strong" href={row.href} style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.3 }}>
+                        {row.label}
+                      </a>
+                      <div className="muted">{row.status}</div>
+                    </td>
+                    <td>
+                      <Chip tone={row.tone}>{row.topic.title}</Chip>
+                    </td>
+                    <td>
+                      <div className="num">{row.metric}</div>
+                      <div className="muted">{row.metricLabel}</div>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a className="btn btn-sm" href={row.href}>
+                        Open
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="surface">
@@ -157,16 +159,13 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
 
       <div className="surface" id="sources" style={{ marginTop: 20 }}>
         <SectionHead title="Source health" eyebrow="WHAT'S GROUNDED" right={<a className="btn btn-sm btn-ghost" href="/console/integrations">Browse connectors</a>} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
-          {integrations.map((integration, index) => (
+        <div className="home-source-grid">
+          {integrations.map((integration) => (
             <a
               key={integration.id}
+              className="home-source-card"
               href={sourceHref(integration.id)}
-              style={{
-                padding: '16px 18px',
-                borderRight: (index + 1) % 5 ? '1px solid var(--line)' : 'none',
-                borderTop: index >= 5 ? '1px solid var(--line)' : 'none',
-              }}
+              style={{ minWidth: 0 }}
             >
               <div className="row" style={{ marginBottom: 8 }}>
                 <Cite connector={connectorKeyFromId(integration.id)} label={integration.name} />

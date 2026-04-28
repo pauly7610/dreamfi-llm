@@ -32,7 +32,7 @@ function fallbackTimeline(topic: ProductTopic) {
   return [
     {
       label: 'CUSTOM ROOM',
-      summary: 'Created locally',
+      summary: 'Created in console',
       detail: `Ask the starter question, inspect ${topic.sources.length || 1} connected sources, and draft the first artifact from this room.`,
       sourceIds: topic.sources,
     },
@@ -114,11 +114,12 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
 
     try {
       setIsSaving(true)
+      const trimmedSummary = summary.trim()
       const createdTopic = await addTopic({
         defaultGeneratorSlug,
         question: trimmedQuestion,
         sourceIds: selectedSourceIds,
-        summary,
+        summary: trimmedSummary,
         title: trimmedTitle,
       })
 
@@ -156,7 +157,7 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
 
           {isCreating ? (
             <form method="post" onSubmit={handleCreateTopic} style={{ display: 'grid', gap: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
+              <div className="topic-form-grid">
                 <label style={{ display: 'grid', gap: 8 }}>
                   <span className="eyebrow">Topic name</span>
                   <input
@@ -239,7 +240,7 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
 
               <div style={{ display: 'grid', gap: 10 }}>
                 <div className="eyebrow">Connected sources</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                <div className="topic-source-grid">
                   {integrations.map((integration) => (
                     <label
                       key={integration.id}
@@ -255,11 +256,11 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
                     >
                       <input
                         checked={selectedSourceIds.includes(integration.id)}
+                        disabled={isSaving}
                         name={`source-${integration.id}`}
-                    disabled={isSaving}
-                    onChange={() => toggleSource(integration.id)}
-                    type="checkbox"
-                  />
+                        onChange={() => toggleSource(integration.id)}
+                        type="checkbox"
+                      />
                       <span>
                         <span className="strong" style={{ display: 'block' }}>{integration.name}</span>
                         <span className="muted" style={{ display: 'block', fontSize: 11.5 }}>{integration.purpose}</span>
@@ -311,33 +312,35 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
 
       <div className="surface">
         <SectionHead title="Problem rooms" eyebrow="CURRENT PRODUCT QUESTIONS" />
-        <table className="dfi-table">
-          <tbody>
-            {topics.map((topic) => (
-              <tr key={topic.id}>
-                <td style={{ width: '40%' }}>
-                  <a className="strong" href={topicHref(topic.id)}>{topic.title}</a>
-                  <div className="muted">{topic.summary}</div>
-                </td>
-                <td>
-                  <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-                    {topicSources(topic, data).slice(0, 5).map((integration) => (
-                      <Cite
-                        key={integration.id}
-                        connector={connectorKeyFromId(integration.id)}
-                        href={sourceHref(integration.id)}
-                        label={integration.name}
-                      />
-                    ))}
-                  </div>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <a className="btn btn-sm" href={topicHref(topic.id)}>Open room</a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-scroll table-scroll-medium">
+          <table className="dfi-table">
+            <tbody>
+              {topics.map((topic) => (
+                <tr key={topic.id}>
+                  <td style={{ width: '40%' }}>
+                    <a className="strong" href={topicHref(topic.id)}>{topic.title}</a>
+                    <div className="muted">{topic.summary}</div>
+                  </td>
+                  <td>
+                    <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                      {topicSources(topic, data).slice(0, 5).map((integration) => (
+                        <Cite
+                          key={integration.id}
+                          connector={connectorKeyFromId(integration.id)}
+                          href={sourceHref(integration.id)}
+                          label={integration.name}
+                        />
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <a className="btn btn-sm" href={topicHref(topic.id)}>Open room</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -360,7 +363,7 @@ export function TopicNewPage({ data, topicId }: TopicNewPageProps) {
     <div className="page">
       <div className="eyebrow" style={{ marginBottom: 12 }}>TOPIC ROOM</div>
 
-      <div className="row" style={{ marginBottom: 24, gap: 14 }}>
+      <div className="row topic-room-header">
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, letterSpacing: '-0.02em' }}>
           {topic.title}
         </h1>
@@ -386,7 +389,7 @@ export function TopicNewPage({ data, topicId }: TopicNewPageProps) {
       </div>
 
       <div className="surface" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+        <div className="topic-kpi-grid">
           {topic.toplineMetrics.map((metric) => (
             <KPI
               key={metric.label}
@@ -419,13 +422,8 @@ export function TopicNewPage({ data, topicId }: TopicNewPageProps) {
           {timelineRows.map((gate, index, all) => (
             <div
               key={gate.label}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '140px 120px 1fr',
-                gap: 16,
-                padding: '14px 24px',
-                borderBottom: index < all.length - 1 ? '1px solid var(--line)' : 'none',
-              }}
+              className="topic-timeline-row"
+              style={{ borderBottom: index < all.length - 1 ? '1px solid var(--line)' : 'none' }}
             >
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-2)' }}>{gate.label}</div>
               <div style={{ fontSize: 12, color: 'var(--ink-1)' }}>{gate.summary}</div>
@@ -442,56 +440,60 @@ export function TopicNewPage({ data, topicId }: TopicNewPageProps) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="topic-detail-grid">
         <div className="surface">
           <SectionHead title="Signals" eyebrow="WHAT THE ROOM KNOWS" />
-          <table className="dfi-table">
-            <tbody>
-              {topic.signals.map((signal) => (
-                <tr key={signal.label}>
-                  <td>
-                    {signal.sourceId ? (
-                      <Cite connector={connectorKeyFromId(signal.sourceId)} href={sourceHref(signal.sourceId)} label={signal.label} />
-                    ) : (
-                      <span className="strong">{signal.label}</span>
-                    )}
-                  </td>
-                  <td className="num">{signal.value}</td>
-                  <td className="muted">{signal.detail}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-scroll table-scroll-medium">
+            <table className="dfi-table">
+              <tbody>
+                {topic.signals.map((signal) => (
+                  <tr key={signal.label}>
+                    <td>
+                      {signal.sourceId ? (
+                        <Cite connector={connectorKeyFromId(signal.sourceId)} href={sourceHref(signal.sourceId)} label={signal.label} />
+                      ) : (
+                        <span className="strong">{signal.label}</span>
+                      )}
+                    </td>
+                    <td className="num">{signal.value}</td>
+                    <td className="muted">{signal.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="surface">
           <SectionHead title="Linked work" eyebrow="WHAT HAPPENS NEXT" />
-          <table className="dfi-table">
-            <tbody>
-              {topic.artifacts.map((artifact) => (
-                <tr key={artifact}>
-                  <td className="strong">{artifact}</td>
-                  <td className="muted">Generate from this room</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <a className="btn btn-sm" href={buildGenerateHref(artifact.toLowerCase().replace(/[^a-z0-9]+/g, '-'), { question: primaryQuestion, topicId: topic.id })}>
-                      Open
-                    </a>
-                  </td>
-                </tr>
-              ))}
-              {integrations.map((integration) => (
-                <tr key={integration.id}>
-                  <td>
-                    <Cite connector={connectorKeyFromId(integration.id)} href={sourceHref(integration.id)} label={integration.name} />
-                  </td>
-                  <td className="muted">{integration.purpose}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <a className="btn btn-sm" href={sourceHref(integration.id)}>Inspect</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-scroll table-scroll-medium">
+            <table className="dfi-table">
+              <tbody>
+                {topic.artifacts.map((artifact) => (
+                  <tr key={artifact}>
+                    <td className="strong">{artifact}</td>
+                    <td className="muted">Generate from this room</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a className="btn btn-sm" href={buildGenerateHref(artifact.toLowerCase().replace(/[^a-z0-9]+/g, '-'), { question: primaryQuestion, topicId: topic.id })}>
+                        Open
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+                {integrations.map((integration) => (
+                  <tr key={integration.id}>
+                    <td>
+                      <Cite connector={connectorKeyFromId(integration.id)} href={sourceHref(integration.id)} label={integration.name} />
+                    </td>
+                    <td className="muted">{integration.purpose}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a className="btn btn-sm" href={sourceHref(integration.id)}>Inspect</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

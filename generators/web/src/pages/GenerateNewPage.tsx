@@ -31,7 +31,7 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
 
   return (
     <div className="page">
-      <div className="eyebrow" style={{ marginBottom: 12 }}>{`GENERATE · ${templateTitle.toUpperCase()}`}</div>
+      <div className="eyebrow" style={{ marginBottom: 12 }}>{`GENERATE / ${templateTitle.toUpperCase()}`}</div>
 
       <div className="row" style={{ marginBottom: 24, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, letterSpacing: '-0.02em' }}>
@@ -43,7 +43,7 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
         <a className="btn btn-sm btn-primary" href="/console/artifacts">Open artifacts</a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20 }}>
+      <div className="generate-layout">
         <div className="surface">
           <div style={{ padding: '32px 40px' }}>
             <div style={{ marginBottom: 24 }}>
@@ -61,7 +61,7 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
             <div style={{ marginBottom: 24 }}>
               <div className="eyebrow" style={{ marginBottom: 8 }}>EXPECTED IMPACT</div>
               <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-1)' }}>
-                {topic?.toplineMetrics.map((metric) => `${metric.label}: ${metric.value}`).join(' · ') || 'This artifact should stay anchored to measurable product movement.'}
+                {topic?.toplineMetrics.map((metric) => `${metric.label}: ${metric.value}`).join(' / ') || 'This artifact should stay anchored to measurable product movement.'}
               </p>
             </div>
             <div>
@@ -102,7 +102,7 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
 
           <div className="surface">
             <SectionHead title="Context carried forward" eyebrow="GROUND" />
-            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="generate-context-list">
               {topic ? <a className="subtle-chip" href={topicHref(topic.id)}>{`Topic · ${topic.title}`}</a> : null}
               {currentSource ? <a className="subtle-chip" href={sourceHref(currentSource.id)}>{`Source · ${currentSource.name}`}</a> : null}
               {sourceList.map((sourceId) => (
@@ -113,21 +113,23 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
 
           <div className="surface">
             <SectionHead title="Switch templates" eyebrow="STAY IN THREAD" />
-            <table className="dfi-table">
-              <tbody>
-                {['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd']
-                  .filter((slug) => slug !== templateName)
-                  .map((slug) => (
-                    <tr key={slug}>
-                      <td className="strong">{generatorTitleFromSlug(slug)}</td>
-                      <td className="muted">Reuse the same citations and question context.</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <a className="btn btn-sm" href={buildGenerateHref(slug)}>Open</a>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+            <div className="table-scroll table-scroll-medium">
+              <table className="dfi-table">
+                <tbody>
+                  {['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd']
+                    .filter((slug) => slug !== templateName)
+                    .map((slug) => (
+                      <tr key={slug}>
+                        <td className="strong">{generatorTitleFromSlug(slug)}</td>
+                        <td className="muted">Reuse the same citations and question context.</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <a className="btn btn-sm" href={buildGenerateHref(slug)}>Open</a>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

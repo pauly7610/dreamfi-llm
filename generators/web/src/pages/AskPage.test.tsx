@@ -81,4 +81,24 @@ describe('AskPage', () => {
     expect(textarea.value).toBe('Where are users getting stuck before first funding?')
     expect(screen.getAllByText(/Metabase|PostHog|NetXD/i).length).toBeGreaterThan(0)
   })
+
+  it('surfaces backend-provided custom topics in source-scoped follow-ups', () => {
+    renderWithConsoleWorkspace(<AskPage data={consoleDevelopmentSlice} />, {
+      initialCustomTopics: [
+        {
+          created_at: '2026-04-27T12:00:00Z',
+          default_generator_slug: 'weekly-brief',
+          id: 'card-disputes',
+          question: 'How are card disputes affecting support load?',
+          source_ids: ['klaviyo'],
+          summary: 'Track dispute-related support pressure and escalation volume.',
+          title: 'Card disputes',
+        },
+      ],
+      path: '/console/knowledge/ask?source=klaviyo',
+    })
+
+    expect(screen.getByRole('button', { name: /How are card disputes affecting support load\?/i })).toBeTruthy()
+    expect(screen.getByText('Card disputes')).toBeTruthy()
+  })
 })
