@@ -20,7 +20,7 @@ The current frontend is oriented around product context first, not model mechani
 
 - `Ask`: start with a product question, gather evidence from the right systems, and keep receipts attached to the answer.
 - `Topic rooms`: work inside recurring decision spaces like KYC conversion, onboarding, funding, and lifecycle messaging.
-- `Source workspaces`: open connected systems such as Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, Salesforce, NetXD, Sardine, Socure, and Google Analytics in a product-friendly workspace view.
+- `Source workspaces`: open connected systems such as Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, NetXD, Sardine, Socure, and Google Analytics in a product-friendly workspace view.
 - `Generated artifacts`: turn grounded context into workflows like weekly PM briefs, technical PRDs, business PRDs, and risk BRDs.
 - `Trust review`: inspect blocked work, risky work, publish readiness, and the health of the connected evidence behind each artifact.
 

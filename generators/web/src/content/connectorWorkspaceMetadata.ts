@@ -10,8 +10,6 @@ export function workspaceTitleForSource(source: ConsoleIntegration): string {
       return 'Dashboard collection'
     case 'klaviyo':
       return 'Lifecycle workspace'
-    case 'salesforce':
-      return 'CRM cockpit'
     case 'confluence':
       return 'Knowledge space'
     case 'ga':
@@ -37,8 +35,6 @@ export function workspaceDescriptionForSource(source: ConsoleIntegration, fallba
       return 'Open an official dashboard, inspect the verified questions behind it, and drill into the governed metric layer.'
     case 'klaviyo':
       return 'Check flow health, message performance, and lifecycle segments in one marketing workspace.'
-    case 'salesforce':
-      return 'Review account health, opportunity movement, and relationship notes before Product turns CRM context into decisions.'
     case 'confluence':
       return 'Browse the knowledge space the way Product would: recent pages, trusted docs, and structured page hierarchy.'
     case 'ga':

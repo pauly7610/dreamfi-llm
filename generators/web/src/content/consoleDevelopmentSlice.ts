@@ -192,15 +192,6 @@ export const consoleDevelopmentSlice: ConsolePayload = {
       href: '/console/integrations/klaviyo',
     },
     {
-      id: 'salesforce',
-      name: 'Salesforce',
-      category: 'crm',
-      purpose: 'CRM accounts, opportunities, and relationship health.',
-      used_for: ['weekly-brief', 'business-prd'],
-      status: 'connected',
-      href: '/console/integrations/salesforce',
-    },
-    {
       id: 'netxd',
       name: 'NetXD',
       category: 'payments',

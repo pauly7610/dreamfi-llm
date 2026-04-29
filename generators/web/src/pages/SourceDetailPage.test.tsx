@@ -21,7 +21,6 @@ describe('SourceDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Metabase' }).getAttribute('href')).toBe('/console/integrations/metabase')
     expect(screen.getByRole('link', { name: 'PostHog' }).getAttribute('href')).toBe('/console/integrations/posthog')
     expect(screen.getByRole('link', { name: 'Klaviyo' }).getAttribute('href')).toBe('/console/integrations/klaviyo')
-    expect(screen.getByRole('link', { name: 'Salesforce' }).getAttribute('href')).toBe('/console/integrations/salesforce')
   })
 
   it('renders a grounded Metabase workspace with ask and generate paths', () => {
@@ -55,25 +54,5 @@ describe('SourceDetailPage', () => {
     expect(screen.getByText(/Fraud risk by tier/i)).toBeTruthy()
     expect(screen.getByText(/Related workflows/i)).toBeTruthy()
     expect(screen.getAllByRole('link', { name: 'Ask' }).length).toBeGreaterThan(0)
-  })
-
-  it('renders a Salesforce CRM workspace with source-grounded ask and generate paths', () => {
-    renderWithConsoleWorkspace(<SourceDetailPage data={consoleDevelopmentSlice} sourceId="salesforce" />, {
-      path: '/console/integrations/salesforce?topic=lifecycle-messaging',
-    })
-
-    expect(screen.getByText('Salesforce workspace')).toBeTruthy()
-    expect(screen.getByText(/Accounts, opportunities, and product asks/i)).toBeTruthy()
-    expect(screen.getByText(/CRM-to-PRD trace/i)).toBeTruthy()
-
-    const askLink = screen.getByRole('link', { name: 'Ask with this source' })
-    const askUrl = new URL(askLink.getAttribute('href') ?? '', 'https://dreamfi.test')
-    expect(askUrl.pathname).toBe('/console/knowledge/ask')
-    expect(askUrl.searchParams.get('source')).toBe('salesforce')
-
-    const generateLink = screen.getByRole('link', { name: /Generate/i })
-    const generateUrl = new URL(generateLink.getAttribute('href') ?? '', 'https://dreamfi.test')
-    expect(generateUrl.pathname).toContain('/console/generate/')
-    expect(generateUrl.searchParams.get('source')).toBe('salesforce')
   })
 })

@@ -29,8 +29,8 @@ const SOURCE_GROUPS: Array<{
   {
     id: 'metrics-growth',
     title: 'Metrics + growth',
-    description: 'Funnels, dashboards, campaigns, CRM state, and user behavior.',
-    categories: ['metrics', 'product_analytics', 'marketing_analytics', 'marketing', 'crm'],
+    description: 'Funnels, dashboards, campaigns, and user behavior.',
+    categories: ['metrics', 'product_analytics', 'marketing_analytics', 'marketing'],
   },
   {
     id: 'risk-money',

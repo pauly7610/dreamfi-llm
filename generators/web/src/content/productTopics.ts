@@ -183,7 +183,7 @@ export const productTopics: ProductTopic[] = [
     title: 'Lifecycle messaging',
     summary: 'See how email, SMS, audiences, and acquisition signals support onboarding and activation.',
     question: 'Which lifecycle messages are helping users finish onboarding?',
-    sources: ['klaviyo', 'salesforce', 'ga', 'posthog', 'metabase', 'confluence'],
+    sources: ['klaviyo', 'ga', 'posthog', 'metabase', 'confluence'],
     artifacts: ['Business PRD', 'Weekly PM Brief'],
     defaultGeneratorSlug: 'business-prd',
     toplineMetrics: [
@@ -205,12 +205,6 @@ export const productTopics: ProductTopic[] = [
         detail: 'Week-over-week growth into onboarding and education pages.',
         sourceId: 'ga',
       },
-      {
-        label: 'CRM accounts at risk',
-        value: '7',
-        detail: 'High-value accounts where lifecycle or product follow-up is blocking progress.',
-        sourceId: 'salesforce',
-      },
     ],
     signals: [
       {
@@ -231,14 +225,8 @@ export const productTopics: ProductTopic[] = [
         detail: 'Week-over-week sessions landing on education and onboarding pages.',
         sourceId: 'ga',
       },
-      {
-        label: 'Salesforce account health',
-        value: '7 at risk',
-        detail: 'Customer-facing notes show stalled onboarding or renewal risk that Product should review.',
-        sourceId: 'salesforce',
-      },
     ],
-    gaps: ['Campaign attribution should be checked against GA and Salesforce account context before external sharing.'],
+    gaps: ['Campaign attribution should be checked against GA before external sharing.'],
   },
 ]
 

@@ -88,7 +88,6 @@ export type IntegrationCategory =
   | 'product_analytics'
   | 'marketing_analytics'
   | 'marketing'
-  | 'crm'
   | 'payments'
   | 'risk'
   | 'identity'

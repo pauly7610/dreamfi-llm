@@ -161,7 +161,6 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
         'posthog',
         'ga',
         'klaviyo',
-        'salesforce',
         'netxd',
         'sardine',
         'socure',
@@ -169,9 +168,6 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     jira = next(item for item in body['integrations'] if item['id'] == 'jira')
     assert jira['category'] == 'planning'
     assert 'technical-prd' in jira['used_for']
-    salesforce = next(item for item in body['integrations'] if item['id'] == 'salesforce')
-    assert salesforce['category'] == 'crm'
-    assert 'business-prd' in salesforce['used_for']
     assert body['publish_activity'][0]['decision'] == 'published'
     assert len(body['custom_topics']) == 1
     assert body['custom_topics'][0]['id'] == 'card-disputes'
@@ -207,27 +203,6 @@ def test_console_topic_create_persists_and_returns_saved_topic(client: TestClien
     saved_topic = session.get(ConsoleTopic, 'card-disputes')
     assert saved_topic is not None
     assert saved_topic.default_generator_slug == 'risk-brd'
-
-
-def test_console_topic_create_accepts_salesforce_source(client: TestClient, session: Session) -> None:
-    response = client.post(
-        '/api/console/topics',
-        json={
-            'title': 'Enterprise account health',
-            'summary': 'Track CRM risk and lifecycle follow-up for key accounts.',
-            'question': 'Which enterprise accounts need Product attention',
-            'source_ids': ['salesforce', 'klaviyo'],
-            'default_generator_slug': 'business-prd',
-        },
-    )
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body['id'] == 'enterprise-account-health'
-    assert body['source_ids'] == ['salesforce', 'klaviyo']
-    saved_topic = session.get(ConsoleTopic, 'enterprise-account-health')
-    assert saved_topic is not None
-    assert saved_topic.source_ids_json == ['salesforce', 'klaviyo']
 
 
 def test_console_metrics_and_simulator_endpoints(client: TestClient) -> None:

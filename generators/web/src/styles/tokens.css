@@ -31,7 +31,6 @@
   --c-ga: #ffa733;
   --c-dragonboat: #5fe3a1;
   --c-netxd: #ffd166;
-  --c-salesforce: #00a1e0;
   --c-generic: #7a7f88;
 
   --radius: 6px;
@@ -373,11 +372,6 @@ h4 {
 .clogo-netxd {
   background: var(--c-netxd);
   color: #2a1a00;
-}
-
-.clogo-salesforce {
-  background: var(--c-salesforce);
-  color: #ffffff;
 }
 
 .clogo-generic {

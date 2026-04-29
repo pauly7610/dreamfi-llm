@@ -15,7 +15,7 @@ over named skills.
 DreamFi uses [Onyx](https://github.com/onyx-dot-app/onyx) as the knowledge
 substrate. Onyx owns:
 
-- Connector ingestion (Jira, Confluence, Salesforce, GDrive, Slack, etc.)
+- Connector ingestion (Jira, Confluence, GDrive, Slack, etc.)
 - Document normalization, chunking, embedding
 - Hybrid search (Vespa vector + BM25)
 - Permissioning, SSO, RBAC, audit log
