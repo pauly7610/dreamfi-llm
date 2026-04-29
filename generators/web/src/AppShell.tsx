@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'r
 import AskPalette from './components/console/AskPalette'
 import LoadingSkeleton from './components/console/LoadingSkeleton'
 import { ConsoleWorkspaceProvider, useConsoleWorkspace } from './components/console/ConsoleWorkspaceContext'
+import { shouldForceDevelopmentSlice, shouldUseDevelopmentSlice } from './content/consoleDevelopmentSlice'
 import { AppFrame, Topbar, type Crumb } from './components/shell/Topbar'
 import { Sidebar, type NavGroup } from './components/shell/Sidebar'
-import { productTopics } from './content/productTopics'
+import type { ProductTopic } from './content/productTopics'
 import { workflowByTopicId } from './content/productWorkflows'
 import useConsoleData from './hooks/useConsoleData'
 import AskPage from './pages/AskPage'
@@ -187,7 +188,7 @@ function sourceDot(integration: ConsoleIntegration): 'warn' | 'bad' | undefined 
   return undefined
 }
 
-function navGroupsForData(data: ReturnType<typeof useConsoleData>['data']): NavGroup[] {
+function navGroupsForData(data: ReturnType<typeof useConsoleData>['data'], topics: ProductTopic[]): NavGroup[] {
   const integrations = data?.integrations ?? []
   const summary = data?.summary
 
@@ -217,7 +218,7 @@ function navGroupsForData(data: ReturnType<typeof useConsoleData>['data']): NavG
     },
     {
       label: 'Topic rooms',
-      items: productTopics.map((topic) => ({
+      items: topics.map((topic) => ({
         id: `topic-${topic.id}`,
         label: topic.title,
         icon: 'topic',
@@ -279,11 +280,16 @@ function navIdForPath(path: string, location: ConsoleLocation): string {
   return 'home'
 }
 
-function crumbsForPath(path: string, location: ConsoleLocation, data: ReturnType<typeof useConsoleData>['data']): Crumb[] {
+function crumbsForPath(
+  path: string,
+  location: ConsoleLocation,
+  data: ReturnType<typeof useConsoleData>['data'],
+  topics: ProductTopic[],
+): Crumb[] {
   const searchParams = new URLSearchParams(location.search)
   const topicId = searchParams.get('topic')
   const sourceId = searchParams.get('source')
-  const topic = productTopics.find((item) => item.id === topicId) ?? null
+  const topic = topics.find((item) => item.id === topicId) ?? null
   const source = (data?.integrations ?? []).find((item) => item.id === sourceId) ?? null
 
   if (path.startsWith('/console/knowledge/ask')) {
@@ -303,7 +309,7 @@ function crumbsForPath(path: string, location: ConsoleLocation, data: ReturnType
   }
   if (path.startsWith('/console/topics/')) {
     const currentTopicId = decodeURIComponent(path.split('/').filter(Boolean)[2] ?? '')
-    const currentTopic = productTopics.find((item) => item.id === currentTopicId)
+    const currentTopic = topics.find((item) => item.id === currentTopicId)
     return [
       { label: 'Topics', href: '/console/topics' },
       { label: currentTopic?.title ?? 'Topic room', strong: true },
@@ -363,7 +369,7 @@ function ConsoleScaffold({
   path: string
   retry: () => void
 }) {
-  const { openAskPalette } = useConsoleWorkspace()
+  const { openAskPalette, topics } = useConsoleWorkspace()
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
@@ -382,9 +388,9 @@ function ConsoleScaffold({
     }
   }, [openAskPalette])
 
-  const navGroups = useMemo(() => navGroupsForData(data), [data])
+  const navGroups = useMemo(() => navGroupsForData(data, topics), [data, topics])
   const activeNavId = useMemo(() => navIdForPath(path, location), [location, path])
-  const crumbs = useMemo(() => crumbsForPath(path, location, data), [data, location, path])
+  const crumbs = useMemo(() => crumbsForPath(path, location, data, topics), [data, location, path, topics])
 
   function handleClickCapture(event: MouseEvent<HTMLDivElement>) {
     const target = event.target
@@ -446,6 +452,7 @@ function ConsoleScaffold({
 function AppShell() {
   const [location, setLocation] = useState(currentConsoleLocation)
   const { data, loading, error, retry } = useConsoleData()
+  const persistTopicsToBackend = !(shouldUseDevelopmentSlice() || shouldForceDevelopmentSlice())
   const path = normalizeLegacyPath(location.path)
   const normalizedLocation = path === location.path
     ? location
@@ -477,7 +484,12 @@ function AppShell() {
   }, [location.hash, location.path, location.search, path])
 
   return (
-    <ConsoleWorkspaceProvider location={normalizedLocation} integrations={data?.integrations ?? []}>
+    <ConsoleWorkspaceProvider
+      initialCustomTopics={data?.custom_topics}
+      location={normalizedLocation}
+      integrations={data?.integrations ?? []}
+      persistTopicsToBackend={persistTopicsToBackend}
+    >
       <ConsoleScaffold data={data} error={error} loading={loading} location={normalizedLocation} path={path} retry={retry} />
       <AskPalette />
     </ConsoleWorkspaceProvider>

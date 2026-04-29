@@ -4,7 +4,6 @@ import type { ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
 import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import { Chip, Cite, SectionHead, connectorKeyFromId } from '../components/system/atoms'
-import { topicById } from '../content/productTopics'
 import { workflowByTopicId } from '../content/productWorkflows'
 import { generateArtifact } from '../utils/consoleApi'
 import { navigateConsole } from '../utils/consoleNavigation'
@@ -24,10 +23,9 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
     currentQuestion,
     currentSource,
     currentSourceId,
-    currentTopic,
+    currentTopic: topic,
     currentTopicId,
   } = useConsoleWorkspace()
-  const topic = topicById(currentTopicId)
   const workflow = workflowByTopicId(currentTopicId)
   const templateTitle = generatorTitleFromSlug(templateName)
   const [actionState, setActionState] = useState<{
@@ -61,7 +59,7 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
 
   return (
     <div className="page">
-      <div className="eyebrow" style={{ marginBottom: 12 }}>{`GENERATE · ${templateTitle.toUpperCase()}`}</div>
+      <div className="eyebrow" style={{ marginBottom: 12 }}>{`GENERATE / ${templateTitle.toUpperCase()}`}</div>
 
       <div className="row" style={{ marginBottom: 24, flexWrap: 'wrap' }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, letterSpacing: '-0.02em' }}>
@@ -83,7 +81,7 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
         </div>
       ) : null}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20 }}>
+      <div className="generate-layout">
         <div className="surface">
           <div style={{ padding: '32px 40px' }}>
             <div style={{ marginBottom: 24 }}>
@@ -101,7 +99,7 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
             <div style={{ marginBottom: 24 }}>
               <div className="eyebrow" style={{ marginBottom: 8 }}>EXPECTED IMPACT</div>
               <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-1)' }}>
-                {topic?.toplineMetrics.map((metric) => `${metric.label}: ${metric.value}`).join(' · ') || 'This artifact should stay anchored to measurable product movement.'}
+                {topic?.toplineMetrics.map((metric) => `${metric.label}: ${metric.value}`).join(' / ') || 'This artifact should stay anchored to measurable product movement.'}
               </p>
             </div>
             <div>
@@ -142,9 +140,9 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
 
           <div className="surface">
             <SectionHead title="Context carried forward" eyebrow="GROUND" />
-            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {topic ? <a className="subtle-chip" href={topicHref(topic.id)}>{`Topic · ${topic.title}`}</a> : null}
-              {currentSource ? <a className="subtle-chip" href={sourceHref(currentSource.id)}>{`Source · ${currentSource.name}`}</a> : null}
+            <div className="generate-context-list">
+              {topic ? <a className="subtle-chip" href={topicHref(topic.id)}>{`Topic / ${topic.title}`}</a> : null}
+              {currentSource ? <a className="subtle-chip" href={sourceHref(currentSource.id)}>{`Source / ${currentSource.name}`}</a> : null}
               {sourceList.map((sourceId) => (
                 <Cite key={sourceId} connector={connectorKeyFromId(sourceId)} href={sourceHref(sourceId)} label={sourceId} />
               ))}
@@ -153,21 +151,23 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
 
           <div className="surface">
             <SectionHead title="Switch templates" eyebrow="STAY IN THREAD" />
-            <table className="dfi-table">
-              <tbody>
-                {['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd']
-                  .filter((slug) => slug !== templateName)
-                  .map((slug) => (
-                    <tr key={slug}>
-                      <td className="strong">{generatorTitleFromSlug(slug)}</td>
-                      <td className="muted">Reuse the same citations and question context.</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <a className="btn btn-sm" href={buildGenerateHref(slug)}>Open</a>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+            <div className="table-scroll table-scroll-medium">
+              <table className="dfi-table">
+                <tbody>
+                  {['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd']
+                    .filter((slug) => slug !== templateName)
+                    .map((slug) => (
+                      <tr key={slug}>
+                        <td className="strong">{generatorTitleFromSlug(slug)}</td>
+                        <td className="muted">Reuse the same citations and question context.</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <a className="btn btn-sm" href={buildGenerateHref(slug)}>Open</a>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

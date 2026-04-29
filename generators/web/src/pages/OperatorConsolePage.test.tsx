@@ -8,6 +8,7 @@ import OperatorConsolePage from './OperatorConsolePage'
 
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
   window.history.replaceState(null, '', '/')
 })
 

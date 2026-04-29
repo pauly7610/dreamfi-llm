@@ -20,6 +20,10 @@ class PromoteRequest(BaseModel):
     round_id: str
 
 
+class PromotionPreviewRequest(BaseModel):
+    round_id: str
+
+
 @router.get("/{skill_id}/history")
 def history(skill_id: str, session: Session = Depends(get_db_session)) -> dict[str, Any]:
     skill = session.get(Skill, skill_id)
@@ -93,6 +97,48 @@ def promote(
     return {
         "skill_id": skill_id,
         "activated_prompt_version_id": target_pv.prompt_version_id,
+        "reason": decision.reason,
+        "improvement": decision.improvement,
+    }
+
+
+@router.post("/{skill_id}/promotion-preview")
+def promotion_preview(
+    skill_id: str,
+    body: PromotionPreviewRequest,
+    session: Session = Depends(get_db_session),
+) -> dict[str, Any]:
+    target_round = session.get(EvalRound, body.round_id)
+    if target_round is None or target_round.skill_id != skill_id:
+        raise HTTPException(status_code=404, detail="round not found")
+
+    active_pv = session.scalar(
+        select(PromptVersion).where(
+            PromptVersion.skill_id == skill_id,
+            PromptVersion.is_active.is_(True),
+        )
+    )
+    previous_score = None
+    if active_pv is not None and active_pv.prompt_version_id != target_round.prompt_version_id:
+        previous_round = session.scalar(
+            select(EvalRound)
+            .where(EvalRound.prompt_version_id == active_pv.prompt_version_id)
+            .order_by(desc(EvalRound.completed_at))
+            .limit(1)
+        )
+        if previous_round is not None:
+            previous_score = float(previous_round.score)
+
+    decision = PromotionGate().decide(
+        new_score=float(target_round.score),
+        previous_score=previous_score,
+    )
+    return {
+        "skill_id": skill_id,
+        "round_id": target_round.round_id,
+        "new_score": float(target_round.score),
+        "previous_score": previous_score,
+        "promotable": decision.promotable,
         "reason": decision.reason,
         "improvement": decision.improvement,
     }

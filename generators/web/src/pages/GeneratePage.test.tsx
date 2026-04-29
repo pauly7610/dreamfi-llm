@@ -19,8 +19,8 @@ describe('GeneratePage', () => {
 
     expect(screen.getByRole('heading', { name: 'Risk BRD' })).toBeTruthy()
     expect(screen.getByText('Why did KYC conversion move this week?')).toBeTruthy()
-    expect(screen.getByText('Topic · KYC conversion')).toBeTruthy()
-    expect(screen.getByText('Source · Socure')).toBeTruthy()
+    expect(screen.getByText('Topic / KYC conversion')).toBeTruthy()
+    expect(screen.getByText('Source / Socure')).toBeTruthy()
     expect(screen.getByText(/Publish checklist/i)).toBeTruthy()
 
     const backLink = screen.getByRole('link', { name: 'Back to ask' })

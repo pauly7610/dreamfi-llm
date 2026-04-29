@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
@@ -8,6 +8,7 @@ import TopicRoomPage from './TopicRoomPage'
 
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
   window.history.replaceState(null, '', '/')
 })
 
@@ -43,5 +44,23 @@ describe('TopicRoomPage', () => {
     const generateUrl = new URL(generateLink.getAttribute('href') ?? '', 'https://dreamfi.test')
     expect(generateUrl.pathname).toBe('/console/generate/risk-brd')
     expect(generateUrl.searchParams.get('topic')).toBe('kyc-conversion')
+  })
+
+  it('lets the user add a custom topic room from the directory', async () => {
+    renderWithConsoleWorkspace(<TopicRoomPage data={consoleDevelopmentSlice} topicId={null} />, {
+      path: '/console/topics',
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'New topic' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Topic name' }), {
+      target: { value: 'Card disputes' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Starter question' }), {
+      target: { value: 'Where do card disputes create the most support load' },
+    })
+    fireEvent.submit(screen.getByRole('button', { name: 'Create topic' }).closest('form') as HTMLFormElement)
+
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Card disputes' }).getAttribute('href')).toBe('/console/topics/card-disputes'))
+    expect(window.localStorage.getItem('dreamfi.console.custom-topics')).toContain('card-disputes')
   })
 })
