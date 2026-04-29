@@ -1,13 +1,18 @@
+import { useState } from 'react'
+
 import type { ConsolePayload } from '../types/console'
 import { Chip, Cite, SectionHead, connectorKeyFromId } from '../components/system/atoms'
-import { artifactHref, toneForArtifactStatus } from './redesignSupport'
+import { publishArtifact } from '../utils/consoleApi'
+import { artifactHref } from './redesignSupport'
 
 type InboxNewPageProps = {
   data: ConsolePayload | null
+  onDataChanged?: () => void
 }
 
 type InboxRow = {
   age: string
+  artifact?: { outputId: string; skillId: string | null; status: string }
   cta: string
   href: string
   kind: 'decision' | 'blocked' | 'review' | 'signal'
@@ -16,11 +21,20 @@ type InboxRow = {
   context: string
 }
 
-export function InboxNewPage({ data }: InboxNewPageProps) {
+export function InboxNewPage({ data, onDataChanged }: InboxNewPageProps) {
   const degraded = (data?.integrations ?? []).find((integration) => integration.status === 'degraded') ?? null
+  const [action, setAction] = useState<{ error: string | null; outputId: string | null }>({
+    error: null,
+    outputId: null,
+  })
   const rows: InboxRow[] = [
     ...(data?.artifact_queue ?? []).map((artifact) => ({
       age: new Date(artifact.created_at).toLocaleDateString(),
+      artifact: {
+        outputId: artifact.output_id,
+        skillId: artifact.skill_id,
+        status: artifact.status,
+      },
       context: `${artifact.skill_display_name ?? 'Artifact'} · confidence ${artifact.confidence?.toFixed(2) ?? '--'}`,
       cta: artifact.status === 'publish_ready' ? 'Review' : 'Inspect',
       href: artifactHref(artifact.output_id),
@@ -39,6 +53,28 @@ export function InboxNewPage({ data }: InboxNewPageProps) {
     })),
   ].slice(0, 6)
 
+  async function handlePublish(row: InboxRow) {
+    if (!row.artifact?.skillId) {
+      setAction({ error: 'Artifact is missing a skill id', outputId: row.artifact?.outputId ?? null })
+      return
+    }
+
+    setAction({ error: null, outputId: row.artifact.outputId })
+    try {
+      await publishArtifact({
+        output_id: row.artifact.outputId,
+        skill_id: row.artifact.skillId,
+      })
+      onDataChanged?.()
+      setAction({ error: null, outputId: null })
+    } catch (error) {
+      setAction({
+        error: error instanceof Error ? error.message : 'Unable to publish artifact',
+        outputId: row.artifact.outputId,
+      })
+    }
+  }
+
   return (
     <div className="page">
       <div className="eyebrow" style={{ marginBottom: 12 }}>INBOX</div>
@@ -53,6 +89,11 @@ export function InboxNewPage({ data }: InboxNewPageProps) {
 
       <div className="surface">
         <SectionHead title="Operator queue" eyebrow="REVIEW AND DECISION" />
+        {action.error ? (
+          <div role="alert" style={{ padding: '12px 18px', color: 'var(--bad)', borderBottom: '1px solid var(--line)' }}>
+            {action.error}
+          </div>
+        ) : null}
         <table className="dfi-table">
           <tbody>
             {rows.map((row) => (
@@ -75,9 +116,20 @@ export function InboxNewPage({ data }: InboxNewPageProps) {
                 </td>
                 <td className="muted" style={{ width: 90 }}>{row.age}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <a className={`btn btn-sm ${row.kind === 'decision' ? 'btn-primary' : ''}`.trim()} href={row.href}>
-                    {row.cta}
-                  </a>
+                  {row.artifact?.status === 'publish_ready' ? (
+                    <button
+                      className="btn btn-sm btn-primary"
+                      disabled={action.outputId === row.artifact.outputId}
+                      onClick={() => void handlePublish(row)}
+                      type="button"
+                    >
+                      {action.outputId === row.artifact.outputId ? 'Publishing...' : 'Publish'}
+                    </button>
+                  ) : (
+                    <a className={`btn btn-sm ${row.kind === 'decision' ? 'btn-primary' : ''}`.trim()} href={row.href}>
+                      {row.cta}
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}

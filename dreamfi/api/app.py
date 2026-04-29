@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from dreamfi.api.routes import console, eval_rounds, health, publish, skills
+from dreamfi.api.routes import console, eval_rounds, health, publish, skills, workflows
 
 
 def create_app() -> FastAPI:
@@ -12,6 +12,7 @@ def create_app() -> FastAPI:
     app.include_router(skills.router, prefix="/v1/skills")
     app.include_router(eval_rounds.router, prefix="/v1/skills")
     app.include_router(publish.router, prefix="/v1/skills")
+    app.include_router(workflows.router)
     app.include_router(console.router)
     return app
 

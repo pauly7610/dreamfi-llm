@@ -92,6 +92,9 @@ The current backend exposes:
 - `POST /v1/skills/{skill_id}/eval-round` - run a new eval round.
 - `POST /v1/skills/{skill_id}/promote` - activate a prompt version if promotion rules pass.
 - `POST /v1/skills/{skill_id}/publish` - record and enforce publish policy for an output.
+- `POST /api/ask` - run a scoped Onyx evidence search for an Ask question.
+- `POST /api/workflows/generate` - generate a weekly brief, technical PRD, business PRD, or risk BRD artifact from current console context.
+- `GET /api/workflows` - list console artifact workflow slugs and their backing skill IDs.
 - `GET /api/console` - JSON payload for the operator console.
 - `GET /console` - operator UI, backed by the checked-in React build when present.
 
@@ -168,6 +171,8 @@ Important settings from `.env.example`:
 - `DREAMFI_CONFIDENCE_THRESHOLD`
 - `DREAMFI_IMPROVEMENT_THRESHOLD`
 - `DREAMFI_FRESHNESS_HALFLIFE_DAYS`
+- `DREAMFI_ASK_SEARCH_LIMIT`
+- `DREAMFI_CLAIM_LINEAGE_TARGET_CITATIONS`
 
 ## Development
 

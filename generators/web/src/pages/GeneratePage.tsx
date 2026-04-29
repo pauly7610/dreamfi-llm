@@ -4,11 +4,12 @@ import { GenerateNewPage } from './GenerateNewPage'
 
 type GeneratePageProps = {
   data: ConsolePayload | null
+  onDataChanged?: () => void
   templateName: string
 }
 
-function GeneratePage({ data, templateName }: GeneratePageProps) {
-  return <GenerateNewPage data={data} templateName={templateName} />
+function GeneratePage({ data, onDataChanged, templateName }: GeneratePageProps) {
+  return <GenerateNewPage data={data} onDataChanged={onDataChanged} templateName={templateName} />
 }
 
 export default GeneratePage

@@ -6,6 +6,7 @@ import type { ConsoleIntegration, ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
 import { useConsoleWorkspace, type RecentAsk } from '../components/console/ConsoleWorkspaceContext'
 import { Chip, Cite, KPI, SectionHead, ConnectorLogo, connectorKeyFromId } from '../components/system/atoms'
+import { askDreamFi, type AskResponse } from '../utils/consoleApi'
 import { labelForIntegrationStatus, sourceHref, topicHref, toneForIntegrationStatus, toneForWorkflowTone } from './redesignSupport'
 
 type AskNewPageProps = {
@@ -225,6 +226,10 @@ function visibleSuggestions(suggestions: AskSuggestion[], query: string): AskSug
   )
 
   return dedupeSuggestions([...recent, ...remaining], '').slice(0, 6)
+}
+
+function shouldUseLiveAsk(): boolean {
+  return !import.meta.env.DEV || import.meta.env.VITE_USE_API === 'true'
 }
 
 function questionMode(question: string): AskMode {
@@ -529,10 +534,50 @@ export function AskNewPage({ data }: AskNewPageProps) {
     currentTopic?.question ||
     (currentSource ? `What should Product know from ${currentSource.name}?` : 'Ask the company what it already knows.')
   const [draftQuestion, setDraftQuestion] = useState(headline)
+  const [liveAsk, setLiveAsk] = useState<{
+    error: string | null
+    loading: boolean
+    result: AskResponse | null
+  }>({ error: null, loading: false, result: null })
 
   useEffect(() => {
     setDraftQuestion(headline)
   }, [headline])
+
+  const selectedSourceIds = selectedSources.map((source) => source.id).join('|')
+
+  useEffect(() => {
+    if (!shouldUseLiveAsk() || !headline.trim()) {
+      return
+    }
+
+    let cancelled = false
+    setLiveAsk((existing) => ({ ...existing, error: null, loading: true }))
+    askDreamFi({
+      question: headline,
+      topic_id: currentTopicId,
+      source_id: currentSourceId,
+      source_ids: selectedSourceIds ? selectedSourceIds.split('|') : [],
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setLiveAsk({ error: null, loading: false, result })
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLiveAsk({
+            error: error instanceof Error ? error.message : 'Unable to ask Onyx',
+            loading: false,
+            result: null,
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentSourceId, currentTopicId, headline, selectedSourceIds])
 
   const mode = questionMode(headline)
   const primarySource = selectedSources[0] ?? null
@@ -710,8 +755,14 @@ export function AskNewPage({ data }: AskNewPageProps) {
               {answerLead(mode, workflow, currentTopic, currentSource)}
             </p>
             <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink-1)', margin: '14px 0 0' }}>
-              {answerDetail(workflow, currentTopic, currentSource)}
+              {liveAsk.result?.answer ?? answerDetail(workflow, currentTopic, currentSource)}
             </p>
+            {liveAsk.loading ? (
+              <p style={{ fontSize: 12.5, color: 'var(--ink-3)', margin: '12px 0 0' }}>Asking Onyx...</p>
+            ) : null}
+            {liveAsk.error ? (
+              <p style={{ fontSize: 12.5, color: 'var(--bad)', margin: '12px 0 0' }}>{liveAsk.error}</p>
+            ) : null}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', borderTop: '1px solid var(--line)' }}>
@@ -731,7 +782,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
             />
             <KPI
               label="TRUST"
-              value={formatPercent(data?.summary.hard_gate_pass_rate)}
+              value={formatPercent(liveAsk.result?.confidence ?? data?.summary.hard_gate_pass_rate)}
               delta={workflow?.currentState.readiness ?? 'current posture'}
               deltaTone={currentSource?.status === 'degraded' ? 'down' : 'up'}
             />
@@ -857,6 +908,23 @@ export function AskNewPage({ data }: AskNewPageProps) {
           <div className="surface">
             <SectionHead title="Source results" eyebrow="WHAT DREAMFI PULLED" />
             <div style={{ padding: '8px 0' }}>
+              {liveAsk.result?.citations.length ? (
+                <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--line)' }}>
+                  <div className="eyebrow" style={{ marginBottom: 8 }}>ONYX RECEIPTS</div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {liveAsk.result.citations.slice(0, 3).map((citation) => (
+                      <a
+                        key={citation.document_id}
+                        href={citation.link ?? '#'}
+                        style={{ color: 'inherit', display: 'block', textDecoration: 'none' }}
+                      >
+                        <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{citation.title}</div>
+                        <div style={{ color: 'var(--ink-2)', fontSize: 12.5, lineHeight: 1.5 }}>{citation.blurb}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {resultCards.map((card, index) => {
                 const integration = integrations.find((item) => item.id === card.sourceId)
                 if (!integration) {

@@ -4,10 +4,11 @@ import { InboxNewPage } from './InboxNewPage'
 
 type ReviewPageProps = {
   data: ConsolePayload | null
+  onDataChanged?: () => void
 }
 
-function ReviewPage({ data }: ReviewPageProps) {
-  return <InboxNewPage data={data} />
+function ReviewPage({ data, onDataChanged }: ReviewPageProps) {
+  return <InboxNewPage data={data} onDataChanged={onDataChanged} />
 }
 
 export default ReviewPage

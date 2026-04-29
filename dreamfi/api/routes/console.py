@@ -67,10 +67,13 @@ def _serialize_artifact(
     skill: Skill | None,
     latest_publish: PublishLog | None,
 ) -> dict[str, object]:
+    workflow_title = output.criteria_json.get("workflow_title")
     return {
         "output_id": output.output_id,
         "skill_id": skill.skill_id if skill is not None else None,
-        "skill_display_name": skill.display_name if skill is not None else None,
+        "skill_display_name": workflow_title if isinstance(workflow_title, str) else (
+            skill.display_name if skill is not None else None
+        ),
         "round_id": output.round_id,
         "test_input_label": output.test_input_label,
         "attempt": output.attempt,
