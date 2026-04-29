@@ -169,6 +169,67 @@ export const analyticsSourcePreviews: Record<string, SourceDataPreview> = {
       'What audience should be cited in the business PRD?',
     ],
   },
+  salesforce: {
+    headline: 'CRM accounts, opportunities, relationship notes, and product fit signals',
+    description:
+      'Salesforce gives Product the customer-facing layer: account health, opportunity movement, renewal risk, and relationship context that should shape business decisions.',
+    freshness: 'Synced from the CRM source room',
+    primaryDataset: 'CRM account intelligence',
+    rows: [
+      {
+        label: 'Expansion opportunities',
+        value: '18',
+        detail: 'Open opportunities tied to activation, funding, or account growth conversations.',
+      },
+      {
+        label: 'Onboarding accounts at risk',
+        value: '7',
+        detail: 'High-value accounts with stalled onboarding, unresolved stakeholder notes, or renewal risk.',
+      },
+      {
+        label: 'Customer signal notes',
+        value: '31',
+        detail: 'Recent CRM notes Product can cite when linking customer demand to roadmap or GTM work.',
+      },
+    ],
+    inspect: [
+      {
+        title: 'Account health and adoption',
+        detail: 'Show which accounts are healthy, blocked, expanding, or at risk before a roadmap call depends on CRM evidence.',
+      },
+      {
+        title: 'Opportunity-product fit',
+        detail: 'Connect opportunity stage and deal notes to the product work customers are actually waiting on.',
+      },
+      {
+        title: 'Relationship risk',
+        detail: 'Flag renewals, executive escalations, and unanswered customer commitments before generated briefs go out.',
+      },
+    ],
+    workflows: [
+      {
+        title: 'Account health brief',
+        detail: 'Turn CRM health, open opportunities, and customer notes into a weekly product-facing brief.',
+        href: '/console/generate/weekly-brief?source=salesforce',
+      },
+      {
+        title: 'CRM-to-PRD trace',
+        detail: 'Ground a business PRD in accounts, opportunity movement, and explicit customer demand.',
+        href: '/console/generate/business-prd?source=salesforce',
+      },
+      {
+        title: 'At-risk account review',
+        detail: 'Ask which Salesforce accounts need a product decision before the next account review.',
+        href: '/console/knowledge/ask?source=salesforce&q=Which%20Salesforce%20accounts%20need%20a%20product%20decision%20before%20the%20next%20account%20review%3F',
+      },
+    ],
+    views: ['Account health dashboard', 'Opportunity pipeline', 'Renewal risk notes'],
+    questions: [
+      'Which Salesforce accounts are at risk because Product has not made a decision?',
+      'What opportunity evidence should shape the business PRD?',
+      'Which CRM notes should be cited in the weekly PM brief?',
+    ],
+  },
   ga: {
     headline: 'Acquisition, traffic quality, and conversion source context',
     description:

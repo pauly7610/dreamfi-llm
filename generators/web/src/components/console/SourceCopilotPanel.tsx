@@ -16,6 +16,7 @@ const COPILOT_LABEL_BY_SOURCE: Record<string, string> = {
   jira: 'Ask the delivery copilot',
   metabase: 'Ask the metrics copilot',
   posthog: 'Ask the behavior copilot',
+  salesforce: 'Ask the CRM copilot',
 }
 
 function starterQuestion(source: ConsoleIntegration, preview: SourceDataPreview): string {

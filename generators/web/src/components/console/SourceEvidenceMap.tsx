@@ -14,6 +14,7 @@ const THEME_BY_SOURCE: Record<string, string> = {
   jira: 'delivery',
   confluence: 'docs',
   socure: 'socure',
+  salesforce: 'crm',
 }
 
 const MAP_TITLE_BY_SOURCE: Record<string, string> = {
@@ -24,6 +25,7 @@ const MAP_TITLE_BY_SOURCE: Record<string, string> = {
   jira: 'Delivery truth map',
   confluence: 'Decision lineage map',
   socure: 'Risk decision view',
+  salesforce: 'CRM account map',
 }
 
 const INSPECT_LABELS = ['Watch', 'Investigate', 'Translate']

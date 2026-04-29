@@ -488,6 +488,7 @@ export const productWorkflows: ProductWorkflowModel[] = [
       'Keep the program live while attribution is reconciled, then decide whether to double down on the winning nudge path.',
     missing: [
       'GA and Klaviyo attribution still need one reconciled read before the brief is shared broadly.',
+      'Salesforce account notes should confirm which customer commitments depend on the next lifecycle decision.',
       'The launch notes should capture what changed from the original messaging plan.',
     ],
     owners: [
@@ -513,7 +514,7 @@ export const productWorkflows: ProductWorkflowModel[] = [
         status: 'ready',
         summary: 'Approved and already in market',
         detail: 'This lifecycle work is beyond concept approval and is now in learn-and-iterate mode.',
-        sourceIds: ['confluence', 'klaviyo'],
+        sourceIds: ['confluence', 'klaviyo', 'salesforce'],
       },
       {
         label: 'Gate 2 · Sponsor-bank alignment',
@@ -545,6 +546,13 @@ export const productWorkflows: ProductWorkflowModel[] = [
         owner: 'Marketing',
         sourceIds: ['klaviyo', 'posthog'],
       },
+      {
+        label: 'CRM commitment drift',
+        level: 'medium',
+        detail: 'Account teams may be promising lifecycle or onboarding changes that are not reflected in the product plan yet.',
+        owner: 'Revenue',
+        sourceIds: ['salesforce', 'confluence'],
+      },
     ],
     connectorCoverage: [
       {
@@ -553,6 +561,13 @@ export const productWorkflows: ProductWorkflowModel[] = [
         bestFor: 'Flows, campaigns, audience overlap, and direct message performance.',
         detail: 'Use Klaviyo to understand which nudges are actually firing and how each lifecycle path is performing.',
         driftNote: 'Flow structure and audience definitions change often, so performance needs the current campaign context.',
+      },
+      {
+        sourceId: 'salesforce',
+        role: 'CRM truth',
+        bestFor: 'Account health, opportunity movement, renewal risk, and customer-facing product commitments.',
+        detail: 'Use Salesforce to connect lifecycle performance to customer demand, account risk, and GTM follow-up.',
+        driftNote: 'CRM notes can become stale quickly, so generated recommendations should cite the current account context.',
       },
       {
         sourceId: 'ga',

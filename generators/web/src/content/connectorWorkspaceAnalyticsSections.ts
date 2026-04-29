@@ -99,6 +99,34 @@ const klaviyoSummaryCards: WorkspaceSummaryCard[] = [
   summaryCard('Recent campaigns', '2 shipped this week', 'Lifecycle nudge and funding education sends'),
 ]
 
+const salesforceTrendSeries: WorkspaceChartSeries[] = [
+  {
+    name: 'Healthy accounts',
+    color: 'rgba(0, 161, 224, 0.92)',
+    points: [
+      { label: 'Week 1', value: 61 },
+      { label: 'Week 2', value: 64 },
+      { label: 'Week 3', value: 66 },
+      { label: 'Week 4', value: 63 },
+      { label: 'Week 5', value: 68 },
+      { label: 'Week 6', value: 71 },
+    ],
+  },
+]
+
+const salesforceBars: WorkspaceChartPoint[] = [
+  { label: 'Expand', value: 48 },
+  { label: 'Renew', value: 31 },
+  { label: 'Risk', value: 17 },
+  { label: 'New', value: 24 },
+]
+
+const salesforceSummaryCards: WorkspaceSummaryCard[] = [
+  summaryCard('Open expansion pipeline', '$740k', 'Opportunities tied to active product asks'),
+  summaryCard('At-risk customer accounts', '7', 'Accounts with stalled onboarding or renewal risk'),
+  summaryCard('Product ask notes', '31', 'CRM notes ready to cite in briefs and PRDs'),
+]
+
 const gaTrendSeries: WorkspaceChartSeries[] = [
   {
     name: 'Sessions',
@@ -150,6 +178,14 @@ function klaviyoTableRows(): WorkspaceTableRow[] {
     { cells: ['Welcome series', 'Email + SMS', 'Live', '9.4% conversion'] },
     { cells: ['KYC reminder', 'Email', 'Live', '6.8% lift'] },
     { cells: ['Browse abandon', 'Email', 'Draft', '3.2% click'] },
+  ]
+}
+
+function salesforceTableRows(): WorkspaceTableRow[] {
+  return [
+    { cells: ['Acme Bank', 'Expansion', 'KYC API rollout', 'Exec review next week'] },
+    { cells: ['Northstar CU', 'At risk', 'Funding retries', 'PM decision needed'] },
+    { cells: ['Evergreen Wealth', 'Renewal', 'Lifecycle messaging', 'Customer proof requested'] },
   ]
 }
 
@@ -279,6 +315,35 @@ export function analyticsSectionsForSource(
             ariaLabel: 'Klaviyo channel contribution',
             bars: klaviyoBars,
             color: 'linear-gradient(180deg, rgba(92, 221, 170, 0.88), rgba(20, 122, 98, 0.94))',
+          },
+          metrics: highlights,
+        },
+      ]
+    case 'salesforce':
+      return [
+        {
+          id: 'source-accounts',
+          label: 'Accounts',
+          eyebrow: 'Account health',
+          title: 'Accounts, opportunities, and product asks',
+          surface: 'table',
+          rows: salesforceSummaryCards,
+          table: {
+            columns: ['Account', 'Stage', 'Product signal', 'Next step'],
+            rows: salesforceTableRows(),
+          },
+        },
+        {
+          id: 'source-pipeline',
+          label: 'Pipeline',
+          eyebrow: 'CRM signals',
+          title: 'Opportunity movement and relationship risk',
+          surface: 'chart',
+          chart: { ariaLabel: 'Salesforce healthy account trend', series: salesforceTrendSeries },
+          barChart: {
+            ariaLabel: 'Salesforce opportunity mix',
+            bars: salesforceBars,
+            color: 'linear-gradient(180deg, rgba(127, 220, 255, 0.9), rgba(0, 161, 224, 0.95))',
           },
           metrics: highlights,
         },

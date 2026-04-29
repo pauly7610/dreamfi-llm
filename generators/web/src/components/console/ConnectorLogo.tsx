@@ -81,6 +81,12 @@ function ConnectorFallbackGlyph({ id }: { id: string }) {
           <path d="M5 6h14v12H5V6Zm3 3.2h4v3.6H8V9.2Zm6 0h3v1.4h-3V9.2Zm0 3h3v1.4h-3v-1.4ZM8 15h9v1.2H8V15Z" />
         </svg>
       )
+    case 'salesforce':
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8.2 17.2A4.4 4.4 0 0 1 8 8.4a5.2 5.2 0 0 1 9.3 1.6 3.6 3.6 0 0 1-.9 7.2H8.2Zm1.1-5.8h2.1c.2-.7.7-1.1 1.5-1.1.6 0 1 .2 1.4.5l.9-1.5c-.6-.5-1.4-.8-2.4-.8-1.9 0-3.2 1.4-3.2 3.4 0 2.1 1.3 3.4 3.2 3.4 1 0 1.8-.3 2.5-.9l-.9-1.4c-.4.3-.8.5-1.4.5-.8 0-1.4-.4-1.6-1.1H9.3v-1Z" />
+        </svg>
+      )
     default:
       return <span>{id.slice(0, 2).toUpperCase()}</span>
   }

@@ -1050,6 +1050,7 @@ button {
 .connector-icon-posthog { background: linear-gradient(135deg, #ffb36b, #ff7a59); color: #4a1708; }
 .connector-icon-ga { background: linear-gradient(135deg, #ffd15c, #f59e0b); color: #4b2f00; }
 .connector-icon-klaviyo { background: linear-gradient(135deg, #9be7bf, #43b581); color: #0d3c29; }
+.connector-icon-salesforce { background: linear-gradient(135deg, #7fdcff, #00a1e0); color: #06293a; }
 .connector-icon-netxd { background: linear-gradient(135deg, #95a4ff, #6574d9); color: #11194a; }
 .connector-icon-sardine { background: linear-gradient(135deg, #ff9fb6, #e86d8b); color: #4a1020; }
 .connector-icon-socure { background: linear-gradient(135deg, #102b43, #2b77a5); color: #eef7ff; }
@@ -2322,6 +2323,12 @@ button {
   --source-accent: var(--mint);
   --source-accent-soft: rgba(105, 199, 161, 0.2);
   --source-glow: rgba(105, 199, 161, 0.18);
+}
+
+.source-theme-crm {
+  --source-accent: #00a1e0;
+  --source-accent-soft: rgba(0, 161, 224, 0.18);
+  --source-glow: rgba(0, 161, 224, 0.18);
 }
 
 .source-theme-delivery {

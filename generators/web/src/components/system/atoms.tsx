@@ -11,6 +11,7 @@ export type ConnectorKey =
   | 'ga'
   | 'dragonboat'
   | 'netxd'
+  | 'salesforce'
   | 'generic'
 
 const CONNECTOR_LETTERS: Record<ConnectorKey, string> = {
@@ -24,6 +25,7 @@ const CONNECTOR_LETTERS: Record<ConnectorKey, string> = {
   ga: 'GA',
   dragonboat: 'D',
   netxd: 'N',
+  salesforce: 'SF',
   generic: '?',
 }
 
@@ -39,6 +41,7 @@ export function connectorKeyFromId(value: string | null | undefined): ConnectorK
     case 'ga':
     case 'dragonboat':
     case 'netxd':
+    case 'salesforce':
       return value
     default:
       return 'generic'
