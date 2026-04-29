@@ -49,13 +49,15 @@ class Settings(BaseSettings):
     default_llm_model: str = Field(default="claude-3-5-sonnet-20241022")
     log_level: str = Field(default="INFO")
 
-    # Thresholds — documented units below.
-    dreamfi_confidence_threshold: float = Field(default=0.75)  # 0–1
-    dreamfi_improvement_threshold: float = Field(default=0.02)  # fraction, e.g. 0.02 == 2%
+    # Thresholds -- documented units below.
+    dreamfi_confidence_threshold: float = Field(default=0.75)  # 0-1
+    dreamfi_improvement_threshold: float = Field(default=0.02)  # fraction
     dreamfi_freshness_halflife_days: float = Field(default=14.0)  # days
-    dreamfi_slo_hard_gate_pass_rate: float = Field(default=0.8)  # 0–1
-    dreamfi_slo_blocked_rate: float = Field(default=0.2)  # 0–1
-    dreamfi_slo_publish_success_rate: float = Field(default=0.75)  # 0–1
+    dreamfi_ask_search_limit: int = Field(default=5)
+    dreamfi_claim_lineage_target_citations: int = Field(default=3)
+    dreamfi_slo_hard_gate_pass_rate: float = Field(default=0.8)  # 0-1
+    dreamfi_slo_blocked_rate: float = Field(default=0.2)  # 0-1
+    dreamfi_slo_publish_success_rate: float = Field(default=0.75)  # 0-1
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -74,10 +74,10 @@ function renderPage(
     return <LoadingSkeleton />
   }
   if (path.startsWith('/console/artifacts')) {
-    return <ArtifactsPage data={data} />
+    return <ArtifactsPage data={data} onDataChanged={retry} />
   }
   if (path.startsWith('/console/review')) {
-    return <ReviewPage data={data} />
+    return <ReviewPage data={data} onDataChanged={retry} />
   }
   if (path.startsWith('/console/trust')) {
     return <TrustPage data={data} />
@@ -87,7 +87,7 @@ function renderPage(
   }
   if (path.startsWith('/console/generate')) {
     const templateName = path.split('/').pop() || 'weekly-brief'
-    return <GeneratePage data={data} templateName={templateName} />
+    return <GeneratePage data={data} templateName={templateName} onDataChanged={retry} />
   }
   if (path.startsWith('/console/knowledge/ask')) {
     return <AskPage data={data} />

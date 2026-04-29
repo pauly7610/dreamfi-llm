@@ -1,16 +1,43 @@
+import { useState } from 'react'
+
 import type { ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
 import { Chip, Cite, KPI, SectionHead, connectorKeyFromId } from '../components/system/atoms'
+import { publishArtifact } from '../utils/consoleApi'
 import { artifactHref, generatorSourcesForArtifact, labelForArtifactStatus, toneForArtifactStatus } from './redesignSupport'
 
 type ArtifactsNewPageProps = {
   data: ConsolePayload | null
+  onDataChanged?: () => void
 }
 
-export function ArtifactsNewPage({ data }: ArtifactsNewPageProps) {
+export function ArtifactsNewPage({ data, onDataChanged }: ArtifactsNewPageProps) {
   const artifacts = data?.artifact_queue ?? []
   const summary = data?.summary
   const integrations = data?.integrations ?? []
+  const [action, setAction] = useState<{ error: string | null; outputId: string | null }>({
+    error: null,
+    outputId: null,
+  })
+
+  async function handlePublish(outputId: string, skillId: string | null) {
+    if (!skillId) {
+      setAction({ error: 'Artifact is missing a skill id', outputId })
+      return
+    }
+
+    setAction({ error: null, outputId })
+    try {
+      await publishArtifact({ output_id: outputId, skill_id: skillId })
+      onDataChanged?.()
+      setAction({ error: null, outputId: null })
+    } catch (error) {
+      setAction({
+        error: error instanceof Error ? error.message : 'Unable to publish artifact',
+        outputId,
+      })
+    }
+  }
 
   return (
     <div className="page">
@@ -30,6 +57,11 @@ export function ArtifactsNewPage({ data }: ArtifactsNewPageProps) {
 
       <div className="surface">
         <SectionHead title="All artifacts" eyebrow="GROUNDED / GENERATED / GATED" right={<a className="btn btn-sm" href="/console/review">Open inbox</a>} />
+        {action.error ? (
+          <div role="alert" style={{ padding: '12px 18px', color: 'var(--bad)', borderBottom: '1px solid var(--line)' }}>
+            {action.error}
+          </div>
+        ) : null}
         <div className="table-scroll table-scroll-wide">
           <table className="dfi-table">
             <thead>
@@ -67,7 +99,18 @@ export function ArtifactsNewPage({ data }: ArtifactsNewPageProps) {
                     </td>
                     <td className="muted">{new Date(artifact.created_at).toLocaleDateString()}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <a className="btn btn-sm" href={artifactHref(artifact.output_id)}>Open</a>
+                      {artifact.status === 'publish_ready' ? (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          disabled={action.outputId === artifact.output_id}
+                          onClick={() => void handlePublish(artifact.output_id, artifact.skill_id)}
+                          type="button"
+                        >
+                          {action.outputId === artifact.output_id ? 'Publishing...' : 'Publish'}
+                        </button>
+                      ) : (
+                        <a className="btn btn-sm" href={artifactHref(artifact.output_id)}>Open</a>
+                      )}
                     </td>
                   </tr>
                 )

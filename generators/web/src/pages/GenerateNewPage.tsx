@@ -1,17 +1,22 @@
+import { useState } from 'react'
+
 import type { ConsolePayload } from '../types/console'
 import { formatPercent } from '../components/console/formatters'
 import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import { Chip, Cite, SectionHead, connectorKeyFromId } from '../components/system/atoms'
 import { workflowByTopicId } from '../content/productWorkflows'
+import { generateArtifact } from '../utils/consoleApi'
+import { navigateConsole } from '../utils/consoleNavigation'
 import { generatorTitleFromSlug } from '../utils/consoleRoutes'
 import { sourceHref, topicHref, toneForIntegrationStatus } from './redesignSupport'
 
 type GenerateNewPageProps = {
   data: ConsolePayload | null
+  onDataChanged?: () => void
   templateName: string
 }
 
-export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
+export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateNewPageProps) {
   const {
     buildAskHref,
     buildGenerateHref,
@@ -23,11 +28,34 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
   } = useConsoleWorkspace()
   const workflow = workflowByTopicId(currentTopicId)
   const templateTitle = generatorTitleFromSlug(templateName)
+  const [actionState, setActionState] = useState<{
+    error: string | null
+    loading: boolean
+  }>({ error: null, loading: false })
   const sourceList = topic
     ? topic.sources
     : currentSourceId
       ? [currentSourceId]
       : []
+
+  async function handleGenerate() {
+    setActionState({ error: null, loading: true })
+    try {
+      const result = await generateArtifact({
+        workflow_slug: templateName,
+        question: currentQuestion || topic?.question || currentSource?.purpose || null,
+        topic_id: currentTopicId,
+        source_id: currentSourceId,
+      })
+      onDataChanged?.()
+      navigateConsole(result.destination_href)
+    } catch (error) {
+      setActionState({
+        error: error instanceof Error ? error.message : 'Unable to generate artifact',
+        loading: false,
+      })
+    }
+  }
 
   return (
     <div className="page">
@@ -39,9 +67,19 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
         </h1>
         <div className="spacer" />
         <a className="btn btn-sm" href={buildAskHref()}>Back to ask</a>
-        <a className="btn btn-sm" href="/console/review">Send to inbox</a>
-        <a className="btn btn-sm btn-primary" href="/console/artifacts">Open artifacts</a>
+        <button className="btn btn-sm" disabled={actionState.loading} onClick={handleGenerate} type="button">
+          Send to inbox
+        </button>
+        <button className="btn btn-sm btn-primary" disabled={actionState.loading} onClick={handleGenerate} type="button">
+          {actionState.loading ? 'Generating...' : 'Generate artifact'}
+        </button>
       </div>
+
+      {actionState.error ? (
+        <div className="surface" role="alert" style={{ marginBottom: 20, padding: '14px 18px', color: 'var(--bad)' }}>
+          {actionState.error}
+        </div>
+      ) : null}
 
       <div className="generate-layout">
         <div className="surface">
@@ -103,8 +141,8 @@ export function GenerateNewPage({ data, templateName }: GenerateNewPageProps) {
           <div className="surface">
             <SectionHead title="Context carried forward" eyebrow="GROUND" />
             <div className="generate-context-list">
-              {topic ? <a className="subtle-chip" href={topicHref(topic.id)}>{`Topic · ${topic.title}`}</a> : null}
-              {currentSource ? <a className="subtle-chip" href={sourceHref(currentSource.id)}>{`Source · ${currentSource.name}`}</a> : null}
+              {topic ? <a className="subtle-chip" href={topicHref(topic.id)}>{`Topic / ${topic.title}`}</a> : null}
+              {currentSource ? <a className="subtle-chip" href={sourceHref(currentSource.id)}>{`Source / ${currentSource.name}`}</a> : null}
               {sourceList.map((sourceId) => (
                 <Cite key={sourceId} connector={connectorKeyFromId(sourceId)} href={sourceHref(sourceId)} label={sourceId} />
               ))}

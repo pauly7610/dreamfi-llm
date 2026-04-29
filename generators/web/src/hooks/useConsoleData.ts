@@ -6,6 +6,7 @@ import {
   shouldUseDevelopmentSlice,
 } from '../content/consoleDevelopmentSlice'
 import type { ConsolePayload } from '../types/console'
+import { CONSOLE_DATA_REFRESH_EVENT } from '../utils/consoleApi'
 
 type UseConsoleDataResult = {
   data: ConsolePayload | null
@@ -65,6 +66,17 @@ function useConsoleData(): UseConsoleDataResult {
       controller.abort()
     }
   }, [requestKey])
+
+  useEffect(() => {
+    function handleRefresh() {
+      retry()
+    }
+
+    window.addEventListener(CONSOLE_DATA_REFRESH_EVENT, handleRefresh)
+    return () => {
+      window.removeEventListener(CONSOLE_DATA_REFRESH_EVENT, handleRefresh)
+    }
+  }, [retry])
 
   return { data, loading, error, retry }
 }

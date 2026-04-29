@@ -16,6 +16,7 @@ from dreamfi.evals.runner import EvalResult, run_eval
 from dreamfi.gold.registry import GoldExampleRegistry
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.onyx.models import ChatResult
+from dreamfi.trust.artifact import ExportReadinessInput, compute_export_readiness
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 PROMPT_FILE_BY_SKILL = {
@@ -175,6 +176,19 @@ class SkillEngine:
             citation_count=len(chat.citations),
             hard_gate_passed=eval_result.pass_fail == "pass",
         )
+        settings = get_settings()
+        claim_lineage_target = max(1, settings.dreamfi_claim_lineage_target_citations)
+        export_readiness = compute_export_readiness(
+            ExportReadinessInput(
+                hard_gate_pass=eval_result.pass_fail == "pass",
+                confidence=conf.confidence,
+                gold_regression_pass_rate=1.0,
+                claim_lineage_rate=min(len(chat.citations), claim_lineage_target)
+                / claim_lineage_target,
+                metric_freshness=conf.freshness_score,
+                planning_hygiene_score=1.0,
+            )
+        )
 
         # Persist (only if a round is provided — eval rounds own aggregation)
         output_id: str | None = None
@@ -191,6 +205,8 @@ class SkillEngine:
                 onyx_citations_json={str(k): v for k, v in chat.citations.items()},
                 freshness_score=conf.freshness_score,
                 confidence=conf.confidence,
+                export_readiness=export_readiness.value,
+                export_breakdown_json=export_readiness.breakdown,
             )
             self.db.add(row)
             self.db.flush()
