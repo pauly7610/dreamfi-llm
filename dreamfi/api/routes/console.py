@@ -4,17 +4,26 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
-from dreamfi.api.deps import get_db_session
+from dreamfi.api.deps import get_db_session, get_onyx_client
+from dreamfi.audit import add_audit_event
 from dreamfi.config import get_settings
+from dreamfi.connectors import (
+    CONNECTORS,
+    connector_document_set_aliases,
+    normalize_document_set_name,
+)
 from dreamfi.db.models import ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.onyx.client import OnyxClient
+from dreamfi.onyx.errors import OnyxError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -24,6 +33,7 @@ FRONTEND_PUBLIC_DIR = REPO_ROOT / "generators" / "web" / "public"
 LLMS_TXT_PATH = REPO_ROOT / "llms.txt"
 TOPIC_GENERATOR_SLUGS = {"weekly-brief", "technical-prd", "business-prd", "risk-brd"}
 TOPIC_STATUSES = {"discovery", "in_review", "ready", "blocked", "done"}
+CONNECTOR_STATUS_VALUES = {"connected", "degraded", "available", "not_configured"}
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=select_autoescape(["html"]),
@@ -372,99 +382,93 @@ def _quick_actions() -> list[dict[str, str]]:
     ]
 
 
-def _integrations() -> list[dict[str, object]]:
-    return [
-        {
-            "id": "jira",
-            "name": "Jira",
-            "category": "planning",
-            "purpose": "Sprints, issues, and delivery state",
-            "used_for": ["weekly-brief", "technical-prd", "risk-brd"],
-            "status": "available",
-            "href": "/console/integrations/jira",
-        },
-        {
-            "id": "dragonboat",
-            "name": "Dragonboat",
-            "category": "planning",
-            "purpose": "Roadmap, initiatives, and OKR alignment",
-            "used_for": ["business-prd", "weekly-brief"],
-            "status": "available",
-            "href": "/console/integrations/dragonboat",
-        },
-        {
-            "id": "confluence",
-            "name": "Confluence",
-            "category": "docs",
-            "purpose": "Source docs and publish target for PRDs and specs",
-            "used_for": ["technical-prd", "business-prd", "risk-brd"],
-            "status": "available",
-            "href": "/console/integrations/confluence",
-        },
-        {
-            "id": "metabase",
-            "name": "Metabase",
-            "category": "metrics",
-            "purpose": "SQL-backed KPI and funnel dashboards",
-            "used_for": ["weekly-brief", "business-prd"],
-            "status": "available",
-            "href": "/console/integrations/metabase",
-        },
-        {
-            "id": "posthog",
-            "name": "PostHog",
-            "category": "product_analytics",
-            "purpose": "Product events, funnels, and session data",
-            "used_for": ["weekly-brief", "technical-prd"],
-            "status": "available",
-            "href": "/console/integrations/posthog",
-        },
-        {
-            "id": "ga",
-            "name": "Google Analytics",
-            "category": "marketing_analytics",
-            "purpose": "Acquisition, traffic, and conversion signals",
-            "used_for": ["business-prd"],
-            "status": "available",
-            "href": "/console/integrations/ga",
-        },
-        {
-            "id": "klaviyo",
-            "name": "Klaviyo",
-            "category": "marketing",
-            "purpose": "Lifecycle campaigns, audiences, and sends",
-            "used_for": ["business-prd"],
-            "status": "available",
-            "href": "/console/integrations/klaviyo",
-        },
-        {
-            "id": "netxd",
-            "name": "NetXD",
-            "category": "payments",
-            "purpose": "Payments and ledger transaction context",
-            "used_for": ["risk-brd", "technical-prd"],
-            "status": "available",
-            "href": "/console/integrations/netxd",
-        },
-        {
-            "id": "sardine",
-            "name": "Sardine",
-            "category": "risk",
-            "purpose": "Fraud and risk signal enrichment",
-            "used_for": ["risk-brd"],
-            "status": "available",
-            "href": "/console/integrations/sardine",
-        },
-        {
-            "id": "socure",
-            "name": "Socure",
-            "category": "identity",
-            "purpose": "Identity verification and KYC signals",
-            "used_for": ["risk-brd"],
-            "status": "available",
-            "href": "/console/integrations/socure",
-        },
-    ]
+def _normalize_document_set_name(value: str) -> str:
+    return normalize_document_set_name(value)
+
+
+def _connector_document_set_names(integration: Mapping[str, object]) -> set[str]:
+    source_id = str(integration["id"])
+    connector = next(
+        (item for item in CONNECTORS if item.connector_id == source_id),
+        None,
+    )
+    if connector is None:
+        return {source_id}
+    return connector_document_set_aliases(connector)
+
+
+def _connector_retrieval_status(
+    onyx: OnyxClient, integration: Mapping[str, object]
+) -> str:
+    settings = get_settings()
+    source_id = str(integration["id"])
+    source_name = str(integration["name"])
+    try:
+        hits = onyx.admin_search(
+            query=f"{source_name} latest DreamFi evidence",
+            filters={"dreamfi_scope": {"source_ids": [source_id]}},
+            limit=settings.dreamfi_connector_probe_search_limit,
+        )
+    except (OnyxError, httpx.HTTPError):
+        return "degraded"
+
+    if not hits:
+        return "degraded"
+
+    updated_ats = [hit.updated_at for hit in hits if hit.updated_at is not None]
+    if not updated_ats:
+        return "degraded"
+
+    freshest_hit_at = max(_as_utc(updated_at) for updated_at in updated_ats)
+    stale_after = timedelta(days=settings.dreamfi_connector_stale_after_days)
+    if freshest_hit_at < datetime.now(timezone.utc) - stale_after:
+        return "degraded"
+    return "connected"
+
+
+def _connector_status_by_id(onyx: OnyxClient | None) -> dict[str, str]:
+    integrations = _integration_catalog()
+    if not get_settings().dreamfi_probe_connector_status:
+        return {str(integration["id"]): "available" for integration in integrations}
+    if onyx is None:
+        return {str(integration["id"]): "degraded" for integration in integrations}
+
+    try:
+        document_sets = onyx.list_document_sets()
+    except (OnyxError, httpx.HTTPError):
+        return {str(integration["id"]): "degraded" for integration in integrations}
+
+    document_set_names = {
+        _normalize_document_set_name(document_set.name) for document_set in document_sets
+    }
+    status_by_id: dict[str, str] = {}
+    for integration in integrations:
+        source_id = str(integration["id"])
+        if not (_connector_document_set_names(integration) & document_set_names):
+            status_by_id[source_id] = "not_configured"
+            continue
+        status_by_id[source_id] = _connector_retrieval_status(onyx, integration)
+    return status_by_id
+
+
+
+def _integration_catalog() -> list[dict[str, object]]:
+    return [connector.as_console_integration() for connector in CONNECTORS]
+
+
+def _integrations(onyx: OnyxClient | None = None) -> list[dict[str, object]]:
+    status_by_id = _connector_status_by_id(onyx)
+    integrations = []
+    for integration in _integration_catalog():
+        source_id = str(integration["id"])
+        status_value = status_by_id.get(source_id, "available")
+        integrations.append(
+            {
+                **integration,
+                "status": status_value if status_value in CONNECTOR_STATUS_VALUES else "available",
+            }
+        )
+    return integrations
 
 
 def _domain_health(
@@ -644,7 +648,7 @@ def _slo_status(summary: dict[str, float | int | None]) -> dict[str, object]:
     }
 
 
-def _console_payload(session: Session) -> dict[str, Any]:
+def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[str, Any]:
     skills = session.scalars(select(Skill).order_by(Skill.skill_id)).all()
     active_prompt_versions = session.scalars(
         select(PromptVersion).where(PromptVersion.is_active.is_(True))
@@ -756,7 +760,7 @@ def _console_payload(session: Session) -> dict[str, Any]:
             publishes=publishes,
         ),
         "quick_actions": _quick_actions(),
-        "integrations": _integrations(),
+        "integrations": _integrations(onyx),
         "custom_topics": _serialize_console_topics(session),
         "historical_metrics": _historical_metrics(outputs, recent_publishes),
         "confidence_calibration": _confidence_calibration(outputs),
@@ -844,13 +848,54 @@ def root_redirect() -> RedirectResponse:
 
 
 @router.get("/api/console")
-def console_data(session: Session = Depends(get_db_session)) -> dict[str, Any]:
-    return _console_payload(session)
+def console_data(
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    payload = _console_payload(session, onyx)
+    connector_status_counts: dict[str, int] = {}
+    for integration in payload["integrations"]:
+        status_value = str(integration.get("status"))
+        connector_status_counts[status_value] = connector_status_counts.get(status_value, 0) + 1
+    add_audit_event(
+        session,
+        category="access",
+        action="console_read",
+        outcome="success",
+        request=request,
+        target_type="console",
+        target_id="operator_console",
+        metadata={
+            "summary": payload["summary"],
+            "connector_status_counts": connector_status_counts,
+            "artifact_queue_count": len(payload["artifact_queue"]),
+            "custom_topic_count": len(payload["custom_topics"]),
+        },
+    )
+    session.commit()
+    return payload
 
 
 @router.get("/api/console/metrics")
-def console_metrics(session: Session = Depends(get_db_session)) -> dict[str, object]:
+def console_metrics(
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
     payload = _console_payload(session)
+    add_audit_event(
+        session,
+        category="access",
+        action="console_metrics_read",
+        outcome="success",
+        request=request,
+        target_type="console",
+        target_id="metrics",
+        metadata={
+            "summary": payload["summary"],
+        },
+    )
+    session.commit()
     return {
         "summary": payload["summary"],
         "historical_metrics": payload["historical_metrics"],
@@ -860,8 +905,26 @@ def console_metrics(session: Session = Depends(get_db_session)) -> dict[str, obj
 
 
 @router.get("/api/console/simulator")
-def console_simulator(session: Session = Depends(get_db_session)) -> dict[str, object]:
+def console_simulator(
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
     payload = _console_payload(session)
+    add_audit_event(
+        session,
+        category="access",
+        action="console_simulator_read",
+        outcome="success",
+        request=request,
+        target_type="console",
+        target_id="simulator",
+        metadata={
+            "scenario_count": len(payload["scenario_packs"]),
+            "failure_cluster_count": len(payload["failure_clusters"]),
+            "sample_queue_count": len(payload["artifact_queue"][:5]),
+        },
+    )
+    session.commit()
     return {
         "scenarios": payload["scenario_packs"],
         "failure_clusters": payload["failure_clusters"],
@@ -870,7 +933,11 @@ def console_simulator(session: Session = Depends(get_db_session)) -> dict[str, o
 
 
 @router.post("/api/console/topics", status_code=status.HTTP_201_CREATED)
-def create_console_topic(payload: dict[str, Any], session: Session = Depends(get_db_session)) -> dict[str, object]:
+def create_console_topic(
+    payload: dict[str, Any],
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
     title = _coerce_string(payload.get("title"), field_name="title")
     question = _coerce_string(payload.get("question"), field_name="question")
     summary_value = payload.get("summary")
@@ -905,6 +972,22 @@ def create_console_topic(payload: dict[str, Any], session: Session = Depends(get
         default_generator_slug=default_generator_slug,
     )
     session.add(topic)
+    add_audit_event(
+        session,
+        category="configuration",
+        action="topic_create",
+        outcome="success",
+        request=request,
+        target_type="console_topic",
+        target_id=topic.topic_id,
+        metadata={
+            "source_ids": source_ids,
+            "default_generator_slug": default_generator_slug,
+            "owner": owner,
+            "status": topic_status,
+            "target_decision_at_present": target_decision_at is not None,
+        },
+    )
     session.commit()
     session.refresh(topic)
     return _serialize_console_topic(topic)
@@ -914,6 +997,7 @@ def create_console_topic(payload: dict[str, Any], session: Session = Depends(get
 def update_console_topic(
     topic_id: str,
     payload: dict[str, Any],
+    request: Request,
     session: Session = Depends(get_db_session),
 ) -> dict[str, object]:
     topic = session.get(ConsoleTopic, topic_id)
@@ -938,6 +1022,37 @@ def update_console_topic(
     if "default_generator_slug" in payload:
         topic.default_generator_slug = _normalize_default_generator_slug(payload.get("default_generator_slug"))
 
+    changed_fields = sorted(
+        key
+        for key in payload
+        if key
+        in {
+            "title",
+            "summary",
+            "question",
+            "owner",
+            "status",
+            "target_decision_at",
+            "source_ids",
+            "default_generator_slug",
+        }
+    )
+    add_audit_event(
+        session,
+        category="configuration",
+        action="topic_update",
+        outcome="success",
+        request=request,
+        target_type="console_topic",
+        target_id=topic.topic_id,
+        metadata={
+            "changed_fields": changed_fields,
+            "source_ids_count": len(topic.source_ids_json),
+            "default_generator_slug": topic.default_generator_slug,
+            "status": topic.status,
+            "target_decision_at_present": topic.target_decision_at is not None,
+        },
+    )
     session.commit()
     session.refresh(topic)
     return _serialize_console_topic(topic)

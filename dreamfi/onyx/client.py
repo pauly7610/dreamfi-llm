@@ -31,7 +31,7 @@ from dreamfi.onyx.models import (
 _RETRY = retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=0.2, min=0.2, max=2.0),
-    retry=retry_if_exception_type((OnyxServerError, httpx.TransportError)),
+    retry=retry_if_exception_type((OnyxServerError, OnyxTimeoutError, httpx.TransportError)),
     reraise=True,
 )
 
@@ -224,6 +224,7 @@ class OnyxClient:
         )
         return DocSet(**resp.json())
 
+    @_RETRY
     def send_message_sync(
         self,
         *,

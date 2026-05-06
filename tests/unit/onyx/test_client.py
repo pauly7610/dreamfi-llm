@@ -133,6 +133,25 @@ def test_send_message_streaming_accumulates(client: OnyxClient) -> None:
 
 
 @respx.mock
+def test_send_message_retries_transient_server_error(client: OnyxClient) -> None:
+    route = respx.post(f"{BASE}/api/chat/send-chat-message").mock(
+        side_effect=[
+            httpx.Response(500, text="temporary"),
+            httpx.Response(200, content=b'{"answer_piece":"Recovered"}\n'),
+        ]
+    )
+
+    result = client.send_message_sync(
+        chat_session_id="00000000-0000-0000-0000-000000000001",
+        parent_message_id=None,
+        message="Hi",
+    )
+
+    assert route.call_count == 2
+    assert result.text == "Recovered"
+
+
+@respx.mock
 def test_admin_search_returns_hits(client: OnyxClient) -> None:
     respx.post(f"{BASE}/api/admin/search").mock(
         return_value=httpx.Response(

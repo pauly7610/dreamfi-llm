@@ -102,3 +102,52 @@ export async function publishArtifact(request: {
   refreshConsoleData()
   return payload
 }
+
+export async function captureArtifactFeedback(request: {
+  output_id: string
+  reviewer_id?: string
+  outcome: 'approved' | 'edited' | 'rejected'
+  reason?: string | null
+  notes?: string | null
+  promote_to_gold_role?: 'exemplar' | 'regression' | 'counter_example' | 'canary' | null
+}): Promise<{ feedback: { feedback_id: string; outcome: string }; gold: { gold_id: string } | null }> {
+  const response = await fetch('/api/learning/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reviewer_id: request.reviewer_id ?? 'console-reviewer',
+      output_id: request.output_id,
+      outcome: request.outcome,
+      reason: request.reason ?? null,
+      notes: request.notes ?? null,
+      promote_to_gold_role: request.promote_to_gold_role ?? null,
+    }),
+  })
+  const payload = await parseJsonResponse<{
+    feedback: { feedback_id: string; outcome: string }
+    gold: { gold_id: string } | null
+  }>(response)
+  refreshConsoleData()
+  return payload
+}
+
+export async function recordProductionOutcome(request: {
+  output_id: string
+  outcome: 'published' | 'revised' | 'ignored' | 'reverted' | 'used_in_decision'
+  actor_id?: string
+  notes?: string | null
+}): Promise<{ outcome: { outcome_id: string; outcome: string } }> {
+  const response = await fetch('/api/learning/outcomes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      output_id: request.output_id,
+      outcome: request.outcome,
+      actor_id: request.actor_id ?? 'console-operator',
+      notes: request.notes ?? null,
+    }),
+  })
+  const payload = await parseJsonResponse<{ outcome: { outcome_id: string; outcome: string } }>(response)
+  refreshConsoleData()
+  return payload
+}

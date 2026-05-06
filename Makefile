@@ -1,4 +1,4 @@
-.PHONY: help bootstrap onyx-up dreamfi-up test test-live lint format migrate seed run-round console
+.PHONY: help bootstrap onyx-up dreamfi-up test test-live lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay ops-status run-round console
 
 help:
 	@echo "bootstrap        - one-shot: bring up Onyx + DreamFi"
@@ -9,6 +9,13 @@ help:
 	@echo "test-live        - tests that require a live Onyx"
 	@echo "migrate          - alembic upgrade head"
 	@echo "seed             - register skills + create Onyx personas"
+	@echo "seed-local       - register skills + active prompt versions without Onyx"
+	@echo "seed-demo        - add realistic demo topics/artifacts/feedback/outcomes"
+	@echo "setup-env-check  - validate env/secrets placeholders"
+	@echo "setup-docsets    - APPLY=1 creates expected Onyx source doc sets"
+	@echo "validate-connectors - verify source doc-set/retrieval readiness"
+	@echo "run-replay       - run due learning replay schedules"
+	@echo "ops-status       - print operational readiness payload"
 	@echo "run-round        - SKILL=... [N=10] run one eval round"
 	@echo "lint / format    - ruff"
 
@@ -34,6 +41,27 @@ migrate:
 
 seed:
 	python -m scripts.onyx_seed
+
+seed-local:
+	python -m scripts.dreamfi_setup seed-local
+
+seed-demo:
+	python -m scripts.dreamfi_setup seed-demo
+
+setup-env-check:
+	python -m scripts.dreamfi_setup env-check
+
+setup-docsets:
+	python -m scripts.dreamfi_setup bootstrap-docsets $(if $(APPLY),--apply,)
+
+validate-connectors:
+	python -m scripts.dreamfi_setup validate-connectors
+
+run-replay:
+	python -m scripts.dreamfi_setup run-replay --limit=$(or $(LIMIT),10)
+
+ops-status:
+	python -m scripts.dreamfi_setup ops-status
 
 run-round:
 	python -m scripts.run_eval_round --skill=$(SKILL) --n=$(or $(N),10)

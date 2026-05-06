@@ -10,10 +10,11 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from dreamfi.db.models import EvalRound, PromptVersion, Skill
+from dreamfi.db.models import EvalRound, GoldExample, PromptVersion, Skill
 from dreamfi.evals.loader import parse_eval_template
 from dreamfi.skills.engine import SkillEngine
 from dreamfi.skills.registry import load_registry
+from dreamfi.trust.gold import detect_drift_events
 
 ARTIFACTS_ROOT = Path("evals/results")
 _DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -56,6 +57,31 @@ def _artifacts_dir(skill_id: str, round_id: str) -> Path:
     return base
 
 
+def _gold_examples_for_round(session: Session, skill_id: str) -> list[GoldExample]:
+    return list(
+        session.scalars(
+            select(GoldExample)
+            .where(
+                GoldExample.skill_id == skill_id,
+                GoldExample.role.in_(("regression", "canary")),
+            )
+            .order_by(GoldExample.gold_id)
+        )
+    )
+
+
+def _gold_label(example: GoldExample) -> str:
+    if example.scenario_type and example.scenario_type != "default":
+        return example.scenario_type
+    return f"gold:{example.gold_id}"
+
+
+def _gold_input_context(example: GoldExample) -> dict[str, object]:
+    if example.input_context_json:
+        return example.input_context_json
+    return {"text": example.output_text}
+
+
 def run_round(
     *,
     session: Session,
@@ -83,12 +109,13 @@ def run_round(
     test_inputs = spec.test_inputs
     if not test_inputs:
         raise RuntimeError(f"No test inputs for skill {skill_id}")
+    gold_examples = _gold_examples_for_round(session, skill_id)
 
     started = datetime.now(timezone.utc)
     round_row = EvalRound(
         skill_id=skill_id,
         prompt_version_id=prompt_version_id,
-        n_inputs=len(test_inputs),
+        n_inputs=len(test_inputs) + len(gold_examples),
         n_outputs_per_input=n_outputs_per_input,
         total_outputs=0,
         total_passes=0,
@@ -106,6 +133,13 @@ def run_round(
     passes = 0
     results_log = artifacts / "results.log"
     outputs_log = artifacts / "outputs.jsonl"
+    previous_gold_results = {
+        example.gold_id: example.last_result
+        for example in gold_examples
+        if example.last_result in {"pass", "fail"}
+    }
+    new_gold_results: dict[str, str] = {}
+
     with results_log.open("w", encoding="utf-8") as rlog, outputs_log.open(
         "w", encoding="utf-8"
     ) as olog:
@@ -145,6 +179,60 @@ def run_round(
                     )
                     + "\n"
                 )
+        for example in gold_examples:
+            label = _gold_label(example)
+            gen = engine.generate(
+                skill=skill_id,
+                input_context=_gold_input_context(example),
+                test_input_label=label,
+                prompt_version_id=prompt_version_id,
+                round_id=round_row.round_id,
+                attempt=1,
+                scenario_type=example.scenario_type,
+            )
+            total += 1
+            if gen.eval.pass_fail == "pass":
+                passes += 1
+            example.last_run_round_id = round_row.round_id
+            example.last_result = gen.eval.pass_fail
+            new_gold_results[example.gold_id] = gen.eval.pass_fail
+            rlog.write(
+                json.dumps(
+                    {
+                        "label": label,
+                        "gold_id": example.gold_id,
+                        "role": example.role,
+                        "attempt": 1,
+                        "pass_fail": gen.eval.pass_fail,
+                        "failed_criteria": gen.eval.failed_criteria,
+                        "confidence": gen.confidence.confidence,
+                    }
+                )
+                + "\n"
+            )
+            olog.write(
+                json.dumps(
+                    {
+                        "label": label,
+                        "gold_id": example.gold_id,
+                        "role": example.role,
+                        "attempt": 1,
+                        "text": gen.generated_text,
+                        "citations": gen.onyx_citations,
+                    }
+                )
+                + "\n"
+            )
+
+    session.add_all(
+        detect_drift_events(
+            examples=gold_examples,
+            previous_results=previous_gold_results,
+            new_results=new_gold_results,
+            prompt_version_id=prompt_version_id,
+            round_id=round_row.round_id,
+        )
+    )
 
     score = passes / total if total else 0.0
     round_row.total_outputs = total
