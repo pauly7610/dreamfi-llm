@@ -74,6 +74,7 @@ export function isKnownConsoleHref(href: string): boolean {
     path === '/console/inbox' ||
     path === '/console/review' ||
     path === '/console/trust' ||
+    path === '/console/settings' ||
     path === '/console/methodology' ||
     path === '/console/knowledge/ask' ||
     path === '/console/topics' ||

@@ -1,0 +1,311 @@
+"""Settings and connector activation API."""
+from __future__ import annotations
+
+from typing import Any
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from dreamfi.api.deps import get_db_session, get_onyx_client
+from dreamfi.audit import add_audit_event
+from dreamfi.onyx.client import OnyxClient
+from dreamfi.onyx.errors import OnyxError
+from dreamfi.settings_activation import (
+    activate_connector,
+    actor_id_from_request_state,
+    connector_or_none,
+    deactivate_connector,
+    delete_connector_secret,
+    ensure_connector_document_set,
+    mask_secret,
+    probe_connector,
+    settings_status,
+    upsert_connector_secret,
+    validate_secret_value,
+)
+
+router = APIRouter(prefix="/api/settings")
+
+
+class ConnectorSecretRequest(BaseModel):
+    api_key: str = Field(min_length=1)
+    label: str | None = None
+
+
+def _connector_or_404(connector_id: str):
+    connector = connector_or_none(connector_id)
+    if connector is None:
+        raise HTTPException(status_code=404, detail="connector not found")
+    return connector
+
+
+def _safe_connector_payload(
+    *,
+    session: Session,
+    onyx: OnyxClient,
+    connector_id: str,
+) -> dict[str, Any]:
+    payload = settings_status(session, onyx)
+    connector = next(
+        item for item in payload["connectors"] if item["connector_id"] == connector_id
+    )
+    return {"connector": connector, "settings_status": payload["status"]}
+
+
+@router.get("/status")
+def read_settings_status(
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    payload = settings_status(session, onyx)
+    add_audit_event(
+        session,
+        category="configuration",
+        action="settings_status_read",
+        outcome="success",
+        request=request,
+        target_type="settings",
+        target_id="activation",
+        metadata={
+            "status": payload["status"],
+            "failures": payload["failures"],
+            "summary": payload["summary"],
+        },
+    )
+    session.commit()
+    return payload
+
+
+@router.post("/connectors/{connector_id}/secret", status_code=status.HTTP_201_CREATED)
+def save_connector_secret(
+    connector_id: str,
+    body: ConnectorSecretRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    actor_id = actor_id_from_request_state(request.state)
+    try:
+        preview = validate_secret_value(body.api_key)
+    except ValueError as exc:
+        add_audit_event(
+            session,
+            category="configuration",
+            action="connector_secret_save",
+            outcome="blocked",
+            request=request,
+            severity="warning",
+            target_type="connector",
+            target_id=connector.connector_id,
+            reason=str(exc),
+            metadata={"connector_id": connector.connector_id},
+        )
+        session.commit()
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    row = upsert_connector_secret(
+        session,
+        connector=connector,
+        api_key=body.api_key,
+        actor_id=actor_id,
+        label=body.label,
+    )
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_secret_save",
+        outcome="success",
+        request=request,
+        target_type="connector",
+        target_id=connector.connector_id,
+        metadata={
+            "connector_id": connector.connector_id,
+            "masked_secret": mask_secret(preview),
+            "secret_sha256": row.secret_sha256,
+            "label_present": bool(body.label and body.label.strip()),
+        },
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)
+
+
+@router.delete("/connectors/{connector_id}/secret")
+def remove_connector_secret(
+    connector_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    row = delete_connector_secret(
+        session,
+        connector=connector,
+        actor_id=actor_id_from_request_state(request.state),
+    )
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_secret_delete",
+        outcome="success",
+        request=request,
+        target_type="connector",
+        target_id=connector.connector_id,
+        metadata={"connector_id": connector.connector_id, "activation_status": row.activation_status},
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)
+
+
+@router.post("/connectors/{connector_id}/document-set")
+def create_connector_document_set(
+    connector_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    try:
+        row = ensure_connector_document_set(
+            session=session,
+            onyx=onyx,
+            connector=connector,
+            actor_id=actor_id_from_request_state(request.state),
+        )
+    except (OnyxError, httpx.HTTPError) as exc:
+        session.rollback()
+        raise HTTPException(status_code=502, detail=f"Onyx document-set setup failed: {type(exc).__name__}") from exc
+
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_document_set_ensure",
+        outcome="success",
+        request=request,
+        target_type="connector",
+        target_id=connector.connector_id,
+        metadata={
+            "connector_id": connector.connector_id,
+            "document_set_id": row.document_set_id,
+            "document_set_name": row.document_set_name,
+        },
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)
+
+
+@router.post("/connectors/{connector_id}/validate")
+def validate_connector(
+    connector_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    try:
+        row = probe_connector(
+            session=session,
+            onyx=onyx,
+            connector=connector,
+            actor_id=actor_id_from_request_state(request.state),
+        )
+    except (OnyxError, httpx.HTTPError) as exc:
+        session.rollback()
+        raise HTTPException(status_code=502, detail=f"connector validation failed: {type(exc).__name__}") from exc
+
+    outcome = "success" if row.validation_status == "validated" else "blocked"
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_validate",
+        outcome=outcome,  # type: ignore[arg-type]
+        request=request,
+        severity="info" if outcome == "success" else "warning",
+        target_type="connector",
+        target_id=connector.connector_id,
+        reason=row.validation_error,
+        metadata={
+            "connector_id": connector.connector_id,
+            "document_set_present": row.document_set_present,
+            "retrieval_status": row.retrieval_status,
+        },
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)
+
+
+@router.post("/connectors/{connector_id}/activate")
+def activate_connector_endpoint(
+    connector_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    row, blockers = activate_connector(
+        session=session,
+        connector=connector,
+        actor_id=actor_id_from_request_state(request.state),
+    )
+    if blockers:
+        add_audit_event(
+            session,
+            category="configuration",
+            action="connector_activate",
+            outcome="blocked",
+            request=request,
+            severity="warning",
+            target_type="connector",
+            target_id=connector.connector_id,
+            reason="activation blockers",
+            metadata={"connector_id": connector.connector_id, "blockers": blockers},
+        )
+        session.commit()
+        raise HTTPException(status_code=422, detail={"blockers": blockers})
+
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_activate",
+        outcome="success",
+        request=request,
+        target_type="connector",
+        target_id=connector.connector_id,
+        metadata={
+            "connector_id": connector.connector_id,
+            "activation_status": row.activation_status,
+            "document_set_id": row.document_set_id,
+        },
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)
+
+
+@router.post("/connectors/{connector_id}/deactivate")
+def deactivate_connector_endpoint(
+    connector_id: str,
+    request: Request,
+    session: Session = Depends(get_db_session),
+    onyx: OnyxClient = Depends(get_onyx_client),
+) -> dict[str, Any]:
+    connector = _connector_or_404(connector_id)
+    row = deactivate_connector(
+        session=session,
+        connector=connector,
+        actor_id=actor_id_from_request_state(request.state),
+    )
+    add_audit_event(
+        session,
+        category="configuration",
+        action="connector_deactivate",
+        outcome="success",
+        request=request,
+        target_type="connector",
+        target_id=connector.connector_id,
+        metadata={"connector_id": connector.connector_id, "activation_status": row.activation_status},
+    )
+    session.commit()
+    return _safe_connector_payload(session=session, onyx=onyx, connector_id=connector.connector_id)

@@ -34,9 +34,8 @@ The intended operating model is:
 4. Generate a reusable artifact from that grounded context.
 5. Use the trust checks to decide whether the output needs review, can move forward, or can publish.
 
-The next setup surface is the Settings / Activation page, which is specified in
-`PRDs/settings-activation-page.md`. Its job is to let an admin validate secrets,
-activate connectors, confirm Onyx document sets, and prove persistent storage
+The console includes a Settings / Activation page for validating connector
+credentials, confirming Onyx document sets, and proving persistent storage
 readiness without exposing raw API keys.
 
 ## Skill layer
@@ -163,6 +162,9 @@ The current backend exposes:
 - `POST /api/learning/feedback/{feedback_id}/gold` - convert reviewed artifacts into gold exemplars, regressions, counter examples, or canaries.
 - `POST /api/learning/replay-schedules` and `POST /api/learning/replay-schedules/run-due` - schedule and run gold/workflow replay.
 - `POST /api/learning/outcomes` - record whether generated work was published, revised, ignored, reverted, or used in a decision.
+- `GET /api/settings/status` - read environment, persistence, job, and connector activation readiness.
+- `POST /api/settings/connectors/{connector_id}/secret` - save masked connector credential metadata without returning or storing raw API keys.
+- `POST /api/settings/connectors/{connector_id}/document-set`, `/validate`, `/activate`, and `/deactivate` - confirm Onyx document sets, run freshness probes, and gate activation.
 - `GET /api/console` - JSON payload for the operator console.
 - `GET /console` - operator UI, backed by the checked-in React build when present.
 
@@ -177,6 +179,7 @@ The frontend currently includes:
 - artifact views for generated work
 - review queues for blocked and risky artifacts
 - trust and methodology pages for system health and operating model
+- a settings page for connector activation, key redaction, Onyx document-set confirmation, and persistence gates
 
 The review layer summarizes:
 

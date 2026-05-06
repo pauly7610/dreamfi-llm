@@ -1,3 +1,5 @@
+import type { SettingsStatus } from '../types/console'
+
 export const CONSOLE_DATA_REFRESH_EVENT = 'dreamfi:console-data-refresh'
 
 export type AskCitation = {
@@ -148,6 +150,78 @@ export async function recordProductionOutcome(request: {
     }),
   })
   const payload = await parseJsonResponse<{ outcome: { outcome_id: string; outcome: string } }>(response)
+  refreshConsoleData()
+  return payload
+}
+
+export async function fetchSettingsStatus(): Promise<SettingsStatus> {
+  const response = await fetch('/api/settings/status')
+  return parseJsonResponse<SettingsStatus>(response)
+}
+
+export async function saveConnectorSecret(request: {
+  connector_id: string
+  api_key: string
+  label?: string | null
+}): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(request.connector_id)}/secret`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: request.api_key,
+      label: request.label ?? null,
+    }),
+  })
+  return parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+}
+
+export async function validateSettingsConnector(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/validate`, {
+    method: 'POST',
+  })
+  return parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+}
+
+export async function ensureConnectorDocumentSet(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/document-set`, {
+    method: 'POST',
+  })
+  return parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+}
+
+export async function activateSettingsConnector(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/activate`, {
+    method: 'POST',
+  })
+  const payload = await parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+  refreshConsoleData()
+  return payload
+}
+
+export async function deactivateSettingsConnector(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/deactivate`, {
+    method: 'POST',
+  })
+  const payload = await parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+  refreshConsoleData()
+  return payload
+}
+
+export async function deleteConnectorSecret(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/secret`, {
+    method: 'DELETE',
+  })
+  const payload = await parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
   refreshConsoleData()
   return payload
 }

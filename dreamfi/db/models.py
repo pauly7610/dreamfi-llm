@@ -179,6 +179,43 @@ class OnyxDocumentMap(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
 
 
+class ConnectorSetting(Base):
+    __tablename__ = "connector_settings"
+    __table_args__ = (
+        Index("ix_connector_settings_activation_status", "activation_status"),
+        Index("ix_connector_settings_validation_status", "validation_status"),
+    )
+
+    connector_id: Mapped[str] = mapped_column(String, primary_key=True)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    credential_status: Mapped[str] = mapped_column(String, nullable=False, default="missing")
+    secret_last_four: Mapped[str | None] = mapped_column(String, nullable=True)
+    secret_sha256: Mapped[str | None] = mapped_column(String, nullable=True)
+    secret_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    validation_status: Mapped[str] = mapped_column(String, nullable=False, default="not_validated")
+    validation_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    document_set_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    document_set_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    document_set_present: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    retrieval_status: Mapped[str | None] = mapped_column(String, nullable=True)
+    freshest_document_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    activation_status: Mapped[str] = mapped_column(String, nullable=False, default="inactive")
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_probe_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        onupdate=_utc_now,
+    )
+
+
 class GoldDriftEvent(Base):
     __tablename__ = "gold_drift_events"
 
@@ -337,6 +374,7 @@ __all__ = [
     "ArtifactFeedback",
     "AuditEvent",
     "Base",
+    "ConnectorSetting",
     "ConsoleTopic",
     "EvalOutput",
     "EvalRound",

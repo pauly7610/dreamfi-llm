@@ -21,6 +21,7 @@ const ICONS = {
   home: <Icon d="M2 7l6-5 6 5v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7z" />,
   inbox: <Icon d="M2 9l2-5h8l2 5v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9zM2 9h3l1 1h4l1-1h3" />,
   methodology: <Icon d="M4 3h8M4 8h8M4 13h8" />,
+  settings: <Icon d="M8 2v2M8 12v2M2 8h2M12 8h2M4.2 4.2l1.4 1.4M10.4 10.4l1.4 1.4M11.8 4.2l-1.4 1.4M5.6 10.4l-1.4 1.4M6 8a2 2 0 1 0 4 0 2 2 0 0 0-4 0z" />,
   source: <Icon d="M3 3h10v10H3zM3 7h10M7 3v10" />,
   topic: <Icon d="M2 4h12M2 8h12M2 12h8" />,
   trust: <Icon d="M8 1.5l5 2v4c0 3-2 5.5-5 7-3-1.5-5-4-5-7v-4l5-2z" />,

@@ -15,6 +15,7 @@ import GeneratePage from './pages/GeneratePage'
 import MethodologyPage from './pages/MethodologyPage'
 import OperatorConsolePage from './pages/OperatorConsolePage'
 import ReviewPage from './pages/ReviewPage'
+import SettingsPage from './pages/SettingsPage'
 import SourceDetailPage from './pages/SourceDetailPage'
 import TopicRoomPage from './pages/TopicRoomPage'
 import TrustPage from './pages/TrustPage'
@@ -84,6 +85,9 @@ function renderPage(
   }
   if (path.startsWith('/console/methodology')) {
     return <MethodologyPage />
+  }
+  if (path.startsWith('/console/settings')) {
+    return <SettingsPage onConsoleDataChanged={retry} />
   }
   if (path.startsWith('/console/generate')) {
     const templateName = path.split('/').pop() || 'weekly-brief'
@@ -213,6 +217,7 @@ function navGroupsForData(data: ReturnType<typeof useConsoleData>['data'], topic
           count: data?.artifact_queue.length ?? 0,
         },
         { id: 'trust', label: 'Trust', icon: 'trust', href: '/console/trust' },
+        { id: 'settings', label: 'Settings', icon: 'settings', href: '/console/settings' },
         { id: 'methodology', label: 'Methodology', icon: 'methodology', href: '/console/methodology' },
       ],
     },
@@ -258,6 +263,9 @@ function navIdForPath(path: string, location: ConsoleLocation): string {
   }
   if (path.startsWith('/console/methodology')) {
     return 'methodology'
+  }
+  if (path.startsWith('/console/settings')) {
+    return 'settings'
   }
   if (path.startsWith('/console/topics/') && segments[2]) {
     return `topic-${decodeURIComponent(segments[2])}`
@@ -306,6 +314,9 @@ function crumbsForPath(
   }
   if (path.startsWith('/console/methodology')) {
     return [{ label: 'Methodology', strong: true }]
+  }
+  if (path.startsWith('/console/settings')) {
+    return [{ label: 'Settings', strong: true }]
   }
   if (path.startsWith('/console/topics/')) {
     const currentTopicId = decodeURIComponent(path.split('/').filter(Boolean)[2] ?? '')
