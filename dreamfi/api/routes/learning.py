@@ -218,12 +218,16 @@ def capture_feedback(
 
     gold = None
     if body.promote_to_gold_role is not None:
-        gold = create_gold_from_feedback(
-            session,
-            feedback=feedback,
-            role=body.promote_to_gold_role,
-            final_text=body.final_text,
-        )
+        try:
+            gold = create_gold_from_feedback(
+                session,
+                feedback=feedback,
+                role=body.promote_to_gold_role,
+                final_text=body.final_text,
+            )
+        except ValueError as exc:
+            session.rollback()
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     add_audit_event(
         session,

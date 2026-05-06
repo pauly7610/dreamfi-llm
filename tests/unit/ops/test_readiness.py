@@ -24,8 +24,10 @@ from dreamfi.ops.demo import seed_demo_data
 from dreamfi.ops.readiness import (
     bootstrap_connector_document_sets,
     connector_readiness,
+    environment_readiness,
     ops_status,
 )
+from dreamfi.config import get_settings
 
 
 def _session(tmp_path: Path) -> Session:
@@ -61,6 +63,20 @@ def test_bootstrap_connector_document_sets_creates_missing_expected_docsets() ->
     assert len(rows) == len(CONNECTORS)
     assert all(row["exists"] for row in rows)
     assert {connector.expected_document_set for connector in CONNECTORS} == set(created_names)
+
+
+@respx.mock
+def test_bootstrap_connector_document_sets_can_dry_run_missing_docsets() -> None:
+    onyx = OnyxClient(base_url="http://onyx.test", api_key="k")
+    respx.get("http://onyx.test/api/document-set").mock(
+        return_value=httpx.Response(200, json={"document_sets": []})
+    )
+
+    rows = bootstrap_connector_document_sets(onyx=onyx, apply=False)
+
+    assert len(rows) == len(CONNECTORS)
+    assert all(not row["exists"] for row in rows)
+    assert all(not row["created"] for row in rows)
 
 
 @respx.mock
@@ -106,6 +122,40 @@ def test_connector_readiness_checks_docsets_and_freshness() -> None:
     assert rows["jira"]["status"] == "connected"
     assert rows["socure"]["status"] == "degraded"
     assert rows["klaviyo"]["status"] == "not_configured"
+
+
+@respx.mock
+def test_connector_readiness_reports_error_when_docsets_are_unavailable() -> None:
+    onyx = OnyxClient(base_url="http://onyx.test", api_key="k")
+    respx.get("http://onyx.test/api/document-set").mock(
+        return_value=httpx.Response(503, json={"detail": "unavailable"})
+    )
+
+    payload = connector_readiness(onyx=onyx)
+
+    assert payload["status"] == "error"
+    assert payload["reason"] == "OnyxServerError"
+    assert len(payload["connectors"]) == len(CONNECTORS)
+    assert {row["status"] for row in payload["connectors"]} == {"degraded"}
+    assert {row["retrieval_status"] for row in payload["connectors"]} == {"not_checked"}
+
+
+def test_environment_readiness_requires_persistent_postgres_and_real_secrets(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("PGHOST", raising=False)
+    monkeypatch.setenv("ONYX_BASE_URL", "http://onyx.test")
+    monkeypatch.setenv("ONYX_API_KEY", "onyx_pat_XXX")
+    monkeypatch.setenv("DREAMFI_AUTH_ENABLED", "true")
+    monkeypatch.setenv("DREAMFI_API_TOKEN", "change-me-before-deploy")
+    get_settings.cache_clear()
+
+    payload = environment_readiness()
+
+    checks = {check["name"]: check for check in payload["checks"]}
+    assert payload["ready"] is False
+    assert checks["DATABASE_URL"]["configured"] is False
+    assert checks["ONYX_API_KEY"]["configured"] is True
+    assert sorted(payload["placeholder_values"]) == ["DREAMFI_API_TOKEN", "ONYX_API_KEY"]
 
 
 def test_seed_demo_data_is_idempotent_and_populates_review_loop(tmp_path: Path) -> None:

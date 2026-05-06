@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 
+import pytest
 from fastapi.testclient import TestClient
 
 from dreamfi.api.app import create_app
@@ -71,3 +72,29 @@ def test_auth_allows_bearer_token(monkeypatch) -> None:  # type: ignore[no-untyp
     )
 
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("authorization", "expected_header"),
+    [
+        ("Basic !!!not-base64!!!", "Basic"),
+        ("Basic bm8tc2VwYXJhdG9y", "Basic"),
+        ("Bearer wrong-token", "Bearer"),
+    ],
+)
+def test_auth_rejects_malformed_or_invalid_authorization(
+    authorization: str,
+    expected_header: str,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("DREAMFI_AUTH_ENABLED", "true")
+    monkeypatch.setenv("DREAMFI_AUTH_USERNAME", "dreamfi")
+    monkeypatch.setenv("DREAMFI_AUTH_PASSWORD", "secret")
+    monkeypatch.setenv("DREAMFI_API_TOKEN", "token-secret")
+    get_settings.cache_clear()
+    client = TestClient(create_app())
+
+    response = client.get("/llms.txt", headers={"Authorization": authorization})
+
+    assert response.status_code == 401
+    assert expected_header in response.headers["WWW-Authenticate"]

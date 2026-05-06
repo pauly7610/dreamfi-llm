@@ -213,6 +213,63 @@ def test_rejected_feedback_can_become_regression_gold(
     assert gold.output_text == output.generated_text
 
 
+def test_invalid_inline_gold_promotion_returns_422_without_feedback(
+    client: TestClient,
+    session: Session,
+) -> None:
+    output = _make_output(session)
+
+    response = client.post(
+        "/api/learning/feedback",
+        json={
+            "output_id": output.output_id,
+            "reviewer_id": "reviewer-3",
+            "outcome": "approved",
+            "reason": "good_artifact",
+            "promote_to_gold_role": "regression",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "can only become exemplar/canary" in response.json()["detail"]
+    assert session.query(ArtifactFeedback).filter_by(output_id=output.output_id).count() == 0
+    assert session.query(GoldExample).count() == 0
+
+
+def test_promoting_feedback_to_gold_is_idempotent_and_conflict_checked(
+    client: TestClient,
+    session: Session,
+) -> None:
+    output = _make_output(session)
+    feedback_response = client.post(
+        "/api/learning/feedback",
+        json={
+            "output_id": output.output_id,
+            "reviewer_id": "reviewer-4",
+            "outcome": "approved",
+            "reason": "clear_decision_support",
+            "promote_to_gold_role": "exemplar",
+        },
+    )
+    feedback_id = feedback_response.json()["feedback"]["feedback_id"]
+    gold_id = feedback_response.json()["gold"]["gold_id"]
+
+    repeat_response = client.post(
+        f"/api/learning/feedback/{feedback_id}/gold",
+        json={"role": "exemplar"},
+    )
+    conflict_response = client.post(
+        f"/api/learning/feedback/{feedback_id}/gold",
+        json={"role": "canary"},
+    )
+
+    assert repeat_response.status_code == 201, repeat_response.text
+    assert repeat_response.json()["gold"]["gold_id"] == gold_id
+    assert conflict_response.status_code == 422
+    assert "already promoted" in conflict_response.json()["detail"]
+    assert session.query(GoldExample).count() == 1
+
+
 def test_failure_clusters_generate_and_approve_prompt_proposal(
     client: TestClient,
     session: Session,
@@ -286,6 +343,41 @@ def test_failure_clusters_generate_and_approve_prompt_proposal(
     assert reviewed.status == "applied"
 
 
+def test_reject_prompt_proposal_preserves_active_prompt(
+    client: TestClient,
+    session: Session,
+) -> None:
+    active_prompt = _active_prompt(session)
+    proposal = LearningProposal(
+        skill_id="meeting_summary",
+        prompt_version_id=active_prompt.prompt_version_id,
+        cluster_key="evidence:low_citation",
+        title="Improve evidence: low citation",
+        rationale="Repeated low-citation failures need review.",
+        proposed_prompt_patch="Require source-backed claims.",
+        status="draft",
+        source_failure_count=3,
+        evidence_json={"output_ids": ["out-1", "out-2", "out-3"]},
+    )
+    session.add(proposal)
+    session.commit()
+
+    response = client.post(
+        f"/api/learning/proposals/{proposal.proposal_id}/reject",
+        json={"reviewer_id": "prompt-reviewer", "review_notes": "Do not change prompt yet."},
+    )
+
+    assert response.status_code == 200, response.text
+    reviewed = session.get(LearningProposal, proposal.proposal_id)
+    assert reviewed is not None
+    assert reviewed.status == "rejected"
+    assert reviewed.reviewer_id == "prompt-reviewer"
+    assert reviewed.reviewed_at is not None
+    assert session.query(PromptVersion).filter_by(skill_id="meeting_summary").count() == 1
+    session.refresh(active_prompt)
+    assert active_prompt.is_active is True
+
+
 def test_production_outcome_records_summary(
     client: TestClient,
     session: Session,
@@ -355,3 +447,41 @@ def test_run_due_gold_replay_schedule_runs_round(
     assert schedule.next_run_at > schedule.last_run_at
     replay_run = session.query(ReplayRun).one()
     assert replay_run.round_id == runs[0]["round_id"]
+
+
+def test_workflow_replay_schedule_requires_workflow_slug(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/api/learning/replay-schedules",
+        json={"replay_type": "workflow", "cadence_days": 1, "payload": {}},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "workflow replay requires payload.workflow_slug"
+
+
+def test_due_workflow_replay_records_error_for_unknown_workflow(
+    client: TestClient,
+    session: Session,
+) -> None:
+    schedule_response = client.post(
+        "/api/learning/replay-schedules",
+        json={
+            "replay_type": "workflow",
+            "cadence_days": 1,
+            "created_by": "ops",
+            "payload": {"workflow_slug": "not-a-workflow"},
+        },
+    )
+    assert schedule_response.status_code == 201, schedule_response.text
+
+    run_response = client.post("/api/learning/replay-schedules/run-due")
+
+    assert run_response.status_code == 200, run_response.text
+    run = run_response.json()["runs"][0]
+    assert run["status"] == "error"
+    assert run["reason"] == "ValueError"
+    assert "workflow replay schedule requires workflow_slug" in run["summary"]["error"]
+    schedule = session.query(ReplaySchedule).one()
+    assert schedule.last_run_at is not None
