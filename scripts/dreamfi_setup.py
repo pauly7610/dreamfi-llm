@@ -132,12 +132,17 @@ def run_replay(limit: int) -> None:
 
 
 @main.command("ops-status")
-def ops_status_command() -> None:
+@click.option("--strict", is_flag=True, help="Exit non-zero when ops status is degraded.")
+def ops_status_command(strict: bool) -> None:
     """Print the same operational readiness payload exposed by /api/ops/status."""
     session = get_sessionmaker()()
     onyx = get_onyx_client()
     try:
-        _echo_json(ops_status(session, onyx))
+        payload = ops_status(session, onyx)
+        _echo_json(payload)
+        if strict and payload.get("status") != "ok":
+            failures = ", ".join(str(item) for item in payload.get("failures", []))
+            raise click.ClickException(f"operational status is degraded: {failures}")
     finally:
         session.close()
 

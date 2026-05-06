@@ -1,7 +1,9 @@
 """Operational readiness checks for DreamFi setup and production monitoring."""
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 from typing import Any
 
 import httpx
@@ -32,6 +34,34 @@ def environment_readiness() -> dict[str, Any]:
     database_url = settings.resolved_database_url
     uses_sqlite = database_url.startswith("sqlite")
     database_configured = bool(settings.database_url or settings.pg_host) and not uses_sqlite
+    placeholders = {"change-me-before-deploy", "onyx_pat_XXX", "sk-ant-XXX"}
+
+    def is_placeholder(value: str | None) -> bool:
+        return bool(value) and value in placeholders
+
+    def has_explicit_env(*names: str) -> bool:
+        return any(os.getenv(name) for name in names)
+
+    onyx_url = settings.onyx_base_url.strip()
+    onyx_host = (urlparse(onyx_url).hostname or "").lower()
+    running_on_railway = bool(
+        os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_ENVIRONMENT_NAME")
+    )
+    onyx_base_configured = bool(onyx_url) and (
+        not running_on_railway
+        or (
+            has_explicit_env("ONYX_BASE_URL")
+            and onyx_host not in {"localhost", "127.0.0.1", "::1"}
+        )
+    )
+    onyx_key_configured = bool(settings.onyx_api_key) and not is_placeholder(
+        settings.onyx_api_key
+    )
+    auth_secret_configured = any(
+        secret and not is_placeholder(secret)
+        for secret in (settings.dreamfi_api_token, settings.dreamfi_auth_password)
+    )
+    auth_configured = not settings.dreamfi_auth_enabled or auth_secret_configured
     required: list[dict[str, Any]] = [
         {
             "name": "DATABASE_URL",
@@ -46,26 +76,22 @@ def environment_readiness() -> dict[str, Any]:
         {
             "name": "ONYX_BASE_URL",
             "present": bool(settings.onyx_base_url),
-            "configured": bool(settings.onyx_base_url),
+            "configured": onyx_base_configured,
             "detail": settings.onyx_base_url,
         },
         {
             "name": "ONYX_API_KEY",
             "present": bool(settings.onyx_api_key),
-            "configured": bool(settings.onyx_api_key),
+            "configured": onyx_key_configured,
             "detail": "required for live Onyx setup",
         },
         {
             "name": "DREAMFI_AUTH",
             "present": bool(settings.dreamfi_api_token or settings.dreamfi_auth_password),
-            "configured": (
-                not settings.dreamfi_auth_enabled
-                or bool(settings.dreamfi_api_token or settings.dreamfi_auth_password)
-            ),
+            "configured": auth_configured,
             "detail": "Basic auth or bearer token must be configured when auth is enabled.",
         },
     ]
-    placeholders = {"change-me-before-deploy", "onyx_pat_XXX", "sk-ant-XXX"}
     placeholder_values = {
         "DREAMFI_AUTH_PASSWORD": settings.dreamfi_auth_password,
         "DREAMFI_API_TOKEN": settings.dreamfi_api_token,

@@ -143,9 +143,12 @@ def test_connector_readiness_reports_error_when_docsets_are_unavailable() -> Non
 def test_environment_readiness_requires_persistent_postgres_and_real_secrets(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("PGHOST", raising=False)
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("RAILWAY_ENVIRONMENT_NAME", raising=False)
     monkeypatch.setenv("ONYX_BASE_URL", "http://onyx.test")
     monkeypatch.setenv("ONYX_API_KEY", "onyx_pat_XXX")
     monkeypatch.setenv("DREAMFI_AUTH_ENABLED", "true")
+    monkeypatch.setenv("DREAMFI_AUTH_PASSWORD", "")
     monkeypatch.setenv("DREAMFI_API_TOKEN", "change-me-before-deploy")
     get_settings.cache_clear()
 
@@ -154,8 +157,30 @@ def test_environment_readiness_requires_persistent_postgres_and_real_secrets(mon
     checks = {check["name"]: check for check in payload["checks"]}
     assert payload["ready"] is False
     assert checks["DATABASE_URL"]["configured"] is False
-    assert checks["ONYX_API_KEY"]["configured"] is True
+    assert checks["ONYX_API_KEY"]["configured"] is False
+    assert checks["DREAMFI_AUTH"]["configured"] is False
     assert sorted(payload["placeholder_values"]) == ["DREAMFI_API_TOKEN", "ONYX_API_KEY"]
+
+
+def test_environment_readiness_rejects_localhost_onyx_in_railway(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://dreamfi:dreamfi@postgres.railway.internal:5432/railway",
+    )
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "production")
+    monkeypatch.delenv("ONYX_BASE_URL", raising=False)
+    monkeypatch.setenv("ONYX_API_KEY", "live_onyx_key")
+    monkeypatch.setenv("DREAMFI_AUTH_ENABLED", "true")
+    monkeypatch.setenv("DREAMFI_AUTH_PASSWORD", "")
+    monkeypatch.setenv("DREAMFI_API_TOKEN", "live_auth_token")
+    get_settings.cache_clear()
+
+    payload = environment_readiness()
+
+    checks = {check["name"]: check for check in payload["checks"]}
+    assert payload["ready"] is False
+    assert checks["DATABASE_URL"]["configured"] is True
+    assert checks["ONYX_BASE_URL"]["configured"] is False
 
 
 def test_seed_demo_data_is_idempotent_and_populates_review_loop(tmp_path: Path) -> None:
