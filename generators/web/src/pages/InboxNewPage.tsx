@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import type { ConsolePayload } from '../types/console'
 import { Chip, Cite, SectionHead, connectorKeyFromId } from '../components/system/atoms'
-import { publishArtifact } from '../utils/consoleApi'
+import { captureArtifactFeedback, publishArtifact, recordProductionOutcome } from '../utils/consoleApi'
 import { artifactHref } from './redesignSupport'
 
 type InboxNewPageProps = {
@@ -75,6 +75,57 @@ export function InboxNewPage({ data, onDataChanged }: InboxNewPageProps) {
     }
   }
 
+  async function handleFeedback(row: InboxRow, outcome: 'approved' | 'rejected') {
+    if (!row.artifact?.outputId) {
+      setAction({ error: 'Artifact is missing an output id', outputId: null })
+      return
+    }
+
+    setAction({ error: null, outputId: row.artifact.outputId })
+    try {
+      await captureArtifactFeedback({
+        output_id: row.artifact.outputId,
+        outcome,
+        reason: outcome === 'approved' ? 'review_ready' : 'blocked_by_review',
+        notes:
+          outcome === 'approved'
+            ? 'Console reviewer approved the artifact for learning memory.'
+            : 'Console reviewer rejected the artifact and preserved it as a regression signal.',
+        promote_to_gold_role: outcome === 'approved' ? 'exemplar' : 'regression',
+      })
+      onDataChanged?.()
+      setAction({ error: null, outputId: null })
+    } catch (error) {
+      setAction({
+        error: error instanceof Error ? error.message : 'Unable to record feedback',
+        outputId: row.artifact.outputId,
+      })
+    }
+  }
+
+  async function handleUsedInDecision(row: InboxRow) {
+    if (!row.artifact?.outputId) {
+      setAction({ error: 'Artifact is missing an output id', outputId: null })
+      return
+    }
+
+    setAction({ error: null, outputId: row.artifact.outputId })
+    try {
+      await recordProductionOutcome({
+        output_id: row.artifact.outputId,
+        outcome: 'used_in_decision',
+        notes: 'Console operator marked this artifact as used in a product decision.',
+      })
+      onDataChanged?.()
+      setAction({ error: null, outputId: null })
+    } catch (error) {
+      setAction({
+        error: error instanceof Error ? error.message : 'Unable to record production outcome',
+        outputId: row.artifact.outputId,
+      })
+    }
+  }
+
   return (
     <div className="page">
       <div className="eyebrow" style={{ marginBottom: 12 }}>INBOX</div>
@@ -116,16 +167,48 @@ export function InboxNewPage({ data, onDataChanged }: InboxNewPageProps) {
                     )}
                   </td>
                   <td className="muted" style={{ width: 90 }}>{row.age}</td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right', minWidth: 220 }}>
                     {row.artifact?.status === 'publish_ready' ? (
-                      <button
-                        className="btn btn-sm btn-primary"
-                        disabled={action.outputId === row.artifact.outputId}
-                        onClick={() => void handlePublish(row)}
-                        type="button"
-                      >
-                        {action.outputId === row.artifact.outputId ? 'Publishing...' : 'Publish'}
-                      </button>
+                      <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                        <button
+                          className="btn btn-sm btn-primary"
+                          disabled={action.outputId === row.artifact.outputId}
+                          onClick={() => void handlePublish(row)}
+                          type="button"
+                        >
+                          {action.outputId === row.artifact.outputId ? 'Saving...' : 'Publish'}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          disabled={action.outputId === row.artifact.outputId}
+                          onClick={() => void handleFeedback(row, 'approved')}
+                          type="button"
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    ) : row.artifact ? (
+                      <div className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          disabled={action.outputId === row.artifact.outputId}
+                          onClick={() => void handleFeedback(row, row.artifact!.status === 'blocked' ? 'rejected' : 'approved')}
+                          type="button"
+                        >
+                          {row.artifact.status === 'blocked' ? 'Reject' : 'Approve'}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          disabled={action.outputId === row.artifact.outputId}
+                          onClick={() => void handleUsedInDecision(row)}
+                          type="button"
+                        >
+                          Used
+                        </button>
+                        <a className={`btn btn-sm ${row.kind === 'decision' ? 'btn-primary' : ''}`.trim()} href={row.href}>
+                          {row.cta}
+                        </a>
+                      </div>
                     ) : (
                       <a className={`btn btn-sm ${row.kind === 'decision' ? 'btn-primary' : ''}`.trim()} href={row.href}>
                         {row.cta}

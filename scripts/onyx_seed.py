@@ -10,6 +10,7 @@ import click
 from sqlalchemy import func, select
 
 from dreamfi.api.deps import get_onyx_client
+from dreamfi.connectors import CONNECTORS
 from dreamfi.db.models import PromptVersion, Skill
 from dreamfi.db.session import get_sessionmaker
 from dreamfi.onyx.errors import OnyxError
@@ -54,6 +55,20 @@ def main() -> None:
         doc_sets_by_name = {d.name: d for d in doc_sets}
         personas = onyx.list_personas()
         personas_by_name = {p.name: p for p in personas}
+        for connector in CONNECTORS:
+            if connector.expected_document_set in doc_sets_by_name:
+                click.echo(
+                    f"connector={connector.connector_id} doc_set={connector.expected_document_set} exists"
+                )
+                continue
+            created = onyx.create_document_set(
+                name=connector.expected_document_set,
+                description=f"DreamFi source evidence for {connector.name}",
+            )
+            doc_sets_by_name[connector.expected_document_set] = created
+            click.echo(
+                f"connector={connector.connector_id} doc_set={connector.expected_document_set} doc_set_id={created.id}"
+            )
         for spec in SKILLS:
             ds_name = f"dreamfi-{spec.skill_id}"
             ds = doc_sets_by_name.get(ds_name)

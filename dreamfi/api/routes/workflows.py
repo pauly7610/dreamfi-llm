@@ -1,18 +1,20 @@
 """Console workflow API for live asks and generated product artifacts."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Literal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session, get_onyx_client
+from dreamfi.audit import add_audit_event, hash_text
 from dreamfi.confidence.scorer import ConfidenceScorer
 from dreamfi.config import get_settings
 from dreamfi.db.models import EvalOutput, EvalRound, PromptVersion, Skill
@@ -24,6 +26,14 @@ from dreamfi.trust.artifact import ExportReadinessInput, compute_export_readines
 router = APIRouter()
 
 WorkflowSlug = Literal["weekly-brief", "technical-prd", "business-prd", "risk-brd"]
+_PUBLISH_READY_CRITERIA = {
+    "has_output",
+    "meets_min_citations",
+    "has_required_sections",
+    "scope_declared",
+    "has_review_checklist",
+    "review_checklist_resolved",
+}
 
 
 @dataclass(frozen=True)
@@ -165,6 +175,8 @@ def _followups(question: str, topic_id: str | None, source_ids: list[str]) -> li
 @router.post("/api/ask", response_model=AskResponse)
 def ask(
     body: AskRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
     onyx: OnyxClient = Depends(get_onyx_client),
 ) -> AskResponse:
     source_ids = sorted({body.source_id, *body.source_ids} - {None, ""})
@@ -179,9 +191,43 @@ def ask(
             limit=get_settings().dreamfi_ask_search_limit,
         )
     except (OnyxError, httpx.HTTPError) as exc:
+        add_audit_event(
+            session,
+            category="access",
+            action="onyx_search",
+            outcome="error",
+            request=request,
+            severity="error",
+            target_type="onyx_search",
+            target_id=body.topic_id or body.source_id,
+            reason=type(exc).__name__,
+            metadata={
+                "question_sha256": hash_text(body.question),
+                "topic_id": body.topic_id,
+                "source_ids": source_ids,
+            },
+        )
+        session.commit()
         raise HTTPException(status_code=503, detail=f"Onyx search failed: {exc}") from exc
 
     confidence = round(min(1.0, len(hits) / max(1, get_settings().dreamfi_ask_search_limit)), 3)
+    add_audit_event(
+        session,
+        category="access",
+        action="onyx_search",
+        outcome="success",
+        request=request,
+        target_type="onyx_search",
+        target_id=body.topic_id or body.source_id,
+        metadata={
+            "question_sha256": hash_text(body.question),
+            "topic_id": body.topic_id,
+            "source_ids": source_ids,
+            "hit_count": len(hits),
+            "confidence": confidence,
+        },
+    )
+    session.commit()
     return AskResponse(
         question=body.question,
         answer=_compose_answer(body.question, hits),
@@ -263,6 +309,61 @@ def _source_hygiene(topic_id: str | None, source_id: str | None) -> float:
     return 0.65
 
 
+def _section_text(markdown: str, section: str) -> str:
+    match = re.search(
+        rf"^\s{{0,3}}#{{1,6}}\s+{re.escape(section)}\b.*$",
+        markdown,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    if match is None:
+        return ""
+    next_heading = re.search(
+        r"^\s{0,3}#{1,6}\s+",
+        markdown[match.end() :],
+        flags=re.MULTILINE,
+    )
+    end = match.end() + next_heading.start() if next_heading else len(markdown)
+    return markdown[match.end() : end].strip()
+
+
+def _has_required_section_content(markdown: str, sections: tuple[str, ...]) -> bool:
+    min_words = get_settings().dreamfi_workflow_min_section_words
+    for section in sections:
+        section_text = _section_text(markdown, section)
+        if len(section_text.split()) < min_words:
+            return False
+    return True
+
+
+def _review_checklist_status(markdown: str) -> tuple[bool, bool]:
+    tail = _section_text(markdown, "Review checklist")
+    if not tail:
+        return False, False
+
+    normalized_tail = tail.lower()
+    resolved_markers = {
+        "no open review items",
+        "no unresolved review items",
+        "all review items resolved",
+    }
+    if any(marker in normalized_tail for marker in resolved_markers):
+        return True, True
+
+    unresolved_markers = {
+        "[ ]",
+        "confirm ",
+        "missing",
+        "needs confirmation",
+        "needs human",
+        "open item",
+        "tbd",
+        "unknown",
+        "unresolved",
+        "verify ",
+    }
+    return True, not any(marker in normalized_tail for marker in unresolved_markers)
+
+
 def _criteria_for_workflow(
     *,
     spec: WorkflowSpec,
@@ -271,7 +372,10 @@ def _criteria_for_workflow(
     source_id: str | None,
     chat: ChatResult,
 ) -> dict[str, Any]:
+    settings = get_settings()
     text = chat.text.strip()
+    has_review_checklist, review_checklist_resolved = _review_checklist_status(text)
+    citation_count = len(chat.citations)
     criteria = {
         "workflow_slug": spec.slug,
         "workflow_title": spec.title,
@@ -279,9 +383,13 @@ def _criteria_for_workflow(
         "topic_id": topic_id,
         "source_id": source_id,
         "has_output": bool(text),
-        "has_citations": len(chat.citations) > 0,
-        "has_required_sections": all(section.lower() in text.lower() for section in spec.sections[:3]),
-        "scope_declared": bool(topic_id or source_id),
+        "citation_count": citation_count,
+        "meets_min_citations": citation_count >= settings.dreamfi_workflow_min_citations,
+        "has_required_sections": _has_required_section_content(text, spec.sections),
+        "scope_declared": bool(topic_id or source_id)
+        or not settings.dreamfi_workflow_require_scope,
+        "has_review_checklist": has_review_checklist,
+        "review_checklist_resolved": review_checklist_resolved,
     }
     return criteria
 
@@ -291,14 +399,13 @@ def _criteria_score(criteria: dict[str, Any]) -> float:
         value
         for key, value in criteria.items()
         if key
-        in {
-            "has_output",
-            "has_citations",
-            "has_required_sections",
-            "scope_declared",
-        }
+        in _PUBLISH_READY_CRITERIA
     ]
     return sum(1 for value in values if value) / len(values) if values else 0.0
+
+
+def _workflow_hard_gate_passes(criteria: dict[str, Any]) -> bool:
+    return all(bool(criteria.get(key)) for key in _PUBLISH_READY_CRITERIA)
 
 
 def _create_artifact_round(
@@ -323,7 +430,7 @@ def _create_artifact_round(
         chat=chat,
     )
     eval_score = _criteria_score(criteria)
-    pass_fail = "pass" if criteria["has_output"] and criteria["has_citations"] else "fail"
+    pass_fail = "pass" if _workflow_hard_gate_passes(criteria) else "fail"
     freshness = _freshness_from_chat(chat, scorer)
     confidence = scorer.score(
         eval_score=eval_score,
@@ -385,6 +492,7 @@ def _create_artifact_round(
 @router.post("/api/workflows/generate", response_model=GenerateArtifactResponse)
 def generate_artifact(
     body: GenerateArtifactRequest,
+    request: Request,
     session: Session = Depends(get_db_session),
     onyx: OnyxClient = Depends(get_onyx_client),
 ) -> GenerateArtifactResponse:
@@ -421,6 +529,26 @@ def generate_artifact(
             ),
         )
     except (OnyxError, httpx.HTTPError) as exc:
+        add_audit_event(
+            session,
+            category="generation",
+            action="workflow_generate",
+            outcome="error",
+            request=request,
+            severity="error",
+            target_type="workflow",
+            target_id=body.workflow_slug,
+            reason=type(exc).__name__,
+            metadata={
+                "workflow_slug": body.workflow_slug,
+                "skill_id": spec.skill_id,
+                "question_sha256": hash_text(question),
+                "topic_id": body.topic_id,
+                "source_id": body.source_id,
+                "regenerate_from_output_id": body.regenerate_from_output_id,
+            },
+        )
+        session.commit()
         raise HTTPException(status_code=503, detail=f"Onyx generation failed: {exc}") from exc
 
     output = _create_artifact_round(
@@ -432,6 +560,31 @@ def generate_artifact(
         source_id=body.source_id,
         chat_session_id=chat_session.id,
         chat=chat,
+    )
+    add_audit_event(
+        session,
+        category="generation",
+        action="workflow_generate",
+        outcome="success" if output.pass_fail == "pass" else "blocked",
+        request=request,
+        severity="info" if output.pass_fail == "pass" else "warning",
+        target_type="eval_output",
+        target_id=output.output_id,
+        metadata={
+            "workflow_slug": spec.slug,
+            "workflow_title": spec.title,
+            "skill_id": spec.skill_id,
+            "round_id": output.round_id,
+            "question_sha256": hash_text(question),
+            "topic_id": body.topic_id,
+            "source_id": body.source_id,
+            "regenerate_from_output_id": body.regenerate_from_output_id,
+            "pass_fail": output.pass_fail,
+            "confidence": float(output.confidence or 0.0),
+            "export_readiness": float(output.export_readiness or 0.0),
+            "citation_count": len(chat.citations),
+            "criteria": output.criteria_json,
+        },
     )
     session.commit()
 

@@ -86,8 +86,13 @@ def test_generate_workflow_persists_artifact_with_readiness(tmp_path: Path) -> N
         return_value=httpx.Response(200, json={"chat_session_id": "sess-1"})
     )
     stream = (
-        b'{"answer_piece":"# Risk context\\nKYC moved.\\n# Evidence\\nSocure retry logs.\\n'
-        b'# Policy decision\\nHold launch.\\n"}\n'
+        b'{"answer_piece":"# Risk context\\nKYC retry risk increased.\\n'
+        b'# Evidence\\nSocure retry logs cite elevated queue risk.\\n'
+        b'# Policy decision\\nHold launch until monitored controls pass.\\n'
+        b'# Controls\\nKeep manual review and escalation controls active.\\n'
+        b'# Open questions\\nNone for this scoped artifact.\\n'
+        b'# Review checklist\\n- Source claims checked against cited evidence.\\n'
+        b'- Scope matches the requested Socure policy question.\\n"}\n'
         b'{"citations":{"1":"doc-1","2":"doc-2","3":"doc-3"}}\n'
         b'{"documents":[{"id":"d1","updated_at":"2026-04-28T00:00:00Z"}]}\n'
         b'{"message_id":77}\n'
@@ -114,3 +119,40 @@ def test_generate_workflow_persists_artifact_with_readiness(tmp_path: Path) -> N
     assert output.export_readiness is not None
     assert output.criteria_json["workflow_title"] == "Risk BRD"
     assert body["destination_href"] == f"/console/review?focus={output.output_id}"
+
+
+@respx.mock
+def test_generate_workflow_blocks_thin_cited_artifact(tmp_path: Path) -> None:
+    client, session = _client(tmp_path)
+    respx.post(re.compile(r".*/chat/create-chat-session")).mock(
+        return_value=httpx.Response(200, json={"chat_session_id": "sess-1"})
+    )
+    stream = (
+        b'{"answer_piece":"# Risk context\\nKYC moved.\\n'
+        b'# Evidence\\nSocure retry logs.\\n'
+        b'# Policy decision\\nHold launch.\\n"}\n'
+        b'{"citations":{"1":"doc-1"}}\n'
+        b'{"documents":[{"id":"d1","updated_at":"2026-04-28T00:00:00Z"}]}\n'
+        b'{"message_id":78}\n'
+    )
+    respx.post(re.compile(r".*/chat/send-chat-message")).mock(
+        return_value=httpx.Response(200, content=stream)
+    )
+
+    response = client.post(
+        "/api/workflows/generate",
+        json={
+            "workflow_slug": "risk-brd",
+            "question": "Should we change KYC retry policy?",
+            "topic_id": "kyc-conversion",
+            "source_id": "socure",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    output = session.get(EvalOutput, body["output_id"])
+    assert output is not None
+    assert output.pass_fail == "fail"
+    assert output.criteria_json["has_required_sections"] is False
+    assert output.criteria_json["has_review_checklist"] is False

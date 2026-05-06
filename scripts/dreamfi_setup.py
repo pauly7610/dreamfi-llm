@@ -1,0 +1,146 @@
+"""DreamFi API-key-ready setup and operations CLI."""
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from typing import Any
+
+import click
+from sqlalchemy import select
+
+from dreamfi.api.deps import get_onyx_client
+from dreamfi.db.models import ReplaySchedule
+from dreamfi.db.session import get_sessionmaker
+from dreamfi.learning.loop import run_replay_schedule
+from dreamfi.ops.demo import ensure_active_prompts, seed_demo_data
+from dreamfi.ops.readiness import (
+    bootstrap_connector_document_sets,
+    connector_readiness,
+    environment_readiness,
+    ops_status,
+)
+
+
+def _echo_json(payload: Any) -> None:
+    click.echo(json.dumps(payload, indent=2, sort_keys=True, default=str))
+
+
+@click.group()
+def main() -> None:
+    """Prepare DreamFi so live setup mostly requires API keys."""
+
+
+@main.command("env-check")
+@click.option("--strict", is_flag=True, help="Exit non-zero when required values are missing.")
+def env_check(strict: bool) -> None:
+    """Validate production-critical environment settings."""
+    payload = environment_readiness()
+    _echo_json(payload)
+    if strict and not payload["ready"]:
+        raise click.ClickException("environment is not ready")
+
+
+@main.command("seed-local")
+def seed_local() -> None:
+    """Seed DreamFi skills and active prompt versions without live Onyx calls."""
+    session = get_sessionmaker()()
+    try:
+        ensure_active_prompts(session)
+        session.commit()
+        click.echo("seeded skills and active prompt versions")
+    finally:
+        session.close()
+
+
+@main.command("seed-demo")
+def seed_demo() -> None:
+    """Seed realistic demo topics, artifacts, feedback, outcomes, and replay state."""
+    session = get_sessionmaker()()
+    try:
+        payload = seed_demo_data(session)
+        _echo_json(payload)
+    finally:
+        session.close()
+
+
+@main.command("bootstrap-docsets")
+@click.option("--apply", is_flag=True, help="Create missing expected Onyx document sets.")
+def bootstrap_docsets(apply: bool) -> None:
+    """Create or dry-run expected source connector document sets in Onyx."""
+    onyx = get_onyx_client()
+    rows = bootstrap_connector_document_sets(onyx=onyx, apply=apply)
+    _echo_json({"applied": apply, "document_sets": rows})
+
+
+@main.command("validate-connectors")
+@click.option("--skip-probe", is_flag=True, help="Only validate document-set presence.")
+@click.option("--strict", is_flag=True, help="Exit non-zero on missing/degraded connectors.")
+def validate_connectors(skip_probe: bool, strict: bool) -> None:
+    """Validate source connector document sets and retrieval freshness."""
+    onyx = get_onyx_client()
+    payload = connector_readiness(onyx=onyx, probe_search=not skip_probe)
+    _echo_json(payload)
+    counts = payload.get("counts", {})
+    if strict and (
+        payload.get("status") != "ok"
+        or counts.get("not_configured")
+        or counts.get("degraded")
+    ):
+        raise click.ClickException("connectors are not ready")
+
+
+@main.command("run-replay")
+@click.option("--limit", default=10, show_default=True, type=click.IntRange(1, 50))
+def run_replay(limit: int) -> None:
+    """Run due gold/workflow replay schedules."""
+    session = get_sessionmaker()()
+    onyx = get_onyx_client()
+    try:
+        now = datetime.now(timezone.utc)
+        schedules = session.scalars(
+            select(ReplaySchedule)
+            .where(
+                ReplaySchedule.is_active.is_(True),
+                ReplaySchedule.next_run_at <= now,
+            )
+            .order_by(ReplaySchedule.next_run_at)
+            .limit(limit)
+        ).all()
+        runs = [
+            run_replay_schedule(session, schedule=schedule, onyx=onyx)
+            for schedule in schedules
+        ]
+        session.commit()
+        _echo_json(
+            {
+                "schedule_count": len(schedules),
+                "runs": [
+                    {
+                        "replay_run_id": run.replay_run_id,
+                        "schedule_id": run.schedule_id,
+                        "status": run.status,
+                        "round_id": run.round_id,
+                        "output_id": run.output_id,
+                        "reason": run.reason,
+                    }
+                    for run in runs
+                ],
+            }
+        )
+    finally:
+        session.close()
+
+
+@main.command("ops-status")
+def ops_status_command() -> None:
+    """Print the same operational readiness payload exposed by /api/ops/status."""
+    session = get_sessionmaker()()
+    onyx = get_onyx_client()
+    try:
+        _echo_json(ops_status(session, onyx))
+    finally:
+        session.close()
+
+
+if __name__ == "__main__":
+    main()

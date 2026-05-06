@@ -59,7 +59,10 @@ class GoldExampleRegistry:
         scenario_type: str | None = None,
         limit: int = 3,
     ) -> list[GoldEntry]:
-        stmt = select(GoldExample).where(GoldExample.skill_id == skill_id)
+        stmt = select(GoldExample).where(
+            GoldExample.skill_id == skill_id,
+            GoldExample.role == "exemplar",
+        )
         if scenario_type:
             stmt = stmt.where(GoldExample.scenario_type == scenario_type)
         stmt = stmt.order_by(GoldExample.captured_at.desc()).limit(limit)

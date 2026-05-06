@@ -4,14 +4,15 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session
-from dreamfi.db.models import EvalRound, PromptVersion, Skill
-from dreamfi.promotion.gate import PromotionGate
+from dreamfi.audit import add_audit_event
+from dreamfi.db.models import EvalRound, GoldExample, PromptVersion, Skill
+from dreamfi.promotion.gate import GoldResult, PromotionGate
 
 router = APIRouter()
 
@@ -22,6 +23,31 @@ class PromoteRequest(BaseModel):
 
 class PromotionPreviewRequest(BaseModel):
     round_id: str
+
+
+def _gold_failures_for_round(
+    session: Session,
+    *,
+    skill_id: str,
+    round_id: str,
+) -> tuple[list[GoldResult], list[GoldResult]]:
+    rows = session.scalars(
+        select(GoldExample).where(
+            GoldExample.skill_id == skill_id,
+            GoldExample.last_run_round_id == round_id,
+            GoldExample.last_result == "fail",
+            GoldExample.role.in_(["regression", "canary"]),
+        )
+    ).all()
+    regression_failures: list[GoldResult] = []
+    canary_failures: list[GoldResult] = []
+    for row in rows:
+        result = GoldResult(gold_id=row.gold_id, prev="pass", new="fail")
+        if row.role == "canary":
+            canary_failures.append(result)
+        else:
+            regression_failures.append(result)
+    return regression_failures, canary_failures
 
 
 @router.get("/{skill_id}/history")
@@ -55,6 +81,7 @@ def history(skill_id: str, session: Session = Depends(get_db_session)) -> dict[s
 def promote(
     skill_id: str,
     body: PromoteRequest,
+    request: Request,
     session: Session = Depends(get_db_session),
 ) -> dict[str, Any]:
     target_round = session.get(EvalRound, body.round_id)
@@ -80,18 +107,71 @@ def promote(
         if previous_round is not None:
             previous_score = float(previous_round.score)
 
+    regression_failures, canary_failures = _gold_failures_for_round(
+        session,
+        skill_id=skill_id,
+        round_id=target_round.round_id,
+    )
     decision = PromotionGate().decide(
-        new_score=float(target_round.score), previous_score=previous_score
+        new_score=float(target_round.score),
+        previous_score=previous_score,
+        regression_failures=regression_failures,
+        canary_failures=canary_failures,
     )
     if not decision.promotable:
+        add_audit_event(
+            session,
+            category="governance",
+            action="prompt_promotion",
+            outcome="blocked",
+            request=request,
+            severity="warning",
+            target_type="prompt_version",
+            target_id=target_pv.prompt_version_id,
+            reason=decision.reason,
+            metadata={
+                "skill_id": skill_id,
+                "round_id": target_round.round_id,
+                "new_score": float(target_round.score),
+                "previous_score": previous_score,
+                "regression_failure_count": len(regression_failures),
+                "canary_failure_count": len(canary_failures),
+            },
+        )
+        session.commit()
         raise HTTPException(status_code=409, detail=decision.reason)
 
     now = datetime.now(timezone.utc)
     if active_pv is not None and active_pv.prompt_version_id != target_pv.prompt_version_id:
         active_pv.is_active = False
         active_pv.deactivated_at = now
+        session.flush()
     target_pv.is_active = True
     target_pv.activated_at = now
+    add_audit_event(
+        session,
+        category="governance",
+        action="prompt_promotion",
+        outcome="success",
+        request=request,
+        target_type="prompt_version",
+        target_id=target_pv.prompt_version_id,
+        reason=decision.reason,
+        metadata={
+            "skill_id": skill_id,
+            "round_id": target_round.round_id,
+            "previous_prompt_version_id": (
+                active_pv.prompt_version_id
+                if active_pv is not None and active_pv.prompt_version_id != target_pv.prompt_version_id
+                else None
+            ),
+            "new_score": float(target_round.score),
+            "previous_score": previous_score,
+            "improvement": decision.improvement,
+            "regression_failure_count": len(regression_failures),
+            "canary_failure_count": len(canary_failures),
+        },
+    )
     session.commit()
 
     return {
@@ -106,6 +186,7 @@ def promote(
 def promotion_preview(
     skill_id: str,
     body: PromotionPreviewRequest,
+    request: Request,
     session: Session = Depends(get_db_session),
 ) -> dict[str, Any]:
     target_round = session.get(EvalRound, body.round_id)
@@ -129,10 +210,37 @@ def promotion_preview(
         if previous_round is not None:
             previous_score = float(previous_round.score)
 
+    regression_failures, canary_failures = _gold_failures_for_round(
+        session,
+        skill_id=skill_id,
+        round_id=target_round.round_id,
+    )
     decision = PromotionGate().decide(
         new_score=float(target_round.score),
         previous_score=previous_score,
+        regression_failures=regression_failures,
+        canary_failures=canary_failures,
     )
+    add_audit_event(
+        session,
+        category="governance",
+        action="promotion_preview",
+        outcome="success" if decision.promotable else "blocked",
+        request=request,
+        severity="info" if decision.promotable else "warning",
+        target_type="eval_round",
+        target_id=target_round.round_id,
+        reason=decision.reason,
+        metadata={
+            "skill_id": skill_id,
+            "prompt_version_id": target_round.prompt_version_id,
+            "new_score": float(target_round.score),
+            "previous_score": previous_score,
+            "regression_failure_count": len(regression_failures),
+            "canary_failure_count": len(canary_failures),
+        },
+    )
+    session.commit()
     return {
         "skill_id": skill_id,
         "round_id": target_round.round_id,

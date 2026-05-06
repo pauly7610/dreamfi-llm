@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
+import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from dreamfi.api.app import create_app
-from dreamfi.api.deps import get_db_session
+from dreamfi.api.deps import get_db_session, get_onyx_client
+from dreamfi.config import get_settings
 from dreamfi.db.models import Base, ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.onyx.client import OnyxClient
 from dreamfi.skills.registry import seed_registry
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -203,6 +208,67 @@ def test_console_topic_create_persists_and_returns_saved_topic(client: TestClien
     saved_topic = session.get(ConsoleTopic, 'card-disputes')
     assert saved_topic is not None
     assert saved_topic.default_generator_slug == 'risk-brd'
+
+
+@respx.mock
+def test_console_reports_connector_status_from_onyx_document_sets(
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DREAMFI_PROBE_CONNECTOR_STATUS", "true")
+    get_settings.cache_clear()
+    app = create_app()
+
+    def _session_override():
+        yield session
+
+    def _onyx_override() -> OnyxClient:
+        return OnyxClient(base_url="http://onyx.test", api_key="k")
+
+    app.dependency_overrides[get_db_session] = _session_override
+    app.dependency_overrides[get_onyx_client] = _onyx_override
+    respx.get("http://onyx.test/api/document-set").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "document_sets": [
+                    {"id": 1, "name": "dreamfi-source-jira"},
+                    {"id": 2, "name": "DreamFi Socure"},
+                ]
+            },
+        )
+    )
+    fresh_timestamp = datetime.now(timezone.utc).isoformat()
+
+    def _search_response(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        source_ids = payload["filters"]["dreamfi_scope"]["source_ids"]
+        source_id = source_ids[0]
+        updated_at = fresh_timestamp if source_id == "jira" else "2020-01-01T00:00:00Z"
+        return httpx.Response(
+            200,
+            json={
+                "documents": [
+                    {
+                        "document_id": f"{source_id}-doc",
+                        "semantic_identifier": f"{source_id} evidence",
+                        "blurb": "Recent connector evidence.",
+                        "score": 0.91,
+                        "updated_at": updated_at,
+                    }
+                ]
+            },
+        )
+
+    respx.post("http://onyx.test/api/admin/search").mock(side_effect=_search_response)
+
+    response = TestClient(app).get('/api/console')
+
+    assert response.status_code == 200
+    integrations = {item['id']: item for item in response.json()['integrations']}
+    assert integrations['jira']['status'] == 'connected'
+    assert integrations['socure']['status'] == 'degraded'
+    assert integrations['klaviyo']['status'] == 'not_configured'
 
 
 def test_console_metrics_and_simulator_endpoints(client: TestClient) -> None:

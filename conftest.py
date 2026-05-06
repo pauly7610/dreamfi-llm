@@ -5,6 +5,10 @@ Integration tests marked `live_onyx` hit a real Onyx pointed at by $ONYX_BASE_UR
 """
 from __future__ import annotations
 
+import pytest
+
+from dreamfi.config import get_settings
+
 
 def pytest_configure(config) -> None:  # type: ignore[no-untyped-def]
     config.addinivalue_line(
@@ -16,3 +20,12 @@ def pytest_configure(config) -> None:  # type: ignore[no-untyped-def]
     config.addinivalue_line(
         "markers", "critical: critical-path tests"
     )
+
+
+@pytest.fixture(autouse=True)
+def _local_test_settings(monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("DREAMFI_AUTH_ENABLED", "false")
+    monkeypatch.setenv("DREAMFI_PROBE_CONNECTOR_STATUS", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
