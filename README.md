@@ -1,6 +1,6 @@
 # DreamFi
 
-This repo is DreamFi's internal product team OS, built on top of [Onyx](https://github.com/onyx-dot-app/onyx). DreamFi is the fintech company; this system is the shared product-source-room and artifact workflow used by its product organization. The frontend is designed as a calm workspace where the product team can start from a question, inspect evidence across connected systems, work inside topic-specific decision rooms, and turn grounded context into reusable artifacts. Underneath that experience, the system runs a governed skill layer that handles prompt rendering, retrieval, evaluation, confidence scoring, and publish safety.
+This repo contains DreamFi's internal ProductOS, built on top of [Onyx](https://github.com/onyx-dot-app/onyx). It gives the product team a place to ask questions, inspect evidence from connected systems, manage topic rooms, and generate reviewable artifacts. The backend handles prompt rendering, retrieval, evaluation, confidence scoring, audit logging, and publish controls.
 
 ## What the system does
 
@@ -16,11 +16,11 @@ This repo is DreamFi's internal product team OS, built on top of [Onyx](https://
 - Captures human feedback and production outcomes so recurring failures can become reviewed prompt-improvement candidates.
 - Exposes an operator console plus HTTP endpoints for round execution, history, promotion, and publish decisions.
 
-## Product Team OS
+## ProductOS
 
-The current frontend is oriented around product context first, not model mechanics first. It is the operating surface for DreamFi's product team. The main product surfaces are:
+The frontend is organized around product work rather than model operations. The main surfaces are:
 
-- `Ask`: start with a product question, gather evidence from the right systems, and keep receipts attached to the answer.
+- `Ask`: start with a product question, retrieve evidence from connected systems, and keep citations attached to the answer.
 - `Topic rooms`: work inside recurring decision spaces like KYC conversion, onboarding, funding, and lifecycle messaging.
 - `Source workspaces`: open connected systems such as Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, NetXD, Sardine, Socure, and Google Analytics in a product-friendly workspace view.
 - `Generated artifacts`: turn grounded context into workflows like weekly PM briefs, technical PRDs, business PRDs, and risk BRDs.
@@ -32,7 +32,7 @@ The intended operating model is:
 2. Narrow into the right topic room or source workspace.
 3. Inspect the evidence and gaps.
 4. Generate a reusable artifact from that grounded context.
-5. Let trust rails determine whether the output needs review, can move forward, or can publish.
+5. Use the trust checks to decide whether the output needs review, can move forward, or can publish.
 
 ## Skill layer
 
@@ -48,7 +48,7 @@ DreamFi currently ships a fixed skill layer of 9 locked eval-backed skills:
 - `agent_system_prompt`
 - `support_agent`
 
-Those skills are the governed generation substrate underneath the product team OS. They provide the current prompt versioning, eval, scoring, promotion, and publish rails that keep the frontend workflows grounded and reviewable.
+Those skills are the governed generation layer behind the product workflows. They provide prompt versioning, evals, scoring, promotion checks, and publish checks.
 
 ## Core flow
 
@@ -106,12 +106,12 @@ events while still recording mutating and control-decision events.
 
 ## Learning loop
 
-DreamFi's learning loop is intentionally autonomous in discovery and human-gated
-in adoption. The system captures real review outcomes, clusters repeated
-failures, proposes prompt improvements, grows gold examples from reviewed
-artifacts, replays high-value cases, and records whether generated work was
-actually used in production decisions. Approved proposals create inactive prompt
-versions; they still must pass eval and promotion gates before activation.
+DreamFi's learning loop is automatic where it is useful and reviewed where it
+matters. The system captures review outcomes, clusters repeated failures,
+proposes prompt changes, grows gold examples from reviewed artifacts, replays
+important cases, and records whether generated work was used in decisions.
+Approved proposals create inactive prompt versions; activation still goes
+through eval and promotion checks.
 
 The loop is:
 
@@ -135,8 +135,7 @@ Human feedback + production outcome
         Scheduled gold/workflow replay + promotion gate
 ```
 
-This keeps the Karpathy-style improvement loop measurable and repeatable while
-preserving SOC 2-friendly controls around who approved a change, what evidence
+This keeps prompt changes traceable: who approved the proposal, what evidence
 supported it, which prompt version was created, and how it performed on replay.
 
 ## API surface
@@ -162,9 +161,9 @@ The current backend exposes:
 - `GET /api/console` - JSON payload for the operator console.
 - `GET /console` - operator UI, backed by the checked-in React build when present.
 
-## Frontend and review surfaces
+## Frontend
 
-The frontend is more than a single dashboard. Today it includes:
+The frontend currently includes:
 
 - a home/product source room for cross-system product questions
 - ask flows with evidence receipts
@@ -172,7 +171,7 @@ The frontend is more than a single dashboard. Today it includes:
 - source directories and connector-specific workspaces
 - artifact views for generated work
 - review queues for blocked and risky artifacts
-- trust and methodology pages that explain system health and operating model
+- trust and methodology pages for system health and operating model
 
 The review layer summarizes:
 
@@ -256,8 +255,8 @@ fresh evidence.
 `make seed-local` is safe without Onyx credentials. It seeds the locked skill
 registry and active prompt versions locally. `make seed-demo` adds realistic
 topics, artifacts, feedback, a learning proposal, a production outcome, and a
-replay schedule so leadership can evaluate the decision desk before real
-connectors are live.
+replay schedule so the review flow can be evaluated before real connectors are
+live.
 
 `make run-replay` runs due gold/workflow replay schedules. In production, run it
 from cron, Railway scheduled jobs, or the scheduler you use for internal tools.

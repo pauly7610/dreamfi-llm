@@ -1,6 +1,6 @@
 # DreamFi
 
-DreamFi is an internal product team OS built on top of Onyx. It gives product, risk, and operations teams a shared workspace for asking grounded questions, reviewing evidence across connected systems, generating reusable artifacts, and enforcing trust gates before work is promoted or published.
+DreamFi is an internal ProductOS built on top of Onyx. It gives product, risk, and operations teams a shared app for asking grounded questions, reviewing evidence across connected systems, generating artifacts, and enforcing checks before work is promoted or published.
 
 ## Primary docs
 
@@ -26,11 +26,11 @@ DreamFi is an internal product team OS built on top of Onyx. It gives product, r
 - Locked eval templates and runners: `evals/`
 - Tests: `tests/`
 
-DreamFi uses a governed skill layer underneath the frontend. Prompt templates are rendered from active prompt versions, sent through `dreamfi.onyx.client.OnyxClient`, evaluated by locked runners, scored for confidence/export readiness, and then surfaced for review or publish.
+DreamFi uses a governed skill layer underneath the frontend. Prompt templates are rendered from active prompt versions, sent through `dreamfi.onyx.client.OnyxClient`, evaluated by locked runners, scored for confidence/export readiness, and surfaced for review or publish.
 
 Audit logging is part of the control plane. Persistent `audit_events` record access, generation, governance, configuration, and publish decisions with actor/request metadata, target ids, outcomes, safe metadata, and an event hash. Do not log raw prompts, generated text, user questions, tokens, passwords, or API keys.
 
-The learning loop is also part of the control plane. Human feedback, production outcomes, failure clusters, learning proposals, gold-example growth, replay schedules, and replay runs are persisted in SQL. Learning proposals may create inactive prompt versions after human approval, but active prompt changes still go through eval and promotion gates.
+The learning loop is also part of the control plane. Human feedback, production outcomes, failure clusters, learning proposals, gold-example growth, replay schedules, and replay runs are persisted in SQL. Learning proposals can create inactive prompt versions after human approval; active prompt changes still go through eval and promotion checks.
 
 ## Key backend routes
 
