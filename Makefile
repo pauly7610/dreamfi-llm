@@ -1,4 +1,4 @@
-.PHONY: help bootstrap onyx-up dreamfi-up test test-live lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay ops-status run-round console
+.PHONY: help bootstrap onyx-up dreamfi-up test test-live lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay backup-db ops-status run-round console
 
 help:
 	@echo "bootstrap        - one-shot: bring up Onyx + DreamFi"
@@ -15,6 +15,7 @@ help:
 	@echo "setup-docsets    - APPLY=1 creates expected Onyx source doc sets"
 	@echo "validate-connectors - verify source doc-set/retrieval readiness"
 	@echo "run-replay       - run due learning replay schedules"
+	@echo "backup-db        - write a compressed logical DB snapshot"
 	@echo "ops-status       - print operational readiness payload"
 	@echo "run-round        - SKILL=... [N=10] run one eval round"
 	@echo "lint / format    - ruff"
@@ -59,6 +60,9 @@ validate-connectors:
 
 run-replay:
 	python -m scripts.dreamfi_setup run-replay --limit=$(or $(LIMIT),10)
+
+backup-db:
+	python -m scripts.dreamfi_setup backup-db
 
 ops-status:
 	python -m scripts.dreamfi_setup ops-status

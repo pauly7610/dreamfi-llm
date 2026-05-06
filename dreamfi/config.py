@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     dreamfi_slo_hard_gate_pass_rate: float = Field(default=0.8)  # 0-1
     dreamfi_slo_blocked_rate: float = Field(default=0.2)  # 0-1
     dreamfi_slo_publish_success_rate: float = Field(default=0.75)  # 0-1
+    dreamfi_backup_dir: str = Field(default="backups")
+    dreamfi_backup_retention_days: int = Field(default=14)
+    dreamfi_backup_max_files: int = Field(default=30)
 
     model_config = SettingsConfigDict(
         env_file=".env",

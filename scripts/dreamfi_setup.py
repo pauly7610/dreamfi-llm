@@ -12,6 +12,7 @@ from dreamfi.api.deps import get_onyx_client
 from dreamfi.db.models import ReplaySchedule
 from dreamfi.db.session import get_sessionmaker
 from dreamfi.learning.loop import run_replay_schedule
+from dreamfi.ops.backups import write_database_snapshot
 from dreamfi.ops.demo import ensure_active_prompts, seed_demo_data
 from dreamfi.ops.readiness import (
     bootstrap_connector_document_sets,
@@ -127,6 +128,18 @@ def run_replay(limit: int) -> None:
                 ],
             }
         )
+    finally:
+        session.close()
+
+
+@main.command("backup-db")
+@click.option("--backup-dir", default=None, type=click.Path(file_okay=False, path_type=str))
+def backup_db(backup_dir: str | None) -> None:
+    """Write a compressed logical database snapshot for recovery evidence."""
+    session = get_sessionmaker()()
+    try:
+        payload = write_database_snapshot(session, backup_dir=backup_dir)
+        _echo_json(payload)
     finally:
         session.close()
 
