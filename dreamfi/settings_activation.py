@@ -116,9 +116,9 @@ def upsert_connector_secret(
     row.secret_last_four = clean[-4:]
     row.secret_sha256 = hash_secret(clean)
     row.secret_label = label.strip() if label and label.strip() else None
-    row.validation_status = "validated"
-    row.validation_error = None
-    row.validated_at = now
+    row.validation_status = "not_validated"
+    row.validation_error = "validation required"
+    row.validated_at = None
     row.activation_status = "inactive" if row.activation_status == "active" else row.activation_status
     row.deactivated_at = now if row.activation_status != "active" else row.deactivated_at
     row.updated_by = actor_id

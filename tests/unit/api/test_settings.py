@@ -75,6 +75,7 @@ def test_connector_secret_save_redacts_raw_key_and_audits_metadata(tmp_path: Pat
     row = session.get(ConnectorSetting, "jira")
     assert row is not None
     assert row.credential_status == "saved"
+    assert row.validation_status == "not_validated"
     assert row.secret_last_four == "3456"
     assert row.secret_sha256 is not None
     assert raw_key not in json.dumps(row.metadata_json)

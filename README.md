@@ -37,6 +37,8 @@ The intended operating model is:
 The console includes a Settings / Activation page for validating connector
 credentials, confirming Onyx document sets, and proving persistent storage
 readiness without exposing raw API keys.
+It verifies that DreamFi can use the data already flowing through Onyx; it does
+not replace Onyx's native connector setup or a production secret manager.
 
 ## Skill layer
 
