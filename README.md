@@ -34,6 +34,11 @@ The intended operating model is:
 4. Generate a reusable artifact from that grounded context.
 5. Use the trust checks to decide whether the output needs review, can move forward, or can publish.
 
+The next setup surface is the Settings / Activation page, which is specified in
+`PRDs/settings-activation-page.md`. Its job is to let an admin validate secrets,
+activate connectors, confirm Onyx document sets, and prove persistent storage
+readiness without exposing raw API keys.
+
 ## Skill layer
 
 DreamFi currently ships a fixed skill layer of 9 locked eval-backed skills:
