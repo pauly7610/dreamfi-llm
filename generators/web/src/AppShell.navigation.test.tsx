@@ -22,9 +22,9 @@ describe('AppShell navigation', () => {
 
     expect(await screen.findByText(/Good morning/i)).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('link', { name: 'Browse connectors' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Open source room' }))
 
-    expect(await screen.findByRole('heading', { name: /Open the connector workspace you need\./i })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Open the source workspace you need\./i })).toBeTruthy()
     expect(window.location.pathname).toBe('/console/integrations')
 
     fireEvent.click(screen.getByRole('link', { name: 'DreamFi home' }))

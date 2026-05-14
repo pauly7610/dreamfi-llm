@@ -15,7 +15,19 @@ from sqlalchemy.orm import Session
 from dreamfi.api.app import create_app
 from dreamfi.api.deps import get_db_session, get_onyx_client
 from dreamfi.config import get_settings
-from dreamfi.db.models import Base, ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.db.models import (
+    Base,
+    ConnectorDocument,
+    ConnectorSetting,
+    ConnectorSyncRun,
+    ConsoleTopic,
+    EvalOutput,
+    EvalRound,
+    PromptVersion,
+    PublishLog,
+    ReplaySchedule,
+    Skill,
+)
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.skills.registry import seed_registry
 
@@ -122,6 +134,39 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
             default_generator_slug="risk-brd",
         )
     )
+    session.add(ConnectorSetting(connector_id="metabase", provider="metabase"))
+    sync_run = ConnectorSyncRun(
+        connector_id="metabase",
+        status="success",
+        trigger="manual",
+        pulled_count=1,
+        persisted_count=1,
+        ingested_count=1,
+        started_at=now,
+        completed_at=now,
+    )
+    session.add(sync_run)
+    session.flush()
+    session.add(
+        ConnectorDocument(
+            connector_id="metabase",
+            external_id="funding-funnel",
+            title="Funding funnel dashboard",
+            body_text="Completion fell 7 percent while start volume stayed flat for returning users.",
+            source_url="https://metabase.example/card/42",
+            doc_updated_at=now,
+            content_hash="funding-funnel-hash",
+            metadata_json={
+                "dreamfi_scope": {
+                    "owner": "Data",
+                    "product_area": "funding",
+                    "topic_ids": ["funding"],
+                }
+            },
+            sync_run_id=sync_run.sync_run_id,
+            last_ingested_at=now,
+        )
+    )
     session.commit()
 
     response = client.get('/api/console')
@@ -157,6 +202,25 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert body['quick_actions'][0]['id'] == 'weekly-brief'
     assert len(body['domain_health']) == 4
     assert {item['domain'] for item in body['domain_health']} == {'planning', 'metrics', 'generation', 'publish'}
+    assert len(body['source_insights']) >= 10
+    jira_insight = next(item for item in body['source_insights'] if item['source_id'] == 'jira')
+    assert jira_insight['title'] == 'Delivery state'
+    assert jira_insight['finding']
+    assert jira_insight['quality']['score'] > 0
+    metabase_insight = next(item for item in body['source_insights'] if item['source_id'] == 'metabase')
+    assert metabase_insight['title'] == 'Metabase: Funding funnel dashboard'
+    assert 'Completion fell 7 percent' in metabase_insight['finding']
+    assert metabase_insight['provenance']['sync_run_id'] == sync_run.sync_run_id
+    metabase_packet = next(item for item in body['source_packets'] if item['source_id'] == 'metabase')
+    assert metabase_packet['is_demo'] is False
+    assert metabase_packet['status'] == 'live'
+    assert metabase_packet['sync_run_id'] == sync_run.sync_run_id
+    assert metabase_packet['source_url'] == 'https://metabase.example/card/42'
+    assert any(item['is_demo'] for item in body['source_packets'])
+    assert body['evidence_export_summary']['source_packet_count'] == len(body['source_packets'])
+    assert body['source_refresh']['latest_sync_status'] == 'success'
+    sardine_insight = next(item for item in body['source_insights'] if item['source_id'] == 'sardine')
+    assert 'card-disputes' in sardine_insight['topic_ids']
     integration_ids = {item['id'] for item in body['integrations']}
     assert {
         'jira',
@@ -170,9 +234,13 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
         'sardine',
         'socure',
     } <= integration_ids
+    assert {'github', 'zendesk', 'salesforce', 'hubspot', 'productboard'}.isdisjoint(integration_ids)
     jira = next(item for item in body['integrations'] if item['id'] == 'jira')
     assert jira['category'] == 'planning'
+    assert jira['connection_method'] == 'onyx_native'
     assert 'technical-prd' in jira['used_for']
+    socure = next(item for item in body['integrations'] if item['id'] == 'socure')
+    assert socure['connection_method'] == 'custom_ingestion'
     assert body['publish_activity'][0]['decision'] == 'published'
     assert len(body['custom_topics']) == 1
     assert body['custom_topics'][0]['id'] == 'card-disputes'
@@ -269,6 +337,10 @@ def test_console_reports_connector_status_from_onyx_document_sets(
     assert integrations['jira']['status'] == 'connected'
     assert integrations['socure']['status'] == 'degraded'
     assert integrations['klaviyo']['status'] == 'not_configured'
+    insights = {item['source_id']: item for item in response.json()['source_insights']}
+    assert insights['jira']['source_status'] == 'connected'
+    assert insights['socure']['source_status'] == 'degraded'
+    assert insights['klaviyo']['gap']
 
 
 def test_console_metrics_and_simulator_endpoints(client: TestClient) -> None:
@@ -280,6 +352,57 @@ def test_console_metrics_and_simulator_endpoints(client: TestClient) -> None:
     assert 'historical_metrics' in metrics.json()
     assert 'slo_status' in metrics.json()
     assert 'scenarios' in simulator.json()
+
+
+def test_console_evidence_export_includes_source_evidence_without_secrets(
+    client: TestClient,
+    session: Session,
+) -> None:
+    now = datetime.now(timezone.utc)
+    session.add(ConnectorSetting(connector_id="metabase", provider="metabase"))
+    session.add(
+        ConnectorDocument(
+            connector_id="metabase",
+            external_id="funding-funnel",
+            title="Funding funnel dashboard",
+            body_text="Completion fell 7 percent while start volume stayed flat.",
+            source_url="https://metabase.example/card/42",
+            doc_updated_at=now,
+            content_hash="funding-funnel-hash",
+            metadata_json={"dreamfi_scope": {"owner": "Data", "topic_ids": ["funding"]}},
+            last_ingested_at=now,
+        )
+    )
+    session.commit()
+
+    response = client.get('/api/console/evidence-export')
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body['contains_raw_secrets'] is False
+    assert body['scope'] == 'DreamFi ProductOS SOC2 evidence package'
+    assert body['evidence_export_summary']['source_packet_count'] == len(body['source_packets'])
+    assert any(packet['source_id'] == 'metabase' for packet in body['source_packets'])
+    assert all('metadata_json' not in event for event in body['recent_audit_events'])
+
+
+def test_source_refresh_schedule_endpoint_creates_due_job(
+    client: TestClient,
+    session: Session,
+) -> None:
+    response = client.post(
+        '/api/console/source-refresh/schedule',
+        json={'cadence_days': 2, 'source_ids': ['jira', 'metabase']},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body['replay_type'] == 'source_refresh'
+    assert body['cadence_days'] == 2
+    assert body['source_ids'] == ['jira', 'metabase']
+    schedule = session.get(ReplaySchedule, body['schedule_id'])
+    assert schedule is not None
+    assert schedule.payload_json == {'source_ids': ['jira', 'metabase'], 'mode': 'sync_and_health_check'}
 
 
 def test_console_topic_patch_updates_lifecycle_fields(client: TestClient, session: Session) -> None:

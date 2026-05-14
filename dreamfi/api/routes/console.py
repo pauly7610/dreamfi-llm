@@ -21,9 +21,26 @@ from dreamfi.connectors import (
     connector_document_set_aliases,
     normalize_document_set_name,
 )
-from dreamfi.db.models import ConsoleTopic, EvalOutput, EvalRound, PromptVersion, PublishLog, Skill
+from dreamfi.db.models import (
+    AuditEvent,
+    ConnectorDocument,
+    ConnectorSyncRun,
+    ConsoleTopic,
+    EvalOutput,
+    EvalRound,
+    PromptVersion,
+    PublishLog,
+    ReplaySchedule,
+    Skill,
+)
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.onyx.errors import OnyxError
+from dreamfi.source_intelligence import (
+    build_source_insights,
+    build_source_refresh_summary,
+    detect_source_contradictions,
+    serialize_source_packets,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -127,6 +144,24 @@ def _normalize_source_ids(value: Any) -> list[str]:
     return normalized_source_ids
 
 
+def _normalize_optional_source_ids(value: Any) -> list[str]:
+    if value is None:
+        return sorted(_valid_integration_ids())
+    return _normalize_source_ids(value)
+
+
+def _normalize_refresh_cadence(value: Any) -> int:
+    settings = get_settings()
+    if value is None:
+        return settings.dreamfi_source_refresh_cadence_days
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="cadence_days must be a positive integer",
+        )
+    return value
+
+
 def _normalize_default_generator_slug(value: Any) -> str:
     if value is None:
         return "weekly-brief"
@@ -205,6 +240,67 @@ def _serialize_publish(log: PublishLog) -> dict[str, object]:
         "decision": log.decision,
         "reason": log.reason,
         "created_at": log.created_at.isoformat(),
+    }
+
+
+def _serialize_sync_run(run: ConnectorSyncRun) -> dict[str, object]:
+    return {
+        "sync_run_id": run.sync_run_id,
+        "connector_id": run.connector_id,
+        "status": run.status,
+        "trigger": run.trigger,
+        "pulled_count": run.pulled_count,
+        "persisted_count": run.persisted_count,
+        "ingested_count": run.ingested_count,
+        "skipped_count": run.skipped_count,
+        "error_count": run.error_count,
+        "reason": run.reason,
+        "started_at": run.started_at.isoformat(),
+        "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+    }
+
+
+def _serialize_audit_event(event: AuditEvent) -> dict[str, object]:
+    return {
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "category": event.category,
+        "action": event.action,
+        "outcome": event.outcome,
+        "severity": event.severity,
+        "actor_id": event.actor_id,
+        "actor_type": event.actor_type,
+        "auth_method": event.auth_method,
+        "request_id": event.request_id,
+        "http_method": event.http_method,
+        "path": event.path,
+        "status_code": event.status_code,
+        "target_type": event.target_type,
+        "target_id": event.target_id,
+        "reason": event.reason,
+        "event_hash": event.event_hash,
+        "metadata_keys": sorted(event.metadata_json.keys()),
+        "created_at": event.created_at.isoformat(),
+    }
+
+
+def _evidence_export_summary(
+    *,
+    source_packets: list[dict[str, object]],
+    source_contradictions: list[dict[str, object]],
+    source_refresh: dict[str, object],
+) -> dict[str, object]:
+    real_packet_count = sum(1 for packet in source_packets if not bool(packet.get("is_demo")))
+    demo_packet_count = len(source_packets) - real_packet_count
+    return {
+        "href": "/api/console/evidence-export",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_packet_count": len(source_packets),
+        "real_source_packet_count": real_packet_count,
+        "demo_source_packet_count": demo_packet_count,
+        "contradiction_count": len(source_contradictions),
+        "refresh_configured": bool(source_refresh.get("configured")),
+        "contains_demo_data": demo_packet_count > 0,
     }
 
 
@@ -649,6 +745,7 @@ def _slo_status(summary: dict[str, float | int | None]) -> dict[str, object]:
 
 
 def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[str, Any]:
+    settings = get_settings()
     skills = session.scalars(select(Skill).order_by(Skill.skill_id)).all()
     active_prompt_versions = session.scalars(
         select(PromptVersion).where(PromptVersion.is_active.is_(True))
@@ -663,6 +760,22 @@ def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[s
     ).all()
     publish_log_rows = session.scalars(
         select(PublishLog).order_by(desc(PublishLog.created_at)).limit(50)
+    ).all()
+    connector_documents = session.scalars(
+        select(ConnectorDocument)
+        .order_by(desc(ConnectorDocument.doc_updated_at))
+        .limit(settings.dreamfi_source_packet_document_limit)
+    ).all()
+    connector_sync_runs = session.scalars(
+        select(ConnectorSyncRun)
+        .order_by(desc(ConnectorSyncRun.started_at))
+        .limit(settings.dreamfi_source_sync_run_history_limit)
+    ).all()
+    source_refresh_schedules = session.scalars(
+        select(ReplaySchedule)
+        .where(ReplaySchedule.replay_type == "source_refresh")
+        .order_by(desc(ReplaySchedule.created_at))
+        .limit(settings.dreamfi_source_refresh_schedule_history_limit)
     ).all()
 
     round_ids = list({output.round_id for output in outputs})
@@ -746,6 +859,36 @@ def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[s
     }
     output_ids = {output.output_id for output in outputs}
     recent_publishes = [log for log in publish_log_rows if log.output_id in output_ids]
+    integrations = _integrations(onyx)
+    custom_topics = _serialize_console_topics(session)
+    source_insights = build_source_insights(
+        integrations=integrations,
+        outputs=outputs,
+        topics=custom_topics,
+        documents=connector_documents,
+    )
+    source_packets = serialize_source_packets(
+        integrations=integrations,
+        documents=connector_documents,
+        max_per_source=settings.dreamfi_source_packet_history_per_source,
+        stale_after_days=settings.dreamfi_connector_stale_after_days,
+        include_demo_packets=settings.dreamfi_demo_source_packets_enabled,
+    )
+    source_contradictions = detect_source_contradictions(
+        source_packets=source_packets,
+        max_count=settings.dreamfi_source_contradiction_max_count,
+    )
+    source_refresh = build_source_refresh_summary(
+        schedules=source_refresh_schedules,
+        sync_runs=connector_sync_runs,
+        integrations=integrations,
+        source_packets=source_packets,
+    )
+    evidence_export_summary = _evidence_export_summary(
+        source_packets=source_packets,
+        source_contradictions=source_contradictions,
+        source_refresh=source_refresh,
+    )
     return {
         "headline": "Trust, measured.",
         "summary": summary,
@@ -760,8 +903,13 @@ def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[s
             publishes=publishes,
         ),
         "quick_actions": _quick_actions(),
-        "integrations": _integrations(onyx),
-        "custom_topics": _serialize_console_topics(session),
+        "integrations": integrations,
+        "source_insights": source_insights,
+        "source_packets": source_packets,
+        "source_contradictions": source_contradictions,
+        "source_refresh": source_refresh,
+        "evidence_export_summary": evidence_export_summary,
+        "custom_topics": custom_topics,
         "historical_metrics": _historical_metrics(outputs, recent_publishes),
         "confidence_calibration": _confidence_calibration(outputs),
         "failure_clusters": _failure_clusters(outputs),
@@ -870,6 +1018,9 @@ def console_data(
             "summary": payload["summary"],
             "connector_status_counts": connector_status_counts,
             "artifact_queue_count": len(payload["artifact_queue"]),
+            "source_insight_count": len(payload["source_insights"]),
+            "source_packet_count": len(payload["source_packets"]),
+            "source_contradiction_count": len(payload["source_contradictions"]),
             "custom_topic_count": len(payload["custom_topics"]),
         },
     )
@@ -929,6 +1080,120 @@ def console_simulator(
         "scenarios": payload["scenario_packs"],
         "failure_clusters": payload["failure_clusters"],
         "sample_queue": payload["artifact_queue"][:5],
+    }
+
+
+@router.get("/api/console/evidence-export")
+def console_evidence_export(
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
+    settings = get_settings()
+    payload = _console_payload(session)
+    audit_events = session.scalars(
+        select(AuditEvent)
+        .order_by(desc(AuditEvent.created_at))
+        .limit(settings.dreamfi_evidence_export_audit_limit)
+    ).all()
+    sync_runs = session.scalars(
+        select(ConnectorSyncRun)
+        .order_by(desc(ConnectorSyncRun.started_at))
+        .limit(settings.dreamfi_source_sync_run_history_limit)
+    ).all()
+
+    add_audit_event(
+        session,
+        category="access",
+        action="console_evidence_export",
+        outcome="success",
+        request=request,
+        target_type="console",
+        target_id="evidence_export",
+        metadata={
+            "source_packet_count": len(payload["source_packets"]),
+            "source_contradiction_count": len(payload["source_contradictions"]),
+            "audit_event_count": len(audit_events),
+            "sync_run_count": len(sync_runs),
+        },
+    )
+    session.commit()
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "scope": "DreamFi ProductOS SOC2 evidence package",
+        "summary": payload["summary"],
+        "slo_status": payload["slo_status"],
+        "domain_health": payload["domain_health"],
+        "integrations": payload["integrations"],
+        "source_insights": payload["source_insights"],
+        "source_packets": payload["source_packets"],
+        "source_contradictions": payload["source_contradictions"],
+        "source_refresh": payload["source_refresh"],
+        "evidence_export_summary": payload["evidence_export_summary"],
+        "artifact_queue": payload["artifact_queue"],
+        "publish_activity": payload["publish_activity"],
+        "recent_sync_runs": [_serialize_sync_run(run) for run in sync_runs],
+        "recent_audit_events": [_serialize_audit_event(event) for event in audit_events],
+        "contains_raw_secrets": False,
+    }
+
+
+@router.post("/api/console/source-refresh/schedule", status_code=status.HTTP_201_CREATED)
+def schedule_source_refresh(
+    request: Request,
+    payload: dict[str, Any] | None = None,
+    session: Session = Depends(get_db_session),
+) -> dict[str, object]:
+    body = payload or {}
+    cadence_days = _normalize_refresh_cadence(body.get("cadence_days"))
+    source_ids = _normalize_optional_source_ids(body.get("source_ids"))
+    now = datetime.now(timezone.utc)
+    schedule = session.scalar(
+        select(ReplaySchedule)
+        .where(ReplaySchedule.replay_type == "source_refresh")
+        .where(ReplaySchedule.is_active.is_(True))
+        .order_by(desc(ReplaySchedule.created_at))
+    )
+    if schedule is None:
+        schedule = ReplaySchedule(
+            replay_type="source_refresh",
+            cadence_days=cadence_days,
+            next_run_at=now,
+            is_active=True,
+            created_by="console",
+            payload_json={"source_ids": source_ids, "mode": "sync_and_health_check"},
+        )
+        session.add(schedule)
+    else:
+        schedule.cadence_days = cadence_days
+        next_run_at = schedule.next_run_at
+        if next_run_at.tzinfo is None:
+            next_run_at = next_run_at.replace(tzinfo=timezone.utc)
+        schedule.next_run_at = min(next_run_at, now)
+        schedule.payload_json = {"source_ids": source_ids, "mode": "sync_and_health_check"}
+
+    add_audit_event(
+        session,
+        category="job",
+        action="source_refresh_schedule_upsert",
+        outcome="success",
+        request=request,
+        target_type="replay_schedule",
+        target_id=schedule.schedule_id,
+        metadata={
+            "cadence_days": cadence_days,
+            "source_ids": source_ids,
+            "next_run_at": schedule.next_run_at.isoformat(),
+        },
+    )
+    session.commit()
+    return {
+        "schedule_id": schedule.schedule_id,
+        "replay_type": schedule.replay_type,
+        "cadence_days": schedule.cadence_days,
+        "next_run_at": schedule.next_run_at.isoformat(),
+        "last_run_at": schedule.last_run_at.isoformat() if schedule.last_run_at else None,
+        "is_active": schedule.is_active,
+        "source_ids": source_ids,
     }
 
 

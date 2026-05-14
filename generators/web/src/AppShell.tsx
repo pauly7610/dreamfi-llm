@@ -334,7 +334,7 @@ function crumbsForPath(
     const currentSource = (data?.integrations ?? []).find((item) => item.id === currentSourceId)
     return [
       { label: 'Sources', href: '/console/integrations' },
-      { label: currentSource?.name ?? 'Connector', strong: true },
+      { label: currentSource?.name ?? 'Source', strong: true },
     ]
   }
   if (path === '/console/integrations') {
@@ -499,6 +499,7 @@ function AppShell() {
       initialCustomTopics={data?.custom_topics}
       location={normalizedLocation}
       integrations={data?.integrations ?? []}
+      sourceInsights={data?.source_insights ?? []}
       persistTopicsToBackend={persistTopicsToBackend}
     >
       <ConsoleScaffold data={data} error={error} loading={loading} location={normalizedLocation} path={path} retry={retry} />

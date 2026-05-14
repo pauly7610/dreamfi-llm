@@ -19,10 +19,19 @@ type HomeNewPageProps = {
   retry?: () => void
 }
 
+function insightUpdatedLabel(value: string | null): string {
+  if (!value) {
+    return 'freshness gap declared'
+  }
+  return `updated ${new Date(value).toLocaleDateString()}`
+}
+
 export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
   const { topics } = useConsoleWorkspace()
   const summary = data?.summary
   const integrations = data?.integrations ?? []
+  const sourceInsights = data?.source_insights ?? []
+  const firstInsightGap = sourceInsights.find((insight) => insight.gap)
   const topicRows = topics.slice(0, 4).map((topic) => {
     const workflow = workflowByTopicId(topic.id)
     return {
@@ -47,7 +56,7 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
           </h1>
 
           <p style={{ margin: 0, maxWidth: 620, color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.6 }}>
-            Open with one grounded question, trace the signal across connectors, and turn the answer into a decision-ready artifact.
+            Open with one grounded question, read what the sources show, and turn the answer into a decision-ready artifact.
           </p>
         </div>
 
@@ -81,14 +90,14 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
           />
           <KPI label="TRUST POSTURE" value={formatPercent(summary?.hard_gate_pass_rate)} delta="hard-gate pass rate" deltaTone="up" />
           <KPI
-            label="SOURCES FRESH"
-            value={`${integrations.filter((integration) => integration.status === 'connected').length} / ${integrations.length || 1}`}
+            label="INSIGHTS READY"
+            value={sourceInsights.length || integrations.length}
             delta={
-              integrations.find((integration) => integration.status === 'degraded')
-                ? `${integrations.find((integration) => integration.status === 'degraded')?.name} needs attention`
-                : 'all connected sources healthy'
+              firstInsightGap
+                ? `${firstInsightGap.source_name} has an evidence gap`
+                : 'source packets are decision-ready'
             }
-            deltaTone={integrations.some((integration) => integration.status === 'degraded') ? 'down' : 'up'}
+            deltaTone={firstInsightGap ? 'down' : 'up'}
           />
         </div>
       </div>
@@ -158,9 +167,29 @@ export function HomeNewPage({ data, error, retry }: HomeNewPageProps) {
       </div>
 
       <div className="surface" id="sources" style={{ marginTop: 20 }}>
-        <SectionHead title="Source health" eyebrow="WHAT'S GROUNDED" right={<a className="btn btn-sm btn-ghost" href="/console/integrations">Browse connectors</a>} />
+        <SectionHead title="What the sources show" eyebrow="SOURCE INTELLIGENCE" right={<a className="btn btn-sm btn-ghost" href="/console/integrations">Open source room</a>} />
         <div className="home-source-grid">
-          {integrations.map((integration) => (
+          {sourceInsights.length > 0 ? sourceInsights.slice(0, 6).map((insight) => (
+            <a
+              key={insight.insight_id}
+              className="home-source-card"
+              href={insight.href || sourceHref(insight.source_id)}
+              style={{ minWidth: 0 }}
+            >
+              <div className="row" style={{ marginBottom: 8 }}>
+                <Cite connector={connectorKeyFromId(insight.source_id)} label={insight.source_name} />
+                <div className="spacer" />
+                <Chip tone={insight.quality.blockers.length ? 'warn' : 'ready'}>{Math.round(insight.quality.score * 100)} quality</Chip>
+              </div>
+              <div className="num" style={{ fontSize: 16 }}>{insight.title}</div>
+              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{insight.finding}</div>
+              {insight.metric ? <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>{insight.metric}</div> : null}
+              {insight.gap ? <div style={{ color: 'var(--warn)', fontSize: 11, marginTop: 8 }}>{insight.gap}</div> : null}
+              <div className="muted" style={{ fontSize: 10.5, marginTop: 10 }}>
+                {insightUpdatedLabel(insight.updated_at)} / {labelForIntegrationStatus(insight.source_status)}
+              </div>
+            </a>
+          )) : integrations.map((integration) => (
             <a
               key={integration.id}
               className="home-source-card"

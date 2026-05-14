@@ -16,7 +16,7 @@ export function defaultSourcePreview(source: ConsoleIntegration): SourceDataPrev
       {
         label: 'Artifact coverage',
         value: String(source.used_for.length),
-        detail: 'Number of generator workflows that can cite this connector.',
+        detail: 'Number of generator workflows that can cite this source.',
       },
       {
         label: 'Review path',
@@ -31,7 +31,7 @@ export function defaultSourcePreview(source: ConsoleIntegration): SourceDataPrev
       },
       {
         title: 'What DreamFi should verify',
-        detail: 'Connector-specific answers should stay grounded in receipts, freshness, and explicit caveats.',
+        detail: 'Source-specific answers should stay grounded in receipts, freshness, and explicit caveats.',
       },
       {
         title: 'How Product should use it',
@@ -41,11 +41,11 @@ export function defaultSourcePreview(source: ConsoleIntegration): SourceDataPrev
     workflows: [
       {
         title: `Ask about ${source.name}`,
-        detail: 'Start with a grounded question using this connector as the primary scope.',
+        detail: 'Start with a grounded question using this source as the primary scope.',
         href: `/console/knowledge/ask?source=${source.id}&q=${encodeURIComponent(`What should Product know from ${source.name}?`)}`,
       },
     ],
-    views: ['Connector overview', 'Evidence coverage', 'Generator usage'],
+    views: ['Source overview', 'Evidence coverage', 'Generator usage'],
     questions: [
       `What should Product know from ${source.name}?`,
       `Which generated artifacts use ${source.name}?`,

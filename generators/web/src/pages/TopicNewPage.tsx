@@ -152,7 +152,7 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
         />
         <div style={{ padding: '18px 24px' }}>
           <p style={{ margin: '0 0 14px', color: 'var(--ink-2)', fontSize: 13.5, lineHeight: 1.55 }}>
-            Add a new topic room in one pass, pick the connectors it should stay grounded in, and DreamFi will carry it through Ask, Generate, and the sidebar.
+            Add a new topic room in one pass, pick the sources it should stay grounded in, and DreamFi will carry it through Ask, Generate, and the sidebar.
           </p>
 
           {isCreating ? (
@@ -239,7 +239,7 @@ function TopicDirectory({ data }: { data: ConsolePayload | null }) {
               </label>
 
               <div style={{ display: 'grid', gap: 10 }}>
-                <div className="eyebrow">Connected sources</div>
+                <div className="eyebrow">Source evidence</div>
                 <div className="topic-source-grid">
                   {integrations.map((integration) => (
                     <label
@@ -368,7 +368,7 @@ export function TopicNewPage({ data, topicId }: TopicNewPageProps) {
           {topic.title}
         </h1>
         {workflow ? <Chip tone={toneForWorkflowTone(workflow.currentState.tone)}>{workflow.currentState.phase}</Chip> : <Chip tone="signal">custom room</Chip>}
-        <Chip>{`${topic.sources.length} connected sources`}</Chip>
+        <Chip>{`${topic.sources.length} sources in scope`}</Chip>
         <div className="spacer" />
         <a className="btn btn-sm" href={buildAskHref({ question: primaryQuestion, topicId: topic.id })}>Ask about this topic</a>
         <a className="btn btn-sm btn-primary" href={buildGenerateHref(topic.defaultGeneratorSlug ?? 'weekly-brief', { question: primaryQuestion, topicId: topic.id })}>Generate</a>

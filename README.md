@@ -34,11 +34,55 @@ The intended operating model is:
 4. Generate a reusable artifact from that grounded context.
 5. Use the trust checks to decide whether the output needs review, can move forward, or can publish.
 
-The console includes a Settings / Activation page for validating connector
-credentials, confirming Onyx document sets, and proving persistent storage
-readiness without exposing raw API keys.
-It verifies that DreamFi can use the data already flowing through Onyx; it does
-not replace Onyx's native connector setup or a production secret manager.
+The console includes a Settings / Activation page for confirming Onyx document
+sets, validating source freshness, and proving persistent storage readiness.
+Jira and Confluence stay native in Onyx. Dragonboat, Metabase, PostHog, Google
+Analytics, Klaviyo, NetXD, Sardine, and Socure use DreamFi's custom connector
+sync layer or the bridge ingest endpoint. DreamFi never returns raw API keys;
+custom connector keys are encrypted at rest when
+`DREAMFI_CONNECTOR_SECRET_KEY` is configured.
+
+## Custom connector sync
+
+Custom connectors follow the same control path:
+
+```text
+Settings config + encrypted key
+        |
+        v
+Provider adapter or source bridge
+        |
+        v
+ConnectorDocument persistence
+        |
+        v
+Onyx ingestion via OnyxClient
+        |
+        v
+Freshness probe + activation gate
+```
+
+The first adapter set covers the current non-native sources:
+
+- Dragonboat: roadmap initiatives, features, and objectives from configured REST endpoints.
+- Metabase: cards and dashboards through the Metabase API.
+- PostHog: insights and dashboards for a configured project.
+- Google Analytics: GA4 report rows for a configured property.
+- Klaviyo: campaigns, flows, and segments.
+- NetXD, Sardine, and Socure: configurable REST endpoint pulls for the relevant payment, risk, and identity evidence.
+
+The Settings page exposes the runtime knobs for these sources: base URLs,
+endpoint paths, REST auth header/scheme where applicable, GA4 report date
+ranges, GA4 dimensions/metrics, Klaviyo API revision, and optional DreamFi
+metadata defaults for product area, topic IDs, and owner.
+
+Every pulled item is normalized into a `ConnectorDocument`, tagged with
+`dreamfi_scope.source_ids`, persisted in Postgres, and ingested into Onyx through
+`dreamfi.onyx.client.OnyxClient`. Sync attempts are stored in
+`connector_sync_runs`, including counts, status, reason, and timestamps. For
+systems whose production API shape needs a custom exporter, clients can post
+pre-normalized records to `/api/settings/connectors/{connector_id}/documents`;
+DreamFi still persists and ingests them through the same path.
 
 ## Skill layer
 
@@ -165,7 +209,10 @@ The current backend exposes:
 - `POST /api/learning/replay-schedules` and `POST /api/learning/replay-schedules/run-due` - schedule and run gold/workflow replay.
 - `POST /api/learning/outcomes` - record whether generated work was published, revised, ignored, reverted, or used in a decision.
 - `GET /api/settings/status` - read environment, persistence, job, and connector activation readiness.
-- `POST /api/settings/connectors/{connector_id}/secret` - save masked connector credential metadata without returning or storing raw API keys.
+- `POST /api/settings/connectors/{connector_id}/secret` - save connector credentials without returning or auditing raw API keys; custom connector keys are encrypted when app storage is used.
+- `POST /api/settings/connectors/{connector_id}/config` - save non-secret setup values such as base URLs, project IDs, property IDs, and endpoint paths.
+- `POST /api/settings/connectors/{connector_id}/sync` - pull a custom connector, persist normalized documents, ingest changed records into Onyx, and record a sync run.
+- `POST /api/settings/connectors/{connector_id}/documents` - accept pre-normalized documents from an external source bridge/export job.
 - `POST /api/settings/connectors/{connector_id}/document-set`, `/validate`, `/activate`, and `/deactivate` - confirm Onyx document sets, run freshness probes, and gate activation.
 - `GET /api/console` - JSON payload for the operator console.
 - `GET /console` - operator UI, backed by the checked-in React build when present.
@@ -207,6 +254,8 @@ pip install -e ".[dev]"
    Also replace `DREAMFI_AUTH_PASSWORD` and `DREAMFI_API_TOKEN`; the console and
    mutating API routes are protected by HTTP Basic auth or Bearer token auth, and
    placeholder auth values are rejected at runtime.
+   Set `DREAMFI_CONNECTOR_SECRET_KEY` before saving custom connector API keys
+   from the Settings page.
 
 3. Choose one startup path:
 

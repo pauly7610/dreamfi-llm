@@ -18,10 +18,18 @@ from dreamfi.connectors import (
     connector_document_set_aliases,
     normalize_document_set_name,
 )
+from dreamfi.connector_secrets import (
+    ConnectorSecretError,
+    connector_secret_storage,
+    encrypt_connector_secret,
+    resolve_connector_secret,
+)
 from dreamfi.db.models import (
     ArtifactFeedback,
     AuditEvent,
+    ConnectorDocument,
     ConnectorSetting,
+    ConnectorSyncRun,
     EvalOutput,
     EvalRound,
     GoldExample,
@@ -40,7 +48,7 @@ from dreamfi.ops.readiness import (
     replay_readiness,
 )
 
-EXPECTED_ALEMBIC_HEAD = "20260506_0009"
+EXPECTED_ALEMBIC_HEAD = "20260507_0010"
 PLACEHOLDER_VALUES = {"", "change-me", "change-me-before-deploy", "onyx_pat_XXX", "sk-ant-XXX"}
 MIN_SECRET_LENGTH = 8
 
@@ -90,6 +98,7 @@ def get_or_create_connector_setting(
             validation_status="not_validated",
             document_set_present=False,
             activation_status="inactive",
+            config_json=dict(connector.default_config or {}),
             created_by=actor_id,
             updated_by=actor_id,
             metadata_json={},
@@ -110,11 +119,17 @@ def upsert_connector_secret(
     label: str | None = None,
 ) -> ConnectorSetting:
     clean = validate_secret_value(api_key)
+    encrypted = None
+    if connector.requires_dreamfi_secret:
+        encrypted = encrypt_connector_secret(clean)
     row = get_or_create_connector_setting(session, connector, actor_id=actor_id)
     now = datetime.now(timezone.utc)
     row.credential_status = "saved"
     row.secret_last_four = clean[-4:]
     row.secret_sha256 = hash_secret(clean)
+    if encrypted is not None:
+        row.secret_ciphertext = encrypted.ciphertext
+        row.secret_key_id = encrypted.key_id
     row.secret_label = label.strip() if label and label.strip() else None
     row.validation_status = "not_validated"
     row.validation_error = "validation required"
@@ -138,6 +153,8 @@ def delete_connector_secret(
     row.credential_status = "missing"
     row.secret_last_four = None
     row.secret_sha256 = None
+    row.secret_ciphertext = None
+    row.secret_key_id = None
     row.secret_label = None
     row.validation_status = "not_validated"
     row.validation_error = None
@@ -173,6 +190,8 @@ def persistence_readiness(session: Session) -> dict[str, Any]:
         "replay_runs": ReplayRun,
         "production_outcomes": ProductionOutcome,
         "connector_settings": ConnectorSetting,
+        "connector_sync_runs": ConnectorSyncRun,
+        "connector_documents": ConnectorDocument,
     }
     counts: dict[str, int] = {}
     for name, model in count_models.items():
@@ -223,12 +242,58 @@ def _find_document_set_row(onyx_rows: list[dict[str, Any]], connector: Connector
     return None
 
 
-def _serialize_secret(row: ConnectorSetting | None) -> dict[str, Any]:
+def _config_values(connector: ConnectorSpec, row: ConnectorSetting | None) -> dict[str, str]:
+    values = dict(connector.default_config or {})
+    if row is not None:
+        for key, value in (row.config_json or {}).items():
+            if value is not None:
+                values[str(key)] = str(value)
+    return values
+
+
+def missing_connector_config_keys(connector: ConnectorSpec, row: ConnectorSetting | None) -> list[str]:
+    values = _config_values(connector, row)
+    return [key for key in connector.required_config_keys if not values.get(key, "").strip()]
+
+
+def upsert_connector_config(
+    session: Session,
+    *,
+    connector: ConnectorSpec,
+    config_values: dict[str, Any],
+    actor_id: str,
+) -> ConnectorSetting:
+    row = get_or_create_connector_setting(session, connector, actor_id=actor_id)
+    allowed_keys = {field.key for field in connector.config_fields}
+    cleaned: dict[str, str] = dict(connector.default_config or {})
+    for key, value in config_values.items():
+        normalized_key = str(key).strip()
+        if normalized_key not in allowed_keys:
+            continue
+        if value is None:
+            continue
+        cleaned[normalized_key] = str(value).strip()
+    now = datetime.now(timezone.utc)
+    row.config_json = cleaned
+    row.validation_status = "not_validated"
+    row.validation_error = "validation required"
+    row.activation_status = "inactive" if row.activation_status == "active" else row.activation_status
+    row.updated_by = actor_id
+    row.updated_at = now
+    session.flush()
+    return row
+
+
+def _serialize_secret(row: ConnectorSetting | None, connector: ConnectorSpec) -> dict[str, Any]:
+    storage = connector_secret_storage(row, connector)
+    usable = storage in {"encrypted", "env"} or not connector.requires_dreamfi_secret
     return {
-        "status": row.credential_status if row is not None else "missing",
+        "status": "saved" if storage in {"encrypted", "env"} else (row.credential_status if row is not None else "missing"),
         "masked": f"****{row.secret_last_four}" if row is not None and row.secret_last_four else None,
         "label": row.secret_label if row is not None else None,
         "validated_at": row.validated_at.isoformat() if row is not None and row.validated_at else None,
+        "storage": storage,
+        "usable": usable,
     }
 
 
@@ -237,6 +302,7 @@ def serialize_connector_setting(
     connector: ConnectorSpec,
     setting: ConnectorSetting | None,
     readiness_row: dict[str, Any] | None,
+    latest_sync: ConnectorSyncRun | None,
     persistence_ready: bool,
     audit_ready: bool,
 ) -> dict[str, Any]:
@@ -259,12 +325,15 @@ def serialize_connector_setting(
         )
     )
     validation_status = setting.validation_status if setting is not None else "not_validated"
-    credential_status = setting.credential_status if setting is not None else "missing"
+    credential = _serialize_secret(setting, connector)
     activation_status = setting.activation_status if setting is not None else "inactive"
     health_probe_passed = retrieval_status == "fresh"
+    missing_config_keys = missing_connector_config_keys(connector, setting)
     blockers = []
-    if credential_status != "saved":
+    if connector.requires_dreamfi_secret and not credential["usable"]:
         blockers.append("credential")
+    if missing_config_keys:
+        blockers.append("configuration")
     if validation_status != "validated":
         blockers.append("validation")
     if not document_set_present:
@@ -286,8 +355,20 @@ def serialize_connector_setting(
         "purpose": connector.purpose,
         "used_for": list(connector.used_for),
         "expected_document_set": connector.expected_document_set,
+        "connection_method": connector.connection_method,
+        "setup_method": connector.setup_method,
+        "setup_detail": connector.setup_detail,
+        "requires_dreamfi_secret": connector.requires_dreamfi_secret,
+        "config_schema": [field.as_dict() for field in connector.config_fields],
+        "config": {
+            "values": _config_values(connector, setting),
+            "missing_keys": missing_config_keys,
+        },
         "metadata_keys": list(REQUIRED_METADATA_KEYS),
-        "credential": _serialize_secret(setting),
+        "credential": {
+            **credential,
+            "required": connector.requires_dreamfi_secret,
+        },
         "validation_status": validation_status,
         "validation_error": setting.validation_error if setting is not None else None,
         "document_set_present": document_set_present,
@@ -306,6 +387,22 @@ def serialize_connector_setting(
         "last_probe_at": setting.last_probe_at.isoformat() if setting is not None and setting.last_probe_at else None,
         "activation_status": effective_status,
         "activated_at": setting.activated_at.isoformat() if setting is not None and setting.activated_at else None,
+        "latest_sync": (
+            {
+                "sync_run_id": latest_sync.sync_run_id,
+                "status": latest_sync.status,
+                "trigger": latest_sync.trigger,
+                "pulled_count": latest_sync.pulled_count,
+                "persisted_count": latest_sync.persisted_count,
+                "ingested_count": latest_sync.ingested_count,
+                "error_count": latest_sync.error_count,
+                "reason": latest_sync.reason,
+                "started_at": latest_sync.started_at.isoformat(),
+                "completed_at": latest_sync.completed_at.isoformat() if latest_sync.completed_at else None,
+            }
+            if latest_sync is not None
+            else None
+        ),
         "blockers": blockers,
         "can_activate": not blockers,
         "href": f"/console/settings?connector={connector.connector_id}",
@@ -328,11 +425,21 @@ def settings_status(session: Session, onyx: OnyxClient) -> dict[str, Any]:
         row.connector_id: row
         for row in session.scalars(select(ConnectorSetting)).all()
     }
+    latest_sync_by_id = {
+        connector.connector_id: session.scalar(
+            select(ConnectorSyncRun)
+            .where(ConnectorSyncRun.connector_id == connector.connector_id)
+            .order_by(ConnectorSyncRun.started_at.desc())
+            .limit(1)
+        )
+        for connector in CONNECTORS
+    }
     connectors = [
         serialize_connector_setting(
             connector=connector,
             setting=settings_by_id.get(connector.connector_id),
             readiness_row=_find_document_set_row(readiness_rows, connector),
+            latest_sync=latest_sync_by_id.get(connector.connector_id),
             persistence_ready=bool(persistence["ready"]),
             audit_ready=audit_ready,
         )
@@ -340,7 +447,17 @@ def settings_status(session: Session, onyx: OnyxClient) -> dict[str, Any]:
     ]
     active_count = sum(1 for row in connectors if row["activation_status"] == "active")
     blocked_count = sum(1 for row in connectors if row["blockers"])
-    configured_count = sum(1 for row in connectors if row["credential"]["status"] == "saved")
+    configured_count = sum(
+        1
+        for row in connectors
+        if row["document_set_present"]
+        or (row["requires_dreamfi_secret"] and row["credential"]["usable"])
+    )
+    missing_required_credentials = [
+        row
+        for row in connectors
+        if row["requires_dreamfi_secret"] and not row["credential"]["usable"]
+    ]
     failures = []
     if not environment["ready"]:
         failures.append("environment")
@@ -348,7 +465,7 @@ def settings_status(session: Session, onyx: OnyxClient) -> dict[str, Any]:
         failures.append("persistence")
     if not audit_ready:
         failures.append("audit")
-    if not configured_count:
+    if missing_required_credentials:
         failures.append("credentials")
     if blocked_count:
         failures.append("connectors")
@@ -428,8 +545,14 @@ def probe_connector(
         row.retrieval_status = "error"
         row.last_probe_at = now
     else:
-        row.validation_status = "validated" if row.credential_status == "saved" else "not_validated"
-        row.validation_error = None if row.credential_status == "saved" else "credential missing"
+        try:
+            credential_ok = not connector.requires_dreamfi_secret or resolve_connector_secret(connector, row) is not None
+        except ConnectorSecretError as exc:
+            credential_ok = False
+            row.validation_error = str(exc)
+        row.validation_status = "validated" if credential_ok else "not_validated"
+        row.validation_error = None if credential_ok else (row.validation_error or "credential missing")
+        row.validated_at = now if credential_ok else None
         row.document_set_present = bool(readiness_row.get("document_set_present"))
         row.retrieval_status = str(readiness_row.get("retrieval_status") or "not_checked")
         row.freshest_document_at = _parse_datetime(readiness_row.get("freshest_document_at"))
@@ -452,8 +575,14 @@ def activation_blockers(
     persistence = persistence_readiness(session)
     audit = persistence["audit"]
     blockers = []
-    if setting.credential_status != "saved":
+    try:
+        credential_ok = not connector.requires_dreamfi_secret or resolve_connector_secret(connector, setting) is not None
+    except ConnectorSecretError:
+        credential_ok = False
+    if not credential_ok:
         blockers.append("credential")
+    if missing_connector_config_keys(connector, setting):
+        blockers.append("configuration")
     if setting.validation_status != "validated":
         blockers.append("validation")
     if not setting.document_set_present:

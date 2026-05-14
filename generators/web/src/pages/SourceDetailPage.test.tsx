@@ -12,12 +12,12 @@ afterEach(() => {
 })
 
 describe('SourceDetailPage', () => {
-  it('turns the integrations route into a connector directory', () => {
+  it('turns the integrations route into a source directory', () => {
     renderWithConsoleWorkspace(<SourceDetailPage data={consoleDevelopmentSlice} sourceId={null} />, {
       path: '/console/integrations',
     })
 
-    expect(screen.getByRole('heading', { name: /Open the connector workspace you need\./i })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Open the source workspace you need\./i })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Metabase' }).getAttribute('href')).toBe('/console/integrations/metabase')
     expect(screen.getByRole('link', { name: 'PostHog' }).getAttribute('href')).toBe('/console/integrations/posthog')
     expect(screen.getByRole('link', { name: 'Klaviyo' }).getAttribute('href')).toBe('/console/integrations/klaviyo')
@@ -31,6 +31,10 @@ describe('SourceDetailPage', () => {
     expect(screen.getByText('Metabase workspace')).toBeTruthy()
     expect(screen.getByText('Ask with this source')).toBeTruthy()
     expect(screen.getByText(/Inspect next/i)).toBeTruthy()
+    expect(screen.getByText('Current source intelligence')).toBeTruthy()
+    expect(screen.getByText('Packet history')).toBeTruthy()
+    expect(screen.getByText('Demo funding funnel dashboard')).toBeTruthy()
+    expect(screen.getByText('KPI movement')).toBeTruthy()
     expect(screen.getByText(/Related workflows/i)).toBeTruthy()
     expect(screen.getByText(/Official KPI boards/i)).toBeTruthy()
 

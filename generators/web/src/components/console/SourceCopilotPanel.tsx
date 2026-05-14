@@ -45,7 +45,7 @@ function prioritizedQuestions(source: ConsoleIntegration, preview: SourceDataPre
       detail:
         inspectItem?.detail ??
         relatedRow?.detail ??
-        `Keep ${source.name} in scope while DreamFi reviews the connector evidence.`,
+        `Keep ${source.name} in scope while DreamFi reviews the source evidence.`,
       focus: inspectItem?.title ?? relatedRow?.label ?? preview.primaryDataset,
       label: labels[index] ?? labels[labels.length - 1] ?? 'Review',
       question,
@@ -68,7 +68,7 @@ function promptLabel(source: ConsoleIntegration): string {
 }
 
 function eyebrowLabel(source: ConsoleIntegration): string {
-  return source.id === 'socure' ? 'Explainability' : 'Connector copilot'
+  return source.id === 'socure' ? 'Explainability' : 'Source copilot'
 }
 
 function headingLabel(source: ConsoleIntegration): string {
@@ -76,7 +76,7 @@ function headingLabel(source: ConsoleIntegration): string {
 }
 
 function primaryActionLabel(source: ConsoleIntegration): string {
-  return source.id === 'socure' ? 'Open full investigation' : 'Ask with this connector'
+  return source.id === 'socure' ? 'Open full investigation' : 'Ask with this source'
 }
 
 function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
@@ -113,7 +113,7 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
           <span className="eyebrow">{eyebrowLabel(source)}</span>
           <h2>{headingLabel(source)}</h2>
           <p className="section-subtle">
-            Keep the connector context visible while you inspect, ask, and generate.
+            Keep the source context visible while you inspect, ask, and generate.
             {source.id === 'socure' ? ' Start from the ranked investigations below before opening the broader workspace.' : null}
           </p>
         </div>
@@ -144,7 +144,7 @@ function SourceCopilotPanel({ source, preview }: SourceCopilotPanelProps) {
         </div>
       </div>
 
-      <div className="source-copilot-thread" aria-label={`${source.name} connector copilot`}>
+      <div className="source-copilot-thread" aria-label={`${source.name} source copilot`}>
         <article className="source-chat-bubble source-chat-user">
           <span>Product</span>
           <p>{draftQuestion}</p>

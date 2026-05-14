@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+import pytest
 import respx
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -12,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from dreamfi.api.app import create_app
 from dreamfi.api.deps import get_db_session, get_onyx_client
-from dreamfi.db.models import AuditEvent, Base, ConnectorSetting
+from dreamfi.config import get_settings
+from dreamfi.db.models import AuditEvent, Base, ConnectorDocument, ConnectorSetting
 from dreamfi.onyx.client import OnyxClient
 
 
@@ -52,7 +54,70 @@ def test_settings_status_surfaces_persistence_and_connector_blockers(tmp_path: P
     assert body["persistence"]["uses_sqlite"] is True
     jira = next(row for row in body["connectors"] if row["connector_id"] == "jira")
     assert jira["credential"]["status"] == "missing"
-    assert {"credential", "document_set", "persistence"} <= set(jira["blockers"])
+    assert jira["credential"]["required"] is False
+    assert jira["connection_method"] == "onyx_native"
+    assert jira["setup_method"] == "Onyx native connector"
+    assert {"document_set", "persistence"} <= set(jira["blockers"])
+    assert "credential" not in jira["blockers"]
+    metabase = next(row for row in body["connectors"] if row["connector_id"] == "metabase")
+    assert metabase["credential"]["required"] is True
+    assert metabase["credential"]["usable"] is False
+    assert {"credential", "configuration"} <= set(metabase["blockers"])
+
+
+@respx.mock
+def test_connector_config_save_persists_allowed_fields_and_audits(
+    tmp_path: Path,
+) -> None:
+    session = _session(tmp_path)
+    respx.get("http://onyx.test/api/document-set").mock(
+        return_value=httpx.Response(200, json={"document_sets": []})
+    )
+
+    response = _client(session).post(
+        "/api/settings/connectors/metabase/config",
+        json={
+            "config": {
+                "base_url": "https://metabase.company.test",
+                "ignored": "nope",
+            }
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    connector = response.json()["connector"]
+    expected_config = {
+        "auth_header": "x-api-key",
+        "auth_scheme": "",
+        "base_url": "https://metabase.company.test",
+        "endpoints": "/api/card,/api/dashboard",
+    }
+    assert connector["config"]["values"] == expected_config
+    assert connector["config"]["missing_keys"] == []
+    row = session.get(ConnectorSetting, "metabase")
+    assert row is not None
+    assert row.config_json == expected_config
+    audit = session.query(AuditEvent).filter_by(action="connector_config_save").one()
+    assert audit.metadata_json["config_keys"] == ["auth_header", "auth_scheme", "base_url", "endpoints"]
+
+
+@respx.mock
+def test_custom_connector_secret_requires_encryption_key(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("DREAMFI_CONNECTOR_SECRET_KEY", raising=False)
+    get_settings.cache_clear()
+    session = _session(tmp_path)
+
+    response = _client(session).post(
+        "/api/settings/connectors/metabase/secret",
+        json={"api_key": "metabase-secret-token"},
+    )
+
+    assert response.status_code == 422
+    assert "DREAMFI_CONNECTOR_SECRET_KEY" in response.text
+    assert session.get(ConnectorSetting, "metabase") is None
 
 
 @respx.mock
@@ -153,11 +218,6 @@ def test_validate_records_probe_result_and_activation_blocks_without_persistence
             },
         )
     )
-    client.post(
-        "/api/settings/connectors/jira/secret",
-        json={"api_key": "jira-live-token-123456"},
-    )
-
     validate_response = client.post("/api/settings/connectors/jira/validate")
     activate_response = client.post("/api/settings/connectors/jira/activate")
 
@@ -190,3 +250,41 @@ def test_delete_secret_deactivates_connector(tmp_path: Path) -> None:
     assert row.credential_status == "missing"
     assert row.secret_sha256 is None
     assert row.activation_status == "inactive"
+
+
+@respx.mock
+def test_bridge_document_ingest_persists_and_audits_without_raw_text(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    respx.get("http://onyx.test/api/document-set").mock(
+        return_value=httpx.Response(200, json={"document_sets": []})
+    )
+    respx.post("http://onyx.test/api/admin/document-set").mock(
+        return_value=httpx.Response(200, json={"id": 12, "name": "dreamfi-source-socure"})
+    )
+    respx.post("http://onyx.test/api/onyx-api/ingestion").mock(
+        return_value=httpx.Response(200, json={"document_id": "socure-doc", "already_existed": False})
+    )
+    raw_text = "KYC approval trend improved for thin-file applicants."
+
+    response = _client(session).post(
+        "/api/settings/connectors/socure/documents",
+        json={
+            "documents": [
+                {
+                    "external_id": "decision-summary-1",
+                    "title": "Socure decision summary",
+                    "text": raw_text,
+                    "updated_at": "2026-05-07T12:30:00Z",
+                    "metadata": {"product_area": "identity", "topic_ids": ["kyc"]},
+                }
+            ]
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["sync_run"]["status"] == "success"
+    document = session.query(ConnectorDocument).filter_by(connector_id="socure").one()
+    assert document.title == "Socure decision summary"
+    assert document.metadata_json["dreamfi_scope"]["source_ids"] == ["socure"]
+    audit = session.query(AuditEvent).filter_by(action="connector_bridge_ingest").one()
+    assert raw_text not in json.dumps(audit.metadata_json)

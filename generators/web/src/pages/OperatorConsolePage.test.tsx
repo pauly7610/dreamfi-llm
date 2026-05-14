@@ -22,8 +22,8 @@ describe('OperatorConsolePage', () => {
     expect(screen.getByText(/Good morning/i)).toBeTruthy()
     expect(screen.getByRole('img', { name: 'DreamFi opening illustration' })).toBeTruthy()
     expect(screen.getByText('Open threads')).toBeTruthy()
-    expect(screen.getByText('Source health')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Browse connectors' }).getAttribute('href')).toBe('/console/integrations')
+    expect(screen.getByText('What the sources show')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Open source room' }).getAttribute('href')).toBe('/console/integrations')
     expect(screen.getAllByRole('link', { name: 'Open' })[0].getAttribute('href')).toContain('/console/topics/')
   })
 

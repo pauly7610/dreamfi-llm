@@ -9,6 +9,8 @@ import click
 from sqlalchemy import select
 
 from dreamfi.api.deps import get_onyx_client
+from dreamfi.connectors import CONNECTOR_BY_ID
+from dreamfi.connector_sync import sync_connector
 from dreamfi.db.models import ReplaySchedule
 from dreamfi.db.session import get_sessionmaker
 from dreamfi.learning.loop import run_replay_schedule
@@ -90,10 +92,49 @@ def validate_connectors(skip_probe: bool, strict: bool) -> None:
         raise click.ClickException("connectors are not ready")
 
 
+@main.command("sync-connector")
+@click.argument("connector_id")
+@click.option("--limit", default=None, type=click.IntRange(1, 500))
+def sync_connector_command(connector_id: str, limit: int | None) -> None:
+    """Run one custom connector pull and ingest changed documents into Onyx."""
+    connector = CONNECTOR_BY_ID.get(connector_id.strip().lower())
+    if connector is None:
+        raise click.ClickException(f"unknown connector: {connector_id}")
+    session = get_sessionmaker()()
+    onyx = get_onyx_client()
+    try:
+        run = sync_connector(
+            session=session,
+            onyx=onyx,
+            connector=connector,
+            actor_id="cli",
+            trigger="cli",
+            limit=limit,
+        )
+        session.commit()
+        _echo_json(
+            {
+                "sync_run_id": run.sync_run_id,
+                "connector_id": run.connector_id,
+                "status": run.status,
+                "pulled_count": run.pulled_count,
+                "persisted_count": run.persisted_count,
+                "ingested_count": run.ingested_count,
+                "skipped_count": run.skipped_count,
+                "error_count": run.error_count,
+                "reason": run.reason,
+            }
+        )
+        if run.status != "success":
+            raise click.ClickException(run.reason or "connector sync failed")
+    finally:
+        session.close()
+
+
 @main.command("run-replay")
 @click.option("--limit", default=10, show_default=True, type=click.IntRange(1, 50))
 def run_replay(limit: int) -> None:
-    """Run due gold/workflow replay schedules."""
+    """Run due gold, workflow, and source-refresh schedules."""
     session = get_sessionmaker()()
     onyx = get_onyx_client()
     try:

@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 
 import { ConsoleWorkspaceProvider } from '../components/console/ConsoleWorkspaceContext'
 import { consoleDevelopmentSlice } from '../content/consoleDevelopmentSlice'
-import type { ConsoleIntegration, ConsoleTopicRecord } from '../types/console'
+import type { ConsoleIntegration, ConsoleTopicRecord, SourceInsight } from '../types/console'
 import { currentConsoleLocation } from '../utils/consoleNavigation'
 
 type RenderWithConsoleWorkspaceOptions = {
@@ -11,6 +11,7 @@ type RenderWithConsoleWorkspaceOptions = {
   initialCustomTopics?: ConsoleTopicRecord[]
   path?: string
   persistTopicsToBackend?: boolean
+  sourceInsights?: SourceInsight[]
 }
 
 export function renderWithConsoleWorkspace(
@@ -26,6 +27,7 @@ export function renderWithConsoleWorkspace(
       initialCustomTopics={options.initialCustomTopics}
       location={currentConsoleLocation()}
       integrations={options.integrations ?? consoleDevelopmentSlice.integrations}
+      sourceInsights={options.sourceInsights ?? consoleDevelopmentSlice.source_insights}
       persistTopicsToBackend={options.persistTopicsToBackend ?? false}
     >
       {ui}

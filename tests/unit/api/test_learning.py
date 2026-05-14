@@ -18,6 +18,7 @@ from dreamfi.audit import hash_text
 from dreamfi.db.models import (
     ArtifactFeedback,
     Base,
+    ConnectorSyncRun,
     EvalOutput,
     EvalRound,
     GoldExample,
@@ -483,5 +484,35 @@ def test_due_workflow_replay_records_error_for_unknown_workflow(
     assert run["status"] == "error"
     assert run["reason"] == "ValueError"
     assert "workflow replay schedule requires workflow_slug" in run["summary"]["error"]
+    schedule = session.query(ReplaySchedule).one()
+    assert schedule.last_run_at is not None
+
+
+def test_due_source_refresh_schedule_runs_connector_sync(
+    client: TestClient,
+    session: Session,
+) -> None:
+    session.add(
+        ReplaySchedule(
+            replay_type="source_refresh",
+            cadence_days=1,
+            next_run_at=datetime.now(timezone.utc),
+            created_by="ops",
+            payload_json={"source_ids": ["metabase"]},
+        )
+    )
+    session.commit()
+
+    run_response = client.post("/api/learning/replay-schedules/run-due")
+
+    assert run_response.status_code == 200, run_response.text
+    run = run_response.json()["runs"][0]
+    assert run["status"] == "error"
+    assert run["summary"]["source_count"] == 1
+    assert run["summary"]["failed_count"] == 1
+    sync_run = session.query(ConnectorSyncRun).one()
+    assert sync_run.connector_id == "metabase"
+    assert sync_run.trigger == "scheduled"
+    assert sync_run.status == "failed"
     schedule = session.query(ReplaySchedule).one()
     assert schedule.last_run_at is not None

@@ -8,7 +8,9 @@ import {
   deleteConnectorSecret,
   ensureConnectorDocumentSet,
   fetchSettingsStatus,
+  saveConnectorConfig,
   saveConnectorSecret,
+  syncSettingsConnector,
   validateSettingsConnector,
 } from '../utils/consoleApi'
 
@@ -58,12 +60,20 @@ function toneForRetrieval(status: SettingsConnector['retrieval_status']): Extrac
   return 'warn'
 }
 
+function toneForSetup(connector: SettingsConnector): Extract<ChipTone, 'ready' | 'warn'> {
+  return connector.connection_method === 'onyx_native' ? 'ready' : 'warn'
+}
+
 function labelForBlocker(value: string): string {
   return value.replace(/_/g, ' ')
 }
 
 function emptyAction(): ActionState {
   return { connectorId: null, error: null, label: null }
+}
+
+function configInputId(connectorId: string, fieldKey: string): string {
+  return `settings-${connectorId}-${fieldKey}`
 }
 
 function mergeConnector(status: SettingsStatus | null, connector: SettingsConnector): SettingsStatus | null {
@@ -86,12 +96,16 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
   const [action, setAction] = useState<ActionState>(emptyAction)
   const [keys, setKeys] = useState<Record<string, string>>({})
   const [labels, setLabels] = useState<Record<string, string>>({})
+  const [configs, setConfigs] = useState<Record<string, Record<string, string>>>({})
 
   async function loadStatus() {
     setLoading(true)
     try {
       const payload = await fetchSettingsStatus()
       setStatus(payload)
+      setConfigs(Object.fromEntries(
+        payload.connectors.map((connector) => [connector.connector_id, connector.config.values]),
+      ))
       setAction(emptyAction())
     } catch (error) {
       setAction({
@@ -148,6 +162,13 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
     })
   }
 
+  async function handleConfigSubmit(event: FormEvent<HTMLFormElement>, connectorId: string) {
+    event.preventDefault()
+    await runConnectorAction(connectorId, 'Save config', async () => (
+      saveConnectorConfig({ connector_id: connectorId, config: configs[connectorId] ?? {} })
+    ))
+  }
+
   async function handleActivate(connectorId: string) {
     await runConnectorAction(connectorId, 'Activate', async () => {
       const payload = await activateSettingsConnector(connectorId)
@@ -181,7 +202,7 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
       <div className="surface" style={{ marginBottom: 20 }}>
         <div className="kpi-grid">
           <KPI label="STATUS" value={status?.status ?? '--'} delta={status?.failures.join(', ') || 'all gates clear'} deltaTone={status?.status === 'ready' ? 'up' : 'down'} />
-          <KPI label="ACTIVE" value={status?.summary.active_connector_count ?? 0} delta={`${status?.summary.configured_connector_count ?? 0} configured`} deltaTone="up" />
+          <KPI label="ACTIVE" value={status?.summary.active_connector_count ?? 0} delta={`${status?.summary.configured_connector_count ?? 0} source setups`} deltaTone="up" />
           <KPI label="PERSISTENCE" value={status?.persistence.ready ? 'Ready' : 'Blocked'} delta={status?.persistence.uses_sqlite ? 'SQLite is local only' : 'storage gate'} deltaTone={status?.persistence.ready ? 'up' : 'down'} />
           <KPI label="REPLAY" value={status?.jobs.replay.due_schedule_count ?? 0} delta={`${status?.jobs.replay.error_count_24h ?? 0} errors / 24h`} deltaTone={(status?.jobs.replay.error_count_24h ?? 0) ? 'down' : 'flat'} />
         </div>
@@ -210,7 +231,7 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
         <div className="surface">
           <SectionHead
             title="Connector activation"
-            eyebrow="KEYS / ONYX / FRESHNESS"
+            eyebrow="ONYX / DOCUMENT SETS / FRESHNESS"
             right={selectedConnector ? <Cite connector={connectorKeyFromId(selectedConnector.connector_id)} label={selectedConnector.name} /> : null}
           />
           <div className="table-scroll table-scroll-wide">
@@ -218,17 +239,21 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
               <thead>
                 <tr>
                   <th>Source</th>
-                  <th>Credential</th>
+                  <th>Setup</th>
                   <th>Onyx</th>
                   <th>Probe</th>
                   <th>Activation</th>
-                  <th>Key</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {(status?.connectors ?? []).map((connector) => {
                   const busy = action.connectorId === connector.connector_id
+                  const canRunSync = (
+                    connector.connection_method === 'custom_ingestion'
+                    && (!connector.requires_dreamfi_secret || connector.credential.usable)
+                    && connector.config.missing_keys.length === 0
+                  )
                   return (
                     <tr key={connector.connector_id}>
                       <td>
@@ -241,10 +266,93 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
                         </div>
                       </td>
                       <td>
-                        <Chip tone={connector.credential.status === 'saved' ? 'ready' : 'bad'}>
-                          {connector.credential.masked ?? 'missing'}
-                        </Chip>
-                        <div className="muted">{connector.credential.validated_at ? 'accepted' : 'not accepted'}</div>
+                        <Chip tone={toneForSetup(connector)}>{connector.setup_method}</Chip>
+                        <div className="muted">{connector.setup_detail}</div>
+                        {connector.config_schema.length ? (
+                          <form className="settings-config-form" onSubmit={(event) => void handleConfigSubmit(event, connector.connector_id)}>
+                            <div className="settings-config-fields">
+                              {connector.config_schema.map((field) => {
+                                const fieldId = configInputId(connector.connector_id, field.key)
+                                const helpId = `${fieldId}-help`
+                                const isMissing = connector.config.missing_keys.includes(field.key)
+                                return (
+                                  <label className="settings-config-field" htmlFor={fieldId} key={field.key}>
+                                    <span className="settings-config-label">
+                                      <span>{field.label}</span>
+                                      {field.required ? <span className="settings-required">required</span> : null}
+                                    </span>
+                                    <input
+                                      aria-describedby={field.help_text ? helpId : undefined}
+                                      aria-invalid={isMissing || undefined}
+                                      aria-label={`${connector.name} ${field.label}`}
+                                      autoComplete="off"
+                                      className="field-input"
+                                      id={fieldId}
+                                      onChange={(event) => setConfigs((current) => ({
+                                        ...current,
+                                        [connector.connector_id]: {
+                                          ...(current[connector.connector_id] ?? {}),
+                                          [field.key]: event.target.value,
+                                        },
+                                      }))}
+                                      placeholder={field.placeholder || field.label}
+                                      type="text"
+                                      value={(configs[connector.connector_id] ?? connector.config.values)[field.key] ?? field.default ?? ''}
+                                    />
+                                    {field.help_text ? (
+                                      <span className="settings-config-help" id={helpId}>{field.help_text}</span>
+                                    ) : null}
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            {connector.config.missing_keys.length ? (
+                              <div className="muted">
+                                Missing required config: {connector.config.missing_keys.map(labelForBlocker).join(', ')}
+                              </div>
+                            ) : null}
+                            <div>
+                              <button className="btn btn-sm" disabled={busy} type="submit">
+                                Save config
+                              </button>
+                            </div>
+                          </form>
+                        ) : null}
+                        {connector.requires_dreamfi_secret ? (
+                          <form className="settings-key-form" onSubmit={(event) => void handleSecretSubmit(event, connector.connector_id)}>
+                            <input
+                              aria-label={`${connector.name} DreamFi API key`}
+                              autoComplete="off"
+                              className="field-input"
+                              onChange={(event) => setKeys((current) => ({ ...current, [connector.connector_id]: event.target.value }))}
+                              placeholder="DreamFi-held API key"
+                              type="password"
+                              value={keys[connector.connector_id] ?? ''}
+                            />
+                            <input
+                              aria-label={`${connector.name} key label`}
+                              autoComplete="off"
+                              className="field-input"
+                              onChange={(event) => setLabels((current) => ({ ...current, [connector.connector_id]: event.target.value }))}
+                              placeholder="label"
+                              type="text"
+                              value={labels[connector.connector_id] ?? ''}
+                            />
+                            <button className="btn btn-sm" disabled={busy || !(keys[connector.connector_id] ?? '').trim()} type="submit">
+                              Save
+                            </button>
+                          </form>
+                        ) : (
+                          <div className="muted">DreamFi stores no source secret for this setup.</div>
+                        )}
+                        {connector.credential.masked ? (
+                          <div className="muted">Stored secret: {connector.credential.masked}</div>
+                        ) : null}
+                        {connector.latest_sync ? (
+                          <div className="muted">
+                            Last sync: {connector.latest_sync.status}, {connector.latest_sync.ingested_count} ingested
+                          </div>
+                        ) : null}
                       </td>
                       <td>
                         <Chip tone={toneForReady(connector.document_set_present)}>
@@ -262,39 +370,19 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
                         </Chip>
                         <div className="muted">{connector.blockers.length ? connector.blockers.map(labelForBlocker).join(', ') : 'ready'}</div>
                       </td>
-                      <td style={{ minWidth: 240 }}>
-                        <form className="settings-key-form" onSubmit={(event) => void handleSecretSubmit(event, connector.connector_id)}>
-                          <input
-                            aria-label={`${connector.name} API key`}
-                            autoComplete="off"
-                            className="field-input"
-                            onChange={(event) => setKeys((current) => ({ ...current, [connector.connector_id]: event.target.value }))}
-                            placeholder="API key"
-                            type="password"
-                            value={keys[connector.connector_id] ?? ''}
-                          />
-                          <input
-                            aria-label={`${connector.name} key label`}
-                            autoComplete="off"
-                            className="field-input"
-                            onChange={(event) => setLabels((current) => ({ ...current, [connector.connector_id]: event.target.value }))}
-                            placeholder="label"
-                            type="text"
-                            value={labels[connector.connector_id] ?? ''}
-                          />
-                          <button className="btn btn-sm" disabled={busy || !(keys[connector.connector_id] ?? '').trim()} type="submit">
-                            Save
-                          </button>
-                        </form>
-                      </td>
                       <td>
                         <div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                           <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => void runConnectorAction(connector.connector_id, 'Create document set', () => ensureConnectorDocumentSet(connector.connector_id))} type="button">
                             Doc set
                           </button>
-                          <button className="btn btn-sm btn-ghost" disabled={busy || connector.credential.status !== 'saved'} onClick={() => void runConnectorAction(connector.connector_id, 'Validate', () => validateSettingsConnector(connector.connector_id))} type="button">
+                          <button className="btn btn-sm btn-ghost" disabled={busy || (connector.requires_dreamfi_secret && !connector.credential.usable)} onClick={() => void runConnectorAction(connector.connector_id, 'Validate', () => validateSettingsConnector(connector.connector_id))} type="button">
                             Validate
                           </button>
+                          {connector.connection_method === 'custom_ingestion' ? (
+                            <button className="btn btn-sm btn-ghost" disabled={busy || !canRunSync} onClick={() => void runConnectorAction(connector.connector_id, 'Sync', () => syncSettingsConnector(connector.connector_id))} type="button">
+                              Sync
+                            </button>
+                          ) : null}
                           {connector.activation_status === 'active' ? (
                             <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => void runConnectorAction(connector.connector_id, 'Deactivate', () => deactivateSettingsConnector(connector.connector_id))} type="button">
                               Deactivate
@@ -304,9 +392,11 @@ export default function SettingsPage({ onConsoleDataChanged }: SettingsPageProps
                               Activate
                             </button>
                           )}
-                          <button className="btn btn-sm btn-ghost" disabled={busy || connector.credential.status !== 'saved'} onClick={() => void runConnectorAction(connector.connector_id, 'Delete key', () => deleteConnectorSecret(connector.connector_id))} type="button">
-                            Delete
-                          </button>
+                          {connector.credential.status === 'saved' && connector.credential.storage !== 'env' ? (
+                            <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => void runConnectorAction(connector.connector_id, 'Delete key', () => deleteConnectorSecret(connector.connector_id))} type="button">
+                              Delete
+                            </button>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

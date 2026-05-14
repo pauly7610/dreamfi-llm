@@ -191,7 +191,10 @@ class ConnectorSetting(Base):
     credential_status: Mapped[str] = mapped_column(String, nullable=False, default="missing")
     secret_last_four: Mapped[str | None] = mapped_column(String, nullable=True)
     secret_sha256: Mapped[str | None] = mapped_column(String, nullable=True)
+    secret_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    secret_key_id: Mapped[str | None] = mapped_column(String, nullable=True)
     secret_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    config_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     validation_status: Mapped[str] = mapped_column(String, nullable=False, default="not_validated")
     validation_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -207,6 +210,59 @@ class ConnectorSetting(Base):
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        onupdate=_utc_now,
+    )
+
+
+class ConnectorSyncRun(Base):
+    __tablename__ = "connector_sync_runs"
+    __table_args__ = (
+        Index("ix_connector_sync_runs_connector_started", "connector_id", "started_at"),
+        Index("ix_connector_sync_runs_status_started", "status", "started_at"),
+    )
+
+    sync_run_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    connector_id: Mapped[str] = mapped_column(ForeignKey("connector_settings.connector_id"), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    trigger: Mapped[str] = mapped_column(String, nullable=False, default="manual")
+    pulled_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    persisted_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    ingested_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cursor_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ConnectorDocument(Base):
+    __tablename__ = "connector_documents"
+    __table_args__ = (
+        UniqueConstraint("connector_id", "external_id", name="uq_connector_documents_source_external"),
+        Index("ix_connector_documents_connector_updated", "connector_id", "doc_updated_at"),
+        Index("ix_connector_documents_content_hash", "content_hash"),
+    )
+
+    connector_document_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    connector_id: Mapped[str] = mapped_column(ForeignKey("connector_settings.connector_id"), nullable=False)
+    external_id: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    body_text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    doc_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    sync_run_id: Mapped[str | None] = mapped_column(ForeignKey("connector_sync_runs.sync_run_id"), nullable=True)
+    onyx_document_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    last_ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -374,7 +430,9 @@ __all__ = [
     "ArtifactFeedback",
     "AuditEvent",
     "Base",
+    "ConnectorDocument",
     "ConnectorSetting",
+    "ConnectorSyncRun",
     "ConsoleTopic",
     "EvalOutput",
     "EvalRound",

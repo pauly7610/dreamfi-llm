@@ -2,19 +2,35 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { getConnectorWorkspace } from '../content/connectorWorkspaces'
 import type { ConnectorWorkspaceSection } from '../types/connectorWorkspace'
-import type { ConsolePayload } from '../types/console'
+import type { ConsolePayload, SourcePacketRecord } from '../types/console'
 import { useConsoleWorkspace } from '../components/console/ConsoleWorkspaceContext'
 import { ConnectorChrome } from '../components/connector/ConnectorChrome'
 import { Chip, Cite, KPI, SectionHead, Spark, connectorKeyFromId } from '../components/system/atoms'
 import {
   labelForIntegrationStatus,
   sourceHref,
-  toneForIntegrationStatus,
 } from './redesignSupport'
 
 type SourceNewPageProps = {
   data: ConsolePayload | null
   sourceId: string | null
+}
+
+function formatPacketTime(value: string | null) {
+  return value ? new Date(value).toLocaleDateString() : 'Not synced'
+}
+
+function toneForPacket(packet: SourcePacketRecord) {
+  if (packet.status === 'live') {
+    return 'ready' as const
+  }
+  if (packet.status === 'demo') {
+    return 'signal' as const
+  }
+  if (packet.status === 'stale' || packet.status === 'not_ingested') {
+    return 'warn' as const
+  }
+  return 'bad' as const
 }
 
 function renderSectionBody(section: ConnectorWorkspaceSection) {
@@ -182,32 +198,38 @@ function renderSectionBody(section: ConnectorWorkspaceSection) {
 
 function SourceDirectory({ data }: { data: ConsolePayload | null }) {
   const integrations = data?.integrations ?? []
+  const insightsBySource = new Map((data?.source_insights ?? []).map((insight) => [insight.source_id, insight]))
   return (
     <div className="page">
       <div className="eyebrow" style={{ marginBottom: 12 }}>SOURCES</div>
       <h1 className="display-question" style={{ marginBottom: 24, maxWidth: 820 }}>
-        Open the <em>connector workspace</em> you need.
+        Open the <em>source workspace</em> you need.
       </h1>
 
       <div className="surface">
-        <SectionHead title="Connected systems" eyebrow="SOURCE DIRECTORY" />
+        <SectionHead title="Evidence-producing sources" eyebrow="SOURCE DIRECTORY" />
         <div className="table-scroll table-scroll-medium">
           <table className="dfi-table">
             <tbody>
-              {integrations.map((integration) => (
-                <tr key={integration.id}>
-                  <td>
-                    <Cite connector={connectorKeyFromId(integration.id)} href={sourceHref(integration.id)} label={integration.name} />
-                  </td>
-                  <td className="muted">{integration.purpose}</td>
-                  <td>
-                    <Chip tone={toneForIntegrationStatus(integration.status)}>{labelForIntegrationStatus(integration.status)}</Chip>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <a className="btn btn-sm" href={sourceHref(integration.id)}>Inspect</a>
-                  </td>
-                </tr>
-              ))}
+              {integrations.map((integration) => {
+                const insight = insightsBySource.get(integration.id)
+                return (
+                  <tr key={integration.id}>
+                    <td>
+                      <Cite connector={connectorKeyFromId(integration.id)} href={sourceHref(integration.id)} label={integration.name} />
+                    </td>
+                    <td className="muted">{insight?.finding ?? integration.purpose}</td>
+                    <td>
+                      <Chip tone={insight?.quality.blockers.length ? 'warn' : 'ready'}>
+                        {insight ? `${Math.round(insight.quality.score * 100)} quality` : labelForIntegrationStatus(integration.status)}
+                      </Chip>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a className="btn btn-sm" href={sourceHref(integration.id)}>Inspect</a>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -221,6 +243,9 @@ export function SourceNewPage({ data, sourceId }: SourceNewPageProps) {
   const { buildAskHref, buildGenerateHref, recommendedGeneratorSlug, recommendedGeneratorTitle } = useConsoleWorkspace()
 
   const workspace = useMemo(() => (source ? getConnectorWorkspace(source) : null), [source])
+  const sourceInsights = (data?.source_insights ?? []).filter((insight) => insight.source_id === sourceId)
+  const sourcePackets = (data?.source_packets ?? []).filter((packet) => packet.source_id === sourceId)
+  const sourceContradictions = (data?.source_contradictions ?? []).filter((item) => item.source_ids.includes(sourceId ?? ''))
   const [activeTab, setActiveTab] = useState(workspace?.sections[0]?.id ?? 'overview')
 
   useEffect(() => {
@@ -239,7 +264,10 @@ export function SourceNewPage({ data, sourceId }: SourceNewPageProps) {
         connector={connectorKeyFromId(source.id)}
         name={`${source.name} workspace`}
         subtitle={workspace.connector.workspaceDescription}
-        status={{ tone: toneForIntegrationStatus(source.status), label: labelForIntegrationStatus(source.status) }}
+        status={{
+          tone: sourceInsights.some((insight) => insight.quality.blockers.length) ? 'warn' : 'ready',
+          label: sourceInsights[0] ? `${Math.round(sourceInsights[0].quality.score * 100)} quality` : labelForIntegrationStatus(source.status),
+        }}
         tabs={workspace.sections.map((section) => ({ count: section.table?.rows.length, id: section.id, label: section.label }))}
         activeTab={activeTab}
         onTab={setActiveTab}
@@ -259,6 +287,98 @@ export function SourceNewPage({ data, sourceId }: SourceNewPageProps) {
               ))}
             </div>
           </div>
+
+          {sourceInsights.length > 0 ? (
+            <div className="surface" style={{ marginBottom: 20 }}>
+              <SectionHead title="Current source intelligence" eyebrow="WHAT THIS SOURCE SHOWS" />
+              <div className="table-scroll table-scroll-medium">
+                <table className="dfi-table">
+                  <tbody>
+                    {sourceInsights.map((insight) => (
+                      <tr key={insight.insight_id}>
+                        <td className="strong">{insight.title}</td>
+                        <td className="muted">{insight.finding}</td>
+                        <td className="num">{insight.metric ?? `${Math.round(insight.quality.score * 100)} quality`}</td>
+                        <td>
+                          <Chip tone={insight.quality.blockers.length ? 'warn' : 'ready'}>
+                            {insight.gap ? 'gap declared' : 'usable'}
+                          </Chip>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="surface" style={{ marginBottom: 20 }}>
+            <SectionHead
+              title="Packet history"
+              eyebrow="PERSISTED SOURCE CONTEXT"
+              right={<a className="btn btn-sm btn-ghost" href="/api/console/evidence-export">Export evidence</a>}
+            />
+            <div className="table-scroll table-scroll-wide">
+              <table className="dfi-table">
+                <thead>
+                  <tr>
+                    <th>Packet</th>
+                    <th>Signal</th>
+                    <th>Freshness</th>
+                    <th>Provenance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sourcePackets.length > 0 ? sourcePackets.map((packet) => (
+                    <tr key={packet.packet_id}>
+                      <td>
+                        <div className="strong">{packet.title}</div>
+                        <div className="muted">{packet.owner || source.name}</div>
+                      </td>
+                      <td className="muted">{packet.snippet}</td>
+                      <td>
+                        <Chip tone={toneForPacket(packet)}>
+                          {packet.is_demo ? 'demo packet' : packet.status.replace('_', ' ')}
+                        </Chip>
+                        <div className="muted" style={{ marginTop: 6 }}>{formatPacketTime(packet.doc_updated_at)}</div>
+                      </td>
+                      <td>
+                        <div className="strong">{packet.connector_document_id ?? packet.provenance.kind}</div>
+                        <div className="muted">{packet.sync_run_id ?? packet.external_id ?? 'pending source sync'}</div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td className="strong">No packet history yet</td>
+                      <td className="muted">Add credentials or upload source exports to persist context for this source.</td>
+                      <td><Chip tone="warn">waiting</Chip></td>
+                      <td className="muted">No provenance yet</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {sourceContradictions.length > 0 ? (
+            <div className="surface" style={{ marginBottom: 20 }}>
+              <SectionHead title="Contradictions" eyebrow="VERIFY BEFORE ACTING" />
+              <div className="table-scroll table-scroll-medium">
+                <table className="dfi-table">
+                  <tbody>
+                    {sourceContradictions.map((item) => (
+                      <tr key={item.contradiction_id}>
+                        <td className="strong">{item.title}</td>
+                        <td className="muted">{item.summary}</td>
+                        <td><Chip tone={item.is_demo ? 'signal' : 'warn'}>{item.is_demo ? 'demo' : item.severity}</Chip></td>
+                        <td className="muted">{item.recommended_action}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
 
           <div className="surface" style={{ marginBottom: 20 }}>
             <SectionHead title={selectedSection.title} eyebrow={selectedSection.eyebrow} right={<a className="btn btn-sm btn-ghost" href={sourceHref(source.id)}>Open source route</a>} />

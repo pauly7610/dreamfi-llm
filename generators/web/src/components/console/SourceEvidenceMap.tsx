@@ -58,7 +58,7 @@ function SourceEvidenceMap({ source, preview }: SourceEvidenceMapProps) {
 
       <div className="source-visual-layout">
         <aside className="source-context-rail">
-          <span className="eyebrow">Connector pull</span>
+          <span className="eyebrow">Source pull</span>
           <strong>{preview.primaryDataset}</strong>
           <p>{preview.freshness}</p>
           <div className="source-context-views" aria-label={`${source.name} views in scope`}>

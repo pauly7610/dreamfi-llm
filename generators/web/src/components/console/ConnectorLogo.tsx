@@ -95,7 +95,7 @@ function ConnectorLogo({ id, name, size = 'default' }: ConnectorLogoProps) {
   return (
     <span
       className={`connector-icon connector-icon-${id}${brandMark ? ' has-brand-logo' : ''} connector-icon-${size}`}
-      aria-label={`${name} connector`}
+      aria-label={`${name} source`}
       style={style}
     >
       {brandMark ? brandMark.icon : <ConnectorFallbackGlyph id={id} />}

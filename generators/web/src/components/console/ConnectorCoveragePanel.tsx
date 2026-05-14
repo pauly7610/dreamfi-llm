@@ -10,7 +10,7 @@ type ConnectorCoveragePanelProps = {
 function ConnectorCoveragePanel({ workflow, integrations }: ConnectorCoveragePanelProps) {
   return (
     <aside className="connector-coverage-panel panel">
-      <span className="eyebrow">Connector responsibilities</span>
+      <span className="eyebrow">Source responsibilities</span>
       <h2>What each system can tell us</h2>
       <div className="connector-coverage-list">
         {workflow.connectorCoverage.map((coverage) => {

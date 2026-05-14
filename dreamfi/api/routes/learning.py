@@ -38,7 +38,7 @@ FeedbackOutcome = Literal["approved", "edited", "rejected"]
 GoldGrowthRole = Literal["exemplar", "regression", "counter_example", "canary"]
 ProposalStatus = Literal["draft", "approved", "rejected", "applied"]
 ProductionOutcomeValue = Literal["published", "revised", "ignored", "reverted", "used_in_decision"]
-ReplayType = Literal["gold", "workflow"]
+ReplayType = Literal["gold", "workflow", "source_refresh"]
 
 
 class FeedbackRequest(BaseModel):

@@ -14,6 +14,10 @@ const STATUS_LABEL: Record<ConsoleIntegration['status'], string> = {
   not_configured: 'Setup needed',
 }
 
+function setupLabel(item: ConsoleIntegration): string {
+  return item.setup_method ?? (item.connection_method === 'onyx_native' ? 'Onyx native connector' : 'Custom ingestion')
+}
+
 const SOURCE_GROUPS: Array<{
   id: string
   title: string
@@ -68,8 +72,8 @@ function integrationGroups(items: ConsoleIntegration[]) {
 
 function IntegrationsPanel({
   items,
-  title = 'Browse the sources Product can inspect.',
-  description = 'Open a connector to see what DreamFi can use right now.',
+  title = 'Browse evidence-producing sources.',
+  description = 'Open a source to inspect what its current information says and where it can support a decision.',
 }: IntegrationsPanelProps) {
   if (items.length === 0) {
     return null
@@ -79,7 +83,7 @@ function IntegrationsPanel({
     <section id="sources" className="integrations-panel panel">
       <div className="section-heading inline integrations-panel-header">
         <div className="integrations-panel-copy">
-          <span className="eyebrow">Integrations</span>
+          <span className="eyebrow">Sources</span>
           <h2 className="integrations-panel-title">{title}</h2>
           <p className="section-subtle integrations-panel-description">{description}</p>
         </div>
@@ -91,11 +95,11 @@ function IntegrationsPanel({
       <div className="source-choice-strip" aria-label="How to use the source room">
         <span>
           <strong>1</strong>
-          Pick a connector
+          Pick a source
         </span>
         <span>
           <strong>2</strong>
-          View its data slice
+          Review current signal
         </span>
         <span>
           <strong>3</strong>
@@ -119,7 +123,7 @@ function IntegrationsPanel({
                   <span>
                     <strong>{item.name}</strong>
                     <small>
-                      View data - {STATUS_LABEL[item.status]} - {item.purpose}
+                      {item.purpose} - {setupLabel(item)} - {STATUS_LABEL[item.status]}
                     </small>
                   </span>
                   <span className="source-chip-arrow" aria-hidden="true">

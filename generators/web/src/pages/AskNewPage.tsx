@@ -123,7 +123,7 @@ function buildSuggestionCandidates(
         })),
         ...currentTopic.signals.map((signal) => ({
           question: `What should Product know about ${signal.label.toLowerCase()}?`,
-          note: `Connector signal · ${signal.detail}`,
+          note: `Source signal / ${signal.detail}`,
           kind: 'signal' as const,
           topicId: currentTopic.id,
           sourceId: signal.sourceId ?? null,
@@ -135,13 +135,13 @@ function buildSuggestionCandidates(
     ? [
         {
           question: `What should Product know from ${currentSource.name}?`,
-          note: `Connector scope · ${currentSource.purpose}`,
+          note: `Source scope / ${currentSource.purpose}`,
           kind: 'connector',
           sourceId: currentSource.id,
         },
         {
           question: `What changed in ${currentSource.name} that affects Product?`,
-          note: `Connector context · ${currentSource.used_for.join(', ') || 'grounded product work'}`,
+          note: `Source context / ${currentSource.used_for.join(', ') || 'grounded product work'}`,
           kind: 'connector',
           sourceId: currentSource.id,
         },
@@ -170,7 +170,7 @@ function buildSuggestionCandidates(
         question: topicQuestion
           ? `${topicQuestion.replace(/\?$/, '')} according to ${integration.name}?`
           : `What changed in ${integration.name} that Product should know?`,
-        note: `Connector evidence · ${integration.used_for.join(', ') || integration.category}`,
+        note: `Source evidence / ${integration.used_for.join(', ') || integration.category}`,
         kind: 'connector' as const,
         sourceId: integration.id,
       },
@@ -231,7 +231,7 @@ function buildDynamicSuggestionCandidates(
         })),
         ...currentTopic.signals.map((signal) => ({
           question: `What should Product know about ${signal.label.toLowerCase()}?`,
-          note: `Connector signal / ${signal.detail}`,
+          note: `Source signal / ${signal.detail}`,
           kind: 'signal' as const,
           topicId: currentTopic.id,
           sourceId: signal.sourceId ?? null,
@@ -243,13 +243,13 @@ function buildDynamicSuggestionCandidates(
     ? [
         {
           question: `What should Product know from ${currentSource.name}?`,
-          note: `Connector scope / ${currentSource.purpose}`,
+          note: `Source scope / ${currentSource.purpose}`,
           kind: 'connector',
           sourceId: currentSource.id,
         },
         {
           question: `What changed in ${currentSource.name} that affects Product?`,
-          note: `Connector context / ${currentSource.used_for.join(', ') || 'grounded product work'}`,
+          note: `Source context / ${currentSource.used_for.join(', ') || 'grounded product work'}`,
           kind: 'connector',
           sourceId: currentSource.id,
         },
@@ -278,7 +278,7 @@ function buildDynamicSuggestionCandidates(
         question: topicQuestion
           ? `${topicQuestion.replace(/\?$/, '')} according to ${integration.name}?`
           : `What changed in ${integration.name} that Product should know?`,
-        note: `Connector evidence / ${integration.used_for.join(', ') || integration.category}`,
+        note: `Source evidence / ${integration.used_for.join(', ') || integration.category}`,
         kind: 'connector' as const,
         sourceId: integration.id,
       },
@@ -420,7 +420,7 @@ function answerLead(
   }
 
   if (source) {
-    return `${source.name} is the best source of truth for this question, so the answer should stay close to that connector before it becomes a generated artifact.`
+    return `${source.name} is the best source of truth for this question, so the answer should stay close to that source before it becomes a generated artifact.`
   }
 
   return 'DreamFi should answer from connected evidence, show confidence and caveats, and keep the next move easy to take.'
@@ -440,7 +440,7 @@ function answerDetail(
   }
 
   if (source) {
-    return `Status: ${labelForIntegrationStatus(source.status)}. ${source.purpose}`
+    return `${source.name} can support this answer with ${source.purpose.toLowerCase()}. Current evidence posture: ${labelForIntegrationStatus(source.status)}.`
   }
 
   return 'Scope to a topic or source when you want the answer to stay tightly grounded and easier to turn into an artifact.'
@@ -466,7 +466,7 @@ function buildInsights(
       {
         eyebrow: mode === 'where' ? 'FRICTION' : 'EVIDENCE',
         title: secondarySignal?.label ?? workflow.currentState.step,
-        body: secondarySignal ? `${secondarySignal.value} — ${secondarySignal.detail}` : workflow.nextDecision,
+        body: secondarySignal ? `${secondarySignal.value} / ${secondarySignal.detail}` : workflow.nextDecision,
         sourceId: secondarySignal?.sourceId,
       },
       {
@@ -481,7 +481,7 @@ function buildInsights(
   if (topic) {
     return topic.signals.slice(0, 3).map((signal, index) => ({
       eyebrow: index === 0 ? 'WHAT WE KNOW' : index === 1 ? 'SUPPORTING SIGNAL' : 'WATCHOUT',
-      title: `${signal.label} · ${signal.value}`,
+      title: `${signal.label} / ${signal.value}`,
       body: signal.detail,
       sourceId: signal.sourceId,
     }))
@@ -498,13 +498,13 @@ function buildInsights(
       {
         eyebrow: 'BEST FOR',
         title: `Use ${source.name} before expanding the answer`,
-        body: `This connector is currently used for ${source.used_for.join(', ') || 'grounded product work'}.`,
+        body: `This source is currently used for ${source.used_for.join(', ') || 'grounded product work'}.`,
         sourceId: source.id,
       },
       {
         eyebrow: 'WATCHOUT',
         title: 'Keep the caveat visible',
-        body: `Current status is ${labelForIntegrationStatus(source.status)}. Any generated follow-up should keep that posture explicit.`,
+        body: `Current evidence posture is ${labelForIntegrationStatus(source.status)}. Any generated follow-up should keep that caveat explicit.`,
         sourceId: source.id,
       },
     ]
@@ -797,7 +797,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
                     }}
                   />
                   <div style={{ marginTop: 10, color: 'var(--ink-3)', fontSize: 11 }}>
-                    Recent questions and connector-aware autofill update as you type.
+                    Recent questions and source-aware autofill update as you type.
                   </div>
                   {currentTopicId ? <input name="topic" type="hidden" value={currentTopicId} /> : null}
                   {currentSourceId ? <input name="source" type="hidden" value={currentSourceId} /> : null}
@@ -1162,7 +1162,7 @@ export function AskNewPage({ data }: AskNewPageProps) {
           </div>
           <div className="ask-next-card">
             <div className="eyebrow">03</div>
-            <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{currentSource ? 'Inspect connector' : 'Open source directory'}</div>
+            <div style={{ color: 'var(--ink-0)', fontSize: 14, fontWeight: 500 }}>{currentSource ? 'Inspect source' : 'Open source directory'}</div>
             <div style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>
               {currentSource ? `Stay inside ${currentSource.name} before you publish.` : 'Jump into the one system you need most.'}
             </div>

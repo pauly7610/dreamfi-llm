@@ -52,7 +52,7 @@ describe('AskPage', () => {
     expect(screen.getByRole('link', { name: 'Inspect' }).getAttribute('href')).toBe('/console/integrations/klaviyo')
   })
 
-  it('offers recent and connector-aware autofill suggestions inside the ask composer', () => {
+  it('offers recent and source-aware autofill suggestions inside the ask composer', () => {
     window.localStorage.setItem(
       'dreamfi.console.recent-asks',
       JSON.stringify([
@@ -68,7 +68,7 @@ describe('AskPage', () => {
       path: '/console/knowledge/ask?topic=funding',
     })
 
-    expect(screen.getByText('Recent questions and connector-aware autofill update as you type.')).toBeTruthy()
+    expect(screen.getByText('Recent questions and source-aware autofill update as you type.')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Should we change the manual review threshold\?/i })).toBeTruthy()
 
     const textarea = screen.getByRole('textbox', { name: 'Question' }) as HTMLTextAreaElement

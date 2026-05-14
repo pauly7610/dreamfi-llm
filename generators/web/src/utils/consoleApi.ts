@@ -175,6 +175,31 @@ export async function saveConnectorSecret(request: {
   return parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
 }
 
+export async function saveConnectorConfig(request: {
+  connector_id: string
+  config: Record<string, string>
+}): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(request.connector_id)}/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config: request.config }),
+  })
+  return parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+}
+
+export async function syncSettingsConnector(
+  connectorId: string,
+): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {
+  const response = await fetch(`/api/settings/connectors/${encodeURIComponent(connectorId)}/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  const payload = await parseJsonResponse<{ connector: SettingsStatus['connectors'][number]; settings_status: string }>(response)
+  refreshConsoleData()
+  return payload
+}
+
 export async function validateSettingsConnector(
   connectorId: string,
 ): Promise<{ connector: SettingsStatus['connectors'][number]; settings_status: string }> {

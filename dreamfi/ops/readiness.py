@@ -62,6 +62,9 @@ def environment_readiness() -> dict[str, Any]:
         for secret in (settings.dreamfi_api_token, settings.dreamfi_auth_password)
     )
     auth_configured = not settings.dreamfi_auth_enabled or auth_secret_configured
+    connector_secret_key_configured = bool(settings.dreamfi_connector_secret_key) and not is_placeholder(
+        settings.dreamfi_connector_secret_key
+    )
     required: list[dict[str, Any]] = [
         {
             "name": "DATABASE_URL",
@@ -91,10 +94,17 @@ def environment_readiness() -> dict[str, Any]:
             "configured": auth_configured,
             "detail": "Basic auth or bearer token must be configured when auth is enabled.",
         },
+        {
+            "name": "DREAMFI_CONNECTOR_SECRET_KEY",
+            "present": bool(settings.dreamfi_connector_secret_key),
+            "configured": connector_secret_key_configured,
+            "detail": "Required to store custom connector API keys from Settings.",
+        },
     ]
     placeholder_values = {
         "DREAMFI_AUTH_PASSWORD": settings.dreamfi_auth_password,
         "DREAMFI_API_TOKEN": settings.dreamfi_api_token,
+        "DREAMFI_CONNECTOR_SECRET_KEY": settings.dreamfi_connector_secret_key,
         "ONYX_API_KEY": settings.onyx_api_key,
     }
     placeholder_hits = sorted(
@@ -157,6 +167,8 @@ def bootstrap_connector_document_sets(
                 "connector_id": connector.connector_id,
                 "name": connector.name,
                 "expected_document_set": connector.expected_document_set,
+                "connection_method": connector.connection_method,
+                "setup_method": connector.setup_method,
                 "document_set_id": existing.id if existing is not None else None,
                 "exists": existing is not None,
                 "created": created,
@@ -183,6 +195,8 @@ def connector_readiness(
                     "connector_id": connector.connector_id,
                     "name": connector.name,
                     "expected_document_set": connector.expected_document_set,
+                    "connection_method": connector.connection_method,
+                    "setup_method": connector.setup_method,
                     "status": "degraded",
                     "document_set_present": False,
                     "retrieval_status": "not_checked",
@@ -240,6 +254,8 @@ def connector_readiness(
                 "name": connector.name,
                 "category": connector.category,
                 "expected_document_set": connector.expected_document_set,
+                "connection_method": connector.connection_method,
+                "setup_method": connector.setup_method,
                 "document_set_present": document_set_present,
                 "retrieval_status": retrieval_status,
                 "freshest_document_at": freshest_document_at,

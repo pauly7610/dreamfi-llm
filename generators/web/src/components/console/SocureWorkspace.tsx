@@ -106,7 +106,7 @@ function SocureWorkspace({ relatedTopics, workspace }: SocureWorkspaceProps) {
       <div className="socure-workspace-grid">
         <aside className="socure-rail">
           <div className="socure-rail-section">
-            <span className="eyebrow">Connector pull</span>
+            <span className="eyebrow">Source pull</span>
             <strong>{workspace.connector.primaryDataset}</strong>
             <p>{workspace.connector.freshness}</p>
           </div>

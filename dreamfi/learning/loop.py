@@ -548,6 +548,86 @@ def run_replay_schedule(
                 "confidence": float(output.confidence or 0.0),
                 "export_readiness": float(output.export_readiness or 0.0),
             }
+        elif schedule.replay_type == "source_refresh":
+            from dreamfi.connector_sync import sync_connector
+            from dreamfi.connectors import CONNECTOR_BY_ID
+            from dreamfi.settings_activation import ensure_connector_document_set
+
+            raw_source_ids = schedule.payload_json.get("source_ids") or list(CONNECTOR_BY_ID.keys())
+            if not isinstance(raw_source_ids, list):
+                raise ValueError("source_refresh schedule requires source_ids list")
+            source_ids = [str(source_id).strip().lower() for source_id in raw_source_ids if str(source_id).strip()]
+            sync_limit = schedule.payload_json.get("limit")
+            connector_results: list[dict[str, Any]] = []
+            for source_id in source_ids:
+                connector = CONNECTOR_BY_ID.get(source_id)
+                if connector is None:
+                    connector_results.append(
+                        {
+                            "connector_id": source_id,
+                            "status": "failed",
+                            "reason": "unknown connector",
+                        }
+                    )
+                    continue
+                if connector.connection_method == "custom_ingestion":
+                    connector_run = sync_connector(
+                        session=session,
+                        onyx=onyx,
+                        connector=connector,
+                        actor_id="source-refresh-schedule",
+                        trigger="scheduled",
+                        limit=sync_limit if isinstance(sync_limit, int) else None,
+                    )
+                    connector_results.append(
+                        {
+                            "connector_id": connector.connector_id,
+                            "connection_method": connector.connection_method,
+                            "status": connector_run.status,
+                            "sync_run_id": connector_run.sync_run_id,
+                            "pulled_count": connector_run.pulled_count,
+                            "persisted_count": connector_run.persisted_count,
+                            "ingested_count": connector_run.ingested_count,
+                            "skipped_count": connector_run.skipped_count,
+                            "error_count": connector_run.error_count,
+                            "reason": connector_run.reason,
+                        }
+                    )
+                    continue
+                try:
+                    setting = ensure_connector_document_set(
+                        session=session,
+                        onyx=onyx,
+                        connector=connector,
+                        actor_id="source-refresh-schedule",
+                    )
+                    connector_results.append(
+                        {
+                            "connector_id": connector.connector_id,
+                            "connection_method": connector.connection_method,
+                            "status": "success",
+                            "document_set_id": setting.document_set_id,
+                            "document_set_name": setting.document_set_name,
+                        }
+                    )
+                except Exception as exc:
+                    connector_results.append(
+                        {
+                            "connector_id": connector.connector_id,
+                            "connection_method": connector.connection_method,
+                            "status": "failed",
+                            "reason": f"{type(exc).__name__}: {exc}",
+                        }
+                    )
+
+            failed_results = [item for item in connector_results if item.get("status") != "success"]
+            run.status = "success" if not failed_results else "error"
+            run.reason = None if not failed_results else f"{len(failed_results)} source refresh task(s) failed"
+            run.summary_json = {
+                "source_refresh": connector_results,
+                "source_count": len(connector_results),
+                "failed_count": len(failed_results),
+            }
         else:
             raise ValueError(f"unsupported replay_type: {schedule.replay_type}")
     except Exception as exc:

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 import { productTopics, type ProductTopic } from '../../content/productTopics'
 import { shouldForceDevelopmentSlice, shouldUseDevelopmentSlice } from '../../content/consoleDevelopmentSlice'
-import type { ConsoleIntegration, ConsoleTopicRecord } from '../../types/console'
+import type { ConsoleIntegration, ConsoleTopicRecord, SourceInsight } from '../../types/console'
 import type { ConsoleLocation } from '../../utils/consoleNavigation'
 import { navigateConsole } from '../../utils/consoleNavigation'
 import {
@@ -74,6 +74,7 @@ type ConsoleWorkspaceProviderProps = {
   integrations: ConsoleIntegration[]
   location: ConsoleLocation
   persistTopicsToBackend?: boolean
+  sourceInsights?: SourceInsight[]
 }
 
 const ConsoleWorkspaceContext = createContext<ConsoleWorkspaceContextValue | null>(null)
@@ -270,35 +271,54 @@ function createTopicId(title: string, existingTopics: ProductTopic[]): string {
   return candidateId
 }
 
-function buildCustomTopic(topic: StoredCustomTopic, integrations: ConsoleIntegration[]): ProductTopic {
+function metricValueForInsight(insight: SourceInsight): string {
+  if (insight.metric && insight.metric.length <= 36) {
+    return insight.metric
+  }
+
+  return `${Math.round(insight.quality.score * 100)} quality`
+}
+
+function buildCustomTopic(
+  topic: StoredCustomTopic,
+  integrations: ConsoleIntegration[],
+  sourceInsights: SourceInsight[],
+): ProductTopic {
   const sourceIds = normalizeSourceIds(topic.source_ids)
   const sourceIntegrations = sourceIds
     .map((sourceId) => integrations.find((integration) => integration.id === sourceId) ?? null)
     .filter((integration): integration is ConsoleIntegration => Boolean(integration))
     .slice(0, 3)
+  const insightsBySource = new Map(sourceInsights.map((insight) => [insight.source_id, insight]))
 
   const toplineMetrics = sourceIntegrations.length > 0
-    ? sourceIntegrations.map((integration) => ({
-        label: integration.name,
-        value: integration.status === 'degraded' ? 'Watch' : integration.status === 'not_configured' ? 'Setup' : 'Connected',
-        detail: integration.purpose,
-        sourceId: integration.id,
-      }))
+    ? sourceIntegrations.map((integration) => {
+        const insight = insightsBySource.get(integration.id)
+        return {
+          label: integration.name,
+          value: insight ? metricValueForInsight(insight) : 'Evidence',
+          detail: insight?.finding ?? integration.purpose,
+          sourceId: integration.id,
+        }
+      })
     : [
         {
           label: 'Signals linked',
           value: '0',
-          detail: 'Pick at least one connector to ground this room.',
+          detail: 'Pick at least one source to ground this room.',
         },
       ]
 
   const signals = sourceIntegrations.length > 0
-    ? sourceIntegrations.map((integration) => ({
-        label: `${integration.name} signal`,
-        value: integration.status === 'degraded' ? 'Needs attention' : integration.status === 'not_configured' ? 'Setup needed' : 'Fresh',
-        detail: `Use ${integration.name} for ${integration.purpose.toLowerCase()}.`,
-        sourceId: integration.id,
-      }))
+    ? sourceIntegrations.map((integration) => {
+        const insight = insightsBySource.get(integration.id)
+        return {
+          label: insight?.title ?? `${integration.name} signal`,
+          value: insight ? metricValueForInsight(insight) : 'Evidence',
+          detail: insight?.gap ?? insight?.decision_relevance ?? `Use ${integration.name} for ${integration.purpose.toLowerCase()}.`,
+          sourceId: integration.id,
+        }
+      })
     : [
         {
           label: 'Next step',
@@ -329,12 +349,13 @@ export function ConsoleWorkspaceProvider({
   integrations,
   location,
   persistTopicsToBackend = !(shouldUseDevelopmentSlice() || shouldForceDevelopmentSlice()),
+  sourceInsights = [],
 }: ConsoleWorkspaceProviderProps) {
   const searchParams = new URLSearchParams(location.search)
   const [customTopics, setCustomTopics] = useState<StoredCustomTopic[]>(
     () => initialCustomTopics ?? (persistTopicsToBackend ? [] : loadCustomTopics()),
   )
-  const topics = [...customTopics.map((topic) => buildCustomTopic(topic, integrations)), ...productTopics]
+  const topics = [...customTopics.map((topic) => buildCustomTopic(topic, integrations, sourceInsights)), ...productTopics]
   const currentQuestion = (searchParams.get('q') || '').trim()
   const currentTopicId = searchParams.get('topic') ?? topicIdFromPath(location.path)
   const currentSourceId = searchParams.get('source') ?? sourceIdFromPath(location.path)
@@ -479,7 +500,7 @@ export function ConsoleWorkspaceProvider({
 
     if (!persistTopicsToBackend) {
       setCustomTopics((existing) => [candidateTopic, ...existing.filter((topic) => topic.id !== candidateTopic.id)])
-      return buildCustomTopic(candidateTopic, integrations)
+      return buildCustomTopic(candidateTopic, integrations, sourceInsights)
     }
 
     const response = await fetch('/api/console/topics', {
@@ -510,7 +531,7 @@ export function ConsoleWorkspaceProvider({
 
     const storedTopic = (await response.json()) as StoredCustomTopic
     setCustomTopics((existing) => [storedTopic, ...existing.filter((topic) => topic.id !== storedTopic.id)])
-    return buildCustomTopic(storedTopic, integrations)
+    return buildCustomTopic(storedTopic, integrations, sourceInsights)
   }
 
   function openAskPalette(options: WorkspaceAskOptions = {}) {
