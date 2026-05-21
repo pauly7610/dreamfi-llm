@@ -14,6 +14,6 @@ COPY scripts /app/scripts
 
 RUN pip install -U pip && pip install .
 
-EXPOSE 5001
+EXPOSE 8080
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn dreamfi.api.app:app --host 0.0.0.0 --port ${PORT:-5001}"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn dreamfi.api.app:app --host 0.0.0.0 --port ${PORT:-8080}"]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -63,7 +64,7 @@ def test_custom_connector_sync_persists_and_ingests_changed_documents(
                 {
                     "id": 10,
                     "name": "KYC conversion",
-                    "updated_at": "2026-05-07T12:00:00Z",
+                    "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                     "dataset_query": {"database": 1},
                 }
             ],
