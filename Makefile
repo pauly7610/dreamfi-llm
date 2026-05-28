@@ -1,4 +1,4 @@
-.PHONY: help bootstrap onyx-up dreamfi-up test test-live lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay backup-db ops-status run-round console
+.PHONY: help bootstrap onyx-up dreamfi-up test test-live test-go build-go run-go templ-generate lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay backup-db ops-status run-round console
 
 help:
 	@echo "bootstrap        - one-shot: bring up Onyx + DreamFi"
@@ -6,6 +6,9 @@ help:
 	@echo "dreamfi-up       - start DreamFi API + Postgres"
 	@echo "dreamfi-down     - stop DreamFi API + Postgres"
 	@echo "test             - all unit + mocked integration tests"
+	@echo "test-go          - Go backend + templ unit tests"
+	@echo "build-go         - build the Go DreamFi service"
+	@echo "run-go           - run the Go DreamFi service"
 	@echo "test-live        - tests that require a live Onyx"
 	@echo "migrate          - alembic upgrade head"
 	@echo "seed             - register skills + create Onyx personas"
@@ -33,6 +36,18 @@ dreamfi-down:
 
 test:
 	pytest -m "not live_onyx" -q
+
+templ-generate:
+	go run github.com/a-h/templ/cmd/templ@v0.3.1001 generate
+
+test-go: templ-generate
+	go test ./...
+
+build-go: templ-generate
+	go build ./cmd/dreamfi
+
+run-go: templ-generate
+	go run ./cmd/dreamfi
 
 test-live:
 	pytest -m live_onyx -q
