@@ -1,0 +1,238 @@
+package templates
+
+type NavItem struct {
+	Label string
+	Href  string
+}
+
+type ConsoleData struct {
+	ProductName string
+	Status      string
+	PrimaryNav  []NavItem
+}
+
+templ ConsoleShell(data ConsoleData) {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ data.ProductName }</title>
+			<style>
+				:root {
+					color-scheme: light;
+					--bg: #f7f8fa;
+					--panel: #ffffff;
+					--ink: #17202a;
+					--muted: #607080;
+					--line: #d9e0e7;
+					--accent: #1a7f64;
+					--warn: #b96014;
+				}
+				* { box-sizing: border-box; }
+				body {
+					margin: 0;
+					font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+					background: var(--bg);
+					color: var(--ink);
+				}
+				.shell {
+					min-height: 100vh;
+					display: grid;
+					grid-template-columns: minmax(210px, 16vw) 1fr;
+				}
+				.sidebar {
+					border-right: 1px solid var(--line);
+					background: #ffffff;
+					padding: 20px 16px;
+				}
+				.brand {
+					font-size: 18px;
+					font-weight: 700;
+					margin: 0 0 24px;
+				}
+				.nav {
+					display: grid;
+					gap: 6px;
+				}
+				.nav a {
+					color: var(--ink);
+					text-decoration: none;
+					padding: 10px 12px;
+					border-radius: 8px;
+					font-size: 14px;
+					font-weight: 600;
+				}
+				.nav a:hover {
+					background: #eef3f6;
+				}
+				.main {
+					min-width: 0;
+					display: grid;
+					grid-template-rows: auto 1fr;
+				}
+				.topbar {
+					height: 64px;
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					padding: 0 28px;
+					border-bottom: 1px solid var(--line);
+					background: rgba(255, 255, 255, 0.86);
+				}
+				.topbar h1 {
+					font-size: 18px;
+					margin: 0;
+				}
+				.status {
+					display: inline-flex;
+					align-items: center;
+					gap: 8px;
+					font-size: 13px;
+					font-weight: 700;
+					color: var(--muted);
+				}
+				.status-dot {
+					width: 9px;
+					height: 9px;
+					border-radius: 50%;
+					background: var(--warn);
+				}
+				.status[data-state="reachable"] .status-dot {
+					background: var(--accent);
+				}
+				.workspace {
+					padding: 28px;
+					display: grid;
+					grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+					gap: 16px;
+					align-content: start;
+				}
+				.panel {
+					background: var(--panel);
+					border: 1px solid var(--line);
+					border-radius: 8px;
+					padding: 18px;
+					min-height: 180px;
+				}
+				.panel h2 {
+					font-size: 15px;
+					margin: 0 0 12px;
+				}
+				.metric-grid {
+					display: grid;
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+					gap: 10px;
+				}
+				.metric {
+					border: 1px solid var(--line);
+					border-radius: 8px;
+					padding: 12px;
+				}
+				.metric strong {
+					display: block;
+					font-size: 24px;
+					line-height: 1.2;
+				}
+				.metric span {
+					color: var(--muted);
+					font-size: 12px;
+					font-weight: 700;
+				}
+				.queue {
+					display: grid;
+					gap: 10px;
+				}
+				.queue-row {
+					border-bottom: 1px solid var(--line);
+					padding-bottom: 10px;
+				}
+				.queue-row:last-child {
+					border-bottom: 0;
+					padding-bottom: 0;
+				}
+				.queue-row strong {
+					display: block;
+					font-size: 14px;
+				}
+				.queue-row span {
+					color: var(--muted);
+					font-size: 12px;
+				}
+				@media (max-width: 820px) {
+					.shell {
+						grid-template-columns: 1fr;
+					}
+					.sidebar {
+						border-right: 0;
+						border-bottom: 1px solid var(--line);
+					}
+					.nav {
+						grid-template-columns: repeat(3, minmax(0, 1fr));
+					}
+					.workspace {
+						grid-template-columns: 1fr;
+						padding: 16px;
+					}
+				}
+			</style>
+		</head>
+		<body>
+			<div class="shell">
+				<aside class="sidebar">
+					<p class="brand">{ data.ProductName }</p>
+					<nav class="nav" aria-label="Primary">
+						for _, item := range data.PrimaryNav {
+							<a href={ item.Href }>{ item.Label }</a>
+						}
+					</nav>
+				</aside>
+				<main class="main">
+					<header class="topbar">
+						<h1>Operator Console</h1>
+						<div class="status" data-state={ data.Status }>
+							<span class="status-dot"></span>
+							<span>Onyx { data.Status }</span>
+						</div>
+					</header>
+					<section class="workspace" aria-label="Console workspace">
+						<div class="panel">
+							<h2>Review Posture</h2>
+							<div class="metric-grid">
+								<div class="metric">
+									<strong>9</strong>
+									<span>Skills</span>
+								</div>
+								<div class="metric">
+									<strong>0</strong>
+									<span>Blocked</span>
+								</div>
+								<div class="metric">
+									<strong>3</strong>
+									<span>Due</span>
+								</div>
+							</div>
+						</div>
+						<div class="panel">
+							<h2>Priority Queue</h2>
+							<div class="queue">
+								<div class="queue-row">
+									<strong>Source activation</strong>
+									<span>Confirm connector readiness before publishing.</span>
+								</div>
+								<div class="queue-row">
+									<strong>Trust review</strong>
+									<span>Evaluate blocked artifacts and prompt proposals.</span>
+								</div>
+								<div class="queue-row">
+									<strong>Replay cadence</strong>
+									<span>Run due gold and workflow replays.</span>
+								</div>
+							</div>
+						</div>
+					</section>
+				</main>
+			</div>
+		</body>
+	</html>
+}
