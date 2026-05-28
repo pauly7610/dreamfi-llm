@@ -50,6 +50,20 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
 - `Makefile` gets explicit Go/templ targets so reviewers can run the migrated
   path directly.
 
+## Phase 2 Scope
+
+- `internal/store` starts the Go persistence layer over DreamFi's existing SQL
+  tables.
+- The repository uses dialect-aware placeholders so the migrated code path can
+  run against Postgres while tests stay local.
+- SQLite-backed tests exercise true persistence paths for skills, prompt
+  versions, eval rounds, outputs, publish logs, connector settings, audit
+  events, artifact feedback, learning proposals, and replay schedules.
+- CI runs templ generation checks and Go tests alongside the existing Python
+  and frontend parity suites.
+- This phase still does not edit shipped Alembic revisions or cut traffic over
+  from the Python app.
+
 ## PR Language
 
 Use this language in PR descriptions unless the phase has a stronger, more
