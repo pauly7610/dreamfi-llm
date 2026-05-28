@@ -104,6 +104,18 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
   to where DreamFi is at now, eng-ready, test-driven, and backed by true code
   paths.
 
+## Phase 6 Scope
+
+- `web/templates` starts replacing static console placeholders with live,
+  store-backed templ rendering from the Go service.
+- `/api/console` now returns Go-computed summary, artifact queue, and quick
+  action data from persisted skills, prompt versions, eval outputs, and publish
+  logs.
+- `/console` renders those same true code paths through templ so frontend
+  migration review can inspect the server-rendered surface directly.
+- This phase keeps the frontend migration in templ while preserving the phased,
+  eng-reviewable path toward complete React replacement.
+
 ## PR Language
 
 Use this language in PR descriptions unless the phase has a stronger, more

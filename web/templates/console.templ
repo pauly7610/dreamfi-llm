@@ -7,8 +7,31 @@ type NavItem struct {
 
 type ConsoleData struct {
 	ProductName string
+	Headline    string
 	Status      string
 	PrimaryNav  []NavItem
+	Metrics     []ConsoleMetric
+	Queue       []ConsoleQueueItem
+	Actions     []ConsoleAction
+}
+
+type ConsoleMetric struct {
+	Label  string
+	Value  string
+	Detail string
+	Tone   string
+}
+
+type ConsoleQueueItem struct {
+	Title  string
+	Detail string
+	Status string
+}
+
+type ConsoleAction struct {
+	Label string
+	Href  string
+	Kind  string
 }
 
 templ ConsoleShell(data ConsoleData) {
@@ -139,6 +162,12 @@ templ ConsoleShell(data ConsoleData) {
 					font-size: 12px;
 					font-weight: 700;
 				}
+				.metric small {
+					display: block;
+					margin-top: 6px;
+					color: var(--muted);
+					font-size: 12px;
+				}
 				.queue {
 					display: grid;
 					gap: 10px;
@@ -158,6 +187,39 @@ templ ConsoleShell(data ConsoleData) {
 				.queue-row span {
 					color: var(--muted);
 					font-size: 12px;
+				}
+				.badge {
+					display: inline-flex;
+					margin-top: 6px;
+					font-size: 11px;
+					font-weight: 800;
+					color: var(--muted);
+					text-transform: uppercase;
+				}
+				.actions {
+					margin-top: 16px;
+					display: flex;
+					flex-wrap: wrap;
+					gap: 8px;
+				}
+				.action-link {
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					min-height: 36px;
+					padding: 0 12px;
+					border: 1px solid var(--line);
+					border-radius: 8px;
+					color: var(--ink);
+					text-decoration: none;
+					font-size: 13px;
+					font-weight: 800;
+					background: #ffffff;
+				}
+				.action-link[data-kind="primary"] {
+					border-color: var(--accent);
+					background: var(--accent);
+					color: #ffffff;
 				}
 				@media (max-width: 820px) {
 					.shell {
@@ -189,7 +251,7 @@ templ ConsoleShell(data ConsoleData) {
 				</aside>
 				<main class="main">
 					<header class="topbar">
-						<h1>Operator Console</h1>
+						<h1>{ data.Headline }</h1>
 						<div class="status" data-state={ data.Status }>
 							<span class="status-dot"></span>
 							<span>Onyx { data.Status }</span>
@@ -199,35 +261,38 @@ templ ConsoleShell(data ConsoleData) {
 						<div class="panel">
 							<h2>Review Posture</h2>
 							<div class="metric-grid">
-								<div class="metric">
-									<strong>9</strong>
-									<span>Skills</span>
-								</div>
-								<div class="metric">
-									<strong>0</strong>
-									<span>Blocked</span>
-								</div>
-								<div class="metric">
-									<strong>3</strong>
-									<span>Due</span>
-								</div>
+								for _, metric := range data.Metrics {
+									<div class="metric" data-tone={ metric.Tone }>
+										<strong>{ metric.Value }</strong>
+										<span>{ metric.Label }</span>
+										if metric.Detail != "" {
+											<small>{ metric.Detail }</small>
+										}
+									</div>
+								}
+							</div>
+							<div class="actions">
+								for _, action := range data.Actions {
+									<a class="action-link" data-kind={ action.Kind } href={ action.Href }>{ action.Label }</a>
+								}
 							</div>
 						</div>
 						<div class="panel">
 							<h2>Priority Queue</h2>
 							<div class="queue">
-								<div class="queue-row">
-									<strong>Source activation</strong>
-									<span>Confirm connector readiness before publishing.</span>
-								</div>
-								<div class="queue-row">
-									<strong>Trust review</strong>
-									<span>Evaluate blocked artifacts and prompt proposals.</span>
-								</div>
-								<div class="queue-row">
-									<strong>Replay cadence</strong>
-									<span>Run due gold and workflow replays.</span>
-								</div>
+								if len(data.Queue) == 0 {
+									<div class="queue-row">
+										<strong>No artifacts yet</strong>
+										<span>Generate a workflow artifact to populate the review queue.</span>
+									</div>
+								}
+								for _, item := range data.Queue {
+									<div class="queue-row">
+										<strong>{ item.Title }</strong>
+										<span>{ item.Detail }</span>
+										<em class="badge">{ item.Status }</em>
+									</div>
+								}
 							</div>
 						</div>
 					</section>
