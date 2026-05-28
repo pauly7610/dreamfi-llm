@@ -16,6 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Generate templ
+        run: go run github.com/a-h/templ/cmd/templ@v0.3.1001 generate
+
+      - name: Check generated templ
+        run: git diff --exit-code web/templates
+
+      - name: Go tests
+        run: go test ./...
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
