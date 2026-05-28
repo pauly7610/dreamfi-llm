@@ -116,6 +116,18 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
 - This phase keeps the frontend migration in templ while preserving the phased,
   eng-reviewable path toward complete React replacement.
 
+## Phase 7 Scope
+
+- Docker and Railway now default to the Go DreamFi binary after running the
+  existing Alembic migration step.
+- Local `make console` points at the Go service so the default developer path
+  matches the backend repo migration direction.
+- The Python app remains in the repository as the parity oracle and migration
+  support layer until the remaining legacy-only operations are retired in
+  follow-up cleanup.
+- This completes the deployment cutover phase of the VP of Eng migration while
+  keeping DB migrations and existing tests intact.
+
 ## PR Language
 
 Use this language in PR descriptions unless the phase has a stronger, more
