@@ -33,10 +33,13 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
 4. Phase 4 skill engine and governance: port prompt rendering, confidence scoring,
    eval-round persistence, promotion decisions, publish guards, gold drift, and
    learning proposal flows.
-5. Phase 5 templ console parity: replace React routes with templ pages backed directly
+5. Phase 5 workflow API parity: move Ask, workflow catalog, and generated
+   artifact creation onto Go routes backed by the real Onyx client, store,
+   confidence scoring, export-readiness checks, and audit events.
+6. Phase 6 templ console parity: replace React routes with templ pages backed directly
    by Go handlers for Ask, topic rooms, sources, generated artifacts, review,
    trust, methodology, and settings.
-6. Phase 6 cutover: switch local/Docker/Railway entry points to the Go binary after all
+7. Phase 7 cutover: switch local/Docker/Railway entry points to the Go binary after all
    old API contracts and frontend smoke paths are covered by Go tests.
 
 ## Phase 1 Scope
@@ -85,6 +88,21 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
   has the same governed skill set as the current Python backend.
 - Tests mirror the existing Python confidence, promotion, publish, and registry
   behavior before the heavier eval runner and prompt-rendering port lands.
+
+## Phase 5 Scope
+
+- `internal/httpapi` ports `/api/ask`, `/api/workflows`, and
+  `/api/workflows/generate` onto the Go service.
+- Ask uses `internal/onyx` for scoped admin search and records best-effort audit
+  events through the Go store when persistence is configured.
+- Workflow generation creates chat sessions and sends prompts through
+  `internal/onyx`, computes required-section and citation gates, scores
+  confidence and export readiness, and persists true eval rounds/outputs.
+- `cmd/dreamfi` now wires the Go store into the runtime so the migrated backend
+  path is available from the Go binary instead of only from tests.
+- This keeps the VP of Eng migration moving in phases: full complete migration
+  to where DreamFi is at now, eng-ready, test-driven, and backed by true code
+  paths.
 
 ## PR Language
 

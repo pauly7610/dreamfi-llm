@@ -28,9 +28,14 @@ type Settings struct {
 	AuditEnabled  bool
 	AuditLogReads bool
 
-	ConfidenceThreshold  float64
-	ImprovementThreshold float64
-	AskSearchLimit       int
+	ConfidenceThreshold         float64
+	ImprovementThreshold        float64
+	FreshnessHalflifeDays       float64
+	AskSearchLimit              int
+	ClaimLineageTargetCitations int
+	WorkflowMinCitations        int
+	WorkflowMinSectionWords     int
+	WorkflowRequireScope        bool
 }
 
 func Load() Settings {
@@ -53,9 +58,14 @@ func Load() Settings {
 		AuditEnabled:  envBool("DREAMFI_AUDIT_ENABLED", true),
 		AuditLogReads: envBool("DREAMFI_AUDIT_LOG_READS", true),
 
-		ConfidenceThreshold:  envFloat("DREAMFI_CONFIDENCE_THRESHOLD", 0.75),
-		ImprovementThreshold: envFloat("DREAMFI_IMPROVEMENT_THRESHOLD", 0.02),
-		AskSearchLimit:       envInt("DREAMFI_ASK_SEARCH_LIMIT", 5),
+		ConfidenceThreshold:         envFloat("DREAMFI_CONFIDENCE_THRESHOLD", 0.75),
+		ImprovementThreshold:        envFloat("DREAMFI_IMPROVEMENT_THRESHOLD", 0.02),
+		FreshnessHalflifeDays:       envFloat("DREAMFI_FRESHNESS_HALFLIFE_DAYS", 14),
+		AskSearchLimit:              envInt("DREAMFI_ASK_SEARCH_LIMIT", 5),
+		ClaimLineageTargetCitations: envInt("DREAMFI_CLAIM_LINEAGE_TARGET_CITATIONS", 3),
+		WorkflowMinCitations:        envInt("DREAMFI_WORKFLOW_MIN_CITATIONS", 1),
+		WorkflowMinSectionWords:     envInt("DREAMFI_WORKFLOW_MIN_SECTION_WORDS", 3),
+		WorkflowRequireScope:        envBool("DREAMFI_WORKFLOW_REQUIRE_SCOPE", true),
 	}
 }
 
