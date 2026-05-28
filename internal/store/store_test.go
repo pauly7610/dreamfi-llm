@@ -233,6 +233,111 @@ func TestConnectorAuditAndLearningTablesPersistReviewLoop(t *testing.T) {
 	}
 }
 
+func TestConnectorSyncRunAndDocumentPersistenceTrackChangedContent(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+	repo := New(db, DialectSQLite)
+	now := time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC)
+	sourceURL := "http://metabase.test/card/10"
+	syncRunID := "sync-1"
+	onyxID := "onyx-doc-1"
+
+	if err := repo.UpsertConnectorSetting(ctx, ConnectorSetting{
+		ConnectorID:      "metabase",
+		Provider:         "metabase",
+		CredentialStatus: "present",
+		ValidationStatus: "valid",
+		ActivationStatus: "active",
+		Config:           map[string]any{"base_url": "http://metabase.test"},
+		Metadata:         map[string]any{},
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}); err != nil {
+		t.Fatalf("UpsertConnectorSetting error = %v", err)
+	}
+	if err := repo.CreateConnectorSyncRun(ctx, ConnectorSyncRun{
+		SyncRunID:   syncRunID,
+		ConnectorID: "metabase",
+		Status:      "running",
+		Trigger:     "manual",
+		StartedAt:   now,
+	}); err != nil {
+		t.Fatalf("CreateConnectorSyncRun error = %v", err)
+	}
+
+	changed, err := repo.UpsertConnectorDocument(ctx, ConnectorDocument{
+		ConnectorDocumentID: "doc-row-1",
+		ConnectorID:         "metabase",
+		ExternalID:          "card:10",
+		Title:               "KYC conversion",
+		BodyText:            "KYC conversion dashboard",
+		SourceURL:           &sourceURL,
+		DocUpdatedAt:        now,
+		ContentHash:         "hash-a",
+		Metadata:            map[string]any{"dreamfi_scope": map[string]any{"source_ids": []string{"metabase"}}},
+		SyncRunID:           &syncRunID,
+		OnyxDocumentID:      &onyxID,
+		LastSeenAt:          now,
+		CreatedAt:           now,
+		UpdatedAt:           now,
+	})
+	if err != nil {
+		t.Fatalf("UpsertConnectorDocument insert error = %v", err)
+	}
+	if !changed {
+		t.Fatalf("first connector document upsert should be changed")
+	}
+	if err := repo.MarkConnectorDocumentIngested(ctx, "metabase", "card:10", onyxID, now); err != nil {
+		t.Fatalf("MarkConnectorDocumentIngested error = %v", err)
+	}
+
+	changed, err = repo.UpsertConnectorDocument(ctx, ConnectorDocument{
+		ConnectorDocumentID: "doc-row-1",
+		ConnectorID:         "metabase",
+		ExternalID:          "card:10",
+		Title:               "KYC conversion",
+		BodyText:            "KYC conversion dashboard",
+		SourceURL:           &sourceURL,
+		DocUpdatedAt:        now,
+		ContentHash:         "hash-a",
+		Metadata:            map[string]any{},
+		SyncRunID:           &syncRunID,
+		LastSeenAt:          now,
+		CreatedAt:           now,
+		UpdatedAt:           now,
+	})
+	if err != nil {
+		t.Fatalf("UpsertConnectorDocument unchanged error = %v", err)
+	}
+	if changed {
+		t.Fatalf("same content hash should not require ingestion")
+	}
+
+	completed := now.Add(time.Minute)
+	if err := repo.FinishConnectorSyncRun(ctx, ConnectorSyncRun{
+		SyncRunID:      syncRunID,
+		ConnectorID:    "metabase",
+		Status:         "success",
+		Trigger:        "manual",
+		PulledCount:    1,
+		PersistedCount: 1,
+		IngestedCount:  1,
+		StartedAt:      now,
+		CompletedAt:    &completed,
+	}); err != nil {
+		t.Fatalf("FinishConnectorSyncRun error = %v", err)
+	}
+
+	var status string
+	var ingestedCount int
+	if err := db.QueryRowContext(ctx, "SELECT status, ingested_count FROM connector_sync_runs WHERE sync_run_id = ?", syncRunID).Scan(&status, &ingestedCount); err != nil {
+		t.Fatalf("select sync run error = %v", err)
+	}
+	if status != "success" || ingestedCount != 1 {
+		t.Fatalf("sync run = (%s, %d), want success/1", status, ingestedCount)
+	}
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := "file:" + url.QueryEscape(t.Name()) + "?mode=memory&cache=shared"
@@ -402,6 +507,40 @@ var testSchema = []string{
 		metadata_json TEXT NOT NULL DEFAULT '{}',
 		created_at DATETIME NOT NULL,
 		updated_at DATETIME NOT NULL
+	)`,
+	`CREATE TABLE connector_sync_runs (
+		sync_run_id TEXT PRIMARY KEY,
+		connector_id TEXT NOT NULL REFERENCES connector_settings(connector_id),
+		status TEXT NOT NULL,
+		trigger TEXT NOT NULL DEFAULT 'manual',
+		pulled_count INTEGER NOT NULL DEFAULT 0,
+		persisted_count INTEGER NOT NULL DEFAULT 0,
+		ingested_count INTEGER NOT NULL DEFAULT 0,
+		skipped_count INTEGER NOT NULL DEFAULT 0,
+		error_count INTEGER NOT NULL DEFAULT 0,
+		cursor_json TEXT NOT NULL DEFAULT '{}',
+		metadata_json TEXT NOT NULL DEFAULT '{}',
+		reason TEXT,
+		started_at DATETIME NOT NULL,
+		completed_at DATETIME
+	)`,
+	`CREATE TABLE connector_documents (
+		connector_document_id TEXT PRIMARY KEY,
+		connector_id TEXT NOT NULL REFERENCES connector_settings(connector_id),
+		external_id TEXT NOT NULL,
+		title TEXT NOT NULL,
+		body_text TEXT NOT NULL,
+		source_url TEXT,
+		doc_updated_at DATETIME NOT NULL,
+		content_hash TEXT NOT NULL,
+		metadata_json TEXT NOT NULL DEFAULT '{}',
+		sync_run_id TEXT,
+		onyx_document_id TEXT,
+		last_seen_at DATETIME NOT NULL,
+		last_ingested_at DATETIME,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		UNIQUE(connector_id, external_id)
 	)`,
 	`CREATE TABLE audit_events (
 		event_id TEXT PRIMARY KEY,

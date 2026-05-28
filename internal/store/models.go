@@ -91,6 +91,41 @@ type ConnectorSetting struct {
 	UpdatedAt          time.Time
 }
 
+type ConnectorSyncRun struct {
+	SyncRunID      string
+	ConnectorID    string
+	Status         string
+	Trigger        string
+	PulledCount    int
+	PersistedCount int
+	IngestedCount  int
+	SkippedCount   int
+	ErrorCount     int
+	Cursor         map[string]any
+	Metadata       map[string]any
+	Reason         *string
+	StartedAt      time.Time
+	CompletedAt    *time.Time
+}
+
+type ConnectorDocument struct {
+	ConnectorDocumentID string
+	ConnectorID         string
+	ExternalID          string
+	Title               string
+	BodyText            string
+	SourceURL           *string
+	DocUpdatedAt        time.Time
+	ContentHash         string
+	Metadata            map[string]any
+	SyncRunID           *string
+	OnyxDocumentID      *string
+	LastSeenAt          time.Time
+	LastIngestedAt      *time.Time
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
 type AuditEvent struct {
 	EventID    string
 	EventHash  string

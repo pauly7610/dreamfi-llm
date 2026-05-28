@@ -64,6 +64,19 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
 - This phase still does not edit shipped Alembic revisions or cut traffic over
   from the Python app.
 
+## Phase 3 Scope
+
+- `internal/connectors` ports the connector catalog, document-set aliases, and
+  source document normalization into Go.
+- Custom connector adapters fetch real HTTP payloads from configured source
+  APIs and normalize them into DreamFi source documents.
+- Connector sync runs persist pulled documents, skip unchanged content hashes,
+  and ingest changed documents into Onyx through `internal/onyx`.
+- Store coverage now includes `connector_sync_runs` and `connector_documents`.
+- Tests use local HTTP servers for source APIs and mocked Onyx ingestion, so the
+  migrated path exercises real fetch, persist, and ingest behavior without live
+  network dependencies.
+
 ## PR Language
 
 Use this language in PR descriptions unless the phase has a stronger, more
