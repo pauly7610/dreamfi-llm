@@ -315,6 +315,171 @@ func (s *Store) UpsertConnectorSetting(ctx context.Context, setting ConnectorSet
 	return err
 }
 
+func (s *Store) CreateConnectorSyncRun(ctx context.Context, run ConnectorSyncRun) error {
+	cursor, err := jsonText(run.Cursor)
+	if err != nil {
+		return err
+	}
+	metadata, err := jsonText(run.Metadata)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(
+		ctx,
+		`INSERT INTO connector_sync_runs (
+			sync_run_id, connector_id, status, trigger, pulled_count,
+			persisted_count, ingested_count, skipped_count, error_count,
+			cursor_json, metadata_json, reason, started_at, completed_at
+		) VALUES (`+s.placeholders(14)+`)`,
+		run.SyncRunID,
+		run.ConnectorID,
+		run.Status,
+		run.Trigger,
+		run.PulledCount,
+		run.PersistedCount,
+		run.IngestedCount,
+		run.SkippedCount,
+		run.ErrorCount,
+		cursor,
+		metadata,
+		nullable(run.Reason),
+		run.StartedAt,
+		nullable(run.CompletedAt),
+	)
+	return err
+}
+
+func (s *Store) FinishConnectorSyncRun(ctx context.Context, run ConnectorSyncRun) error {
+	cursor, err := jsonText(run.Cursor)
+	if err != nil {
+		return err
+	}
+	metadata, err := jsonText(run.Metadata)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(
+		ctx,
+		`UPDATE connector_sync_runs
+		 SET status = `+s.placeholder(1)+`,
+		     pulled_count = `+s.placeholder(2)+`,
+		     persisted_count = `+s.placeholder(3)+`,
+		     ingested_count = `+s.placeholder(4)+`,
+		     skipped_count = `+s.placeholder(5)+`,
+		     error_count = `+s.placeholder(6)+`,
+		     cursor_json = `+s.placeholder(7)+`,
+		     metadata_json = `+s.placeholder(8)+`,
+		     reason = `+s.placeholder(9)+`,
+		     completed_at = `+s.placeholder(10)+`
+		 WHERE sync_run_id = `+s.placeholder(11),
+		run.Status,
+		run.PulledCount,
+		run.PersistedCount,
+		run.IngestedCount,
+		run.SkippedCount,
+		run.ErrorCount,
+		cursor,
+		metadata,
+		nullable(run.Reason),
+		nullable(run.CompletedAt),
+		run.SyncRunID,
+	)
+	return err
+}
+
+func (s *Store) UpsertConnectorDocument(ctx context.Context, document ConnectorDocument) (bool, error) {
+	var existingHash string
+	err := s.db.QueryRowContext(
+		ctx,
+		`SELECT content_hash FROM connector_documents
+		 WHERE connector_id = `+s.placeholder(1)+` AND external_id = `+s.placeholder(2),
+		document.ConnectorID,
+		document.ExternalID,
+	).Scan(&existingHash)
+	if err != nil && err != sql.ErrNoRows {
+		return false, err
+	}
+	missing := err == sql.ErrNoRows
+
+	metadata, err := jsonText(document.Metadata)
+	if err != nil {
+		return false, err
+	}
+	if missing {
+		_, err = s.db.ExecContext(
+			ctx,
+			`INSERT INTO connector_documents (
+				connector_document_id, connector_id, external_id, title, body_text,
+				source_url, doc_updated_at, content_hash, metadata_json, sync_run_id,
+				onyx_document_id, last_seen_at, last_ingested_at, created_at, updated_at
+			) VALUES (`+s.placeholders(15)+`)`,
+			document.ConnectorDocumentID,
+			document.ConnectorID,
+			document.ExternalID,
+			document.Title,
+			document.BodyText,
+			nullable(document.SourceURL),
+			document.DocUpdatedAt,
+			document.ContentHash,
+			metadata,
+			nullable(document.SyncRunID),
+			nullable(document.OnyxDocumentID),
+			document.LastSeenAt,
+			nullable(document.LastIngestedAt),
+			document.CreatedAt,
+			document.UpdatedAt,
+		)
+		return true, err
+	}
+
+	changed := existingHash != document.ContentHash
+	_, err = s.db.ExecContext(
+		ctx,
+		`UPDATE connector_documents
+		 SET title = `+s.placeholder(1)+`,
+		     body_text = `+s.placeholder(2)+`,
+		     source_url = `+s.placeholder(3)+`,
+		     doc_updated_at = `+s.placeholder(4)+`,
+		     content_hash = `+s.placeholder(5)+`,
+		     metadata_json = `+s.placeholder(6)+`,
+		     sync_run_id = `+s.placeholder(7)+`,
+		     onyx_document_id = COALESCE(`+s.placeholder(8)+`, onyx_document_id),
+		     last_seen_at = `+s.placeholder(9)+`,
+		     updated_at = `+s.placeholder(10)+`
+		 WHERE connector_id = `+s.placeholder(11)+` AND external_id = `+s.placeholder(12),
+		document.Title,
+		document.BodyText,
+		nullable(document.SourceURL),
+		document.DocUpdatedAt,
+		document.ContentHash,
+		metadata,
+		nullable(document.SyncRunID),
+		nullable(document.OnyxDocumentID),
+		document.LastSeenAt,
+		document.UpdatedAt,
+		document.ConnectorID,
+		document.ExternalID,
+	)
+	return changed, err
+}
+
+func (s *Store) MarkConnectorDocumentIngested(ctx context.Context, connectorID string, externalID string, onyxDocumentID string, ingestedAt any) error {
+	_, err := s.db.ExecContext(
+		ctx,
+		`UPDATE connector_documents
+		 SET onyx_document_id = `+s.placeholder(1)+`,
+		     last_ingested_at = `+s.placeholder(2)+`,
+		     updated_at = `+s.placeholder(3)+`
+		 WHERE connector_id = `+s.placeholder(4)+` AND external_id = `+s.placeholder(5),
+		onyxDocumentID,
+		ingestedAt,
+		ingestedAt,
+		connectorID,
+		externalID,
+	)
+	return err
+}
+
 func (s *Store) CreateAuditEvent(ctx context.Context, event AuditEvent) error {
 	metadata, err := jsonText(event.Metadata)
 	if err != nil {
