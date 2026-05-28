@@ -355,6 +355,17 @@ var workflowTestSchema = []string{
 		export_breakdown_json TEXT,
 		created_at DATETIME NOT NULL
 	)`,
+	`CREATE TABLE publish_log (
+		publish_id TEXT PRIMARY KEY,
+		skill_id TEXT NOT NULL REFERENCES skills(skill_id),
+		prompt_version_id TEXT NOT NULL REFERENCES prompt_versions(prompt_version_id),
+		output_id TEXT NOT NULL REFERENCES eval_outputs(output_id),
+		destination TEXT NOT NULL,
+		destination_ref TEXT,
+		decision TEXT NOT NULL,
+		reason TEXT,
+		created_at DATETIME NOT NULL
+	)`,
 	`CREATE TABLE audit_events (
 		event_id TEXT PRIMARY KEY,
 		event_hash TEXT NOT NULL,

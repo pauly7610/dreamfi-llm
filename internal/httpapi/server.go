@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -87,20 +88,21 @@ func (s *Server) opsStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) consoleData(w http.ResponseWriter, r *http.Request) {
-	writeJSONResponse(w, http.StatusOK, map[string]any{
-		"status": "ok",
-		"onyx":   s.onyx.Ping(r.Context()),
-		"nav":    primaryNav(),
-	})
+	payload, err := s.consolePayload(r.Context(), s.onyxStatus(r.Context()))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "console payload failed: "+err.Error())
+		return
+	}
+	writeJSONResponse(w, http.StatusOK, payload)
 }
 
 func (s *Server) console(w http.ResponseWriter, r *http.Request) {
-	data := templates.ConsoleData{
-		ProductName: "DreamFi ProductOS",
-		Status:      s.onyx.Ping(r.Context()),
-		PrimaryNav:  primaryNav(),
+	payload, err := s.consolePayload(r.Context(), s.onyxStatus(r.Context()))
+	if err != nil {
+		http.Error(w, "console payload failed", http.StatusInternalServerError)
+		return
 	}
-	renderComponent(w, r, templates.ConsoleShell(data))
+	renderComponent(w, r, templates.ConsoleShell(consoleTemplateData(payload)))
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +154,13 @@ func (s *Server) currentTime() time.Time {
 		return s.now().UTC()
 	}
 	return time.Now().UTC()
+}
+
+func (s *Server) onyxStatus(ctx context.Context) string {
+	if s.onyx == nil {
+		return "unconfigured"
+	}
+	return s.onyx.Ping(ctx)
 }
 
 func primaryNav() []templates.NavItem {
