@@ -50,17 +50,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: generators/web/package-lock.json
+          cache: yarn
+          cache-dependency-path: generators/web/yarn.lock
 
       - name: Install frontend dependencies
         working-directory: generators/web
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Frontend tests
         working-directory: generators/web
-        run: npm test -- --run
+        run: yarn test --run
 
       - name: Frontend build
         working-directory: generators/web
-        run: npm run build
+        run: yarn build
