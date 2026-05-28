@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -40,6 +41,43 @@ func (s *Store) placeholders(count int) string {
 		parts[i] = s.placeholder(i + 1)
 	}
 	return strings.Join(parts, ", ")
+}
+
+func (s *Store) Skill(ctx context.Context, skillID string) (Skill, error) {
+	row := s.db.QueryRowContext(
+		ctx,
+		`SELECT skill_id, display_name, description, eval_template_path,
+		        eval_runner_path, criteria_json, onyx_persona_id, created_at
+		 FROM skills
+		 WHERE skill_id = `+s.placeholder(1),
+		skillID,
+	)
+
+	var skill Skill
+	var criteriaRaw string
+	var personaID sql.NullInt64
+	err := row.Scan(
+		&skill.SkillID,
+		&skill.DisplayName,
+		&skill.Description,
+		&skill.EvalTemplatePath,
+		&skill.EvalRunnerPath,
+		&criteriaRaw,
+		&personaID,
+		&skill.CreatedAt,
+	)
+	if err != nil {
+		return Skill{}, err
+	}
+	if criteriaRaw != "" {
+		if err := json.Unmarshal([]byte(criteriaRaw), &skill.Criteria); err != nil {
+			return Skill{}, err
+		}
+	}
+	if personaID.Valid {
+		skill.OnyxPersonaID = &personaID.Int64
+	}
+	return skill, nil
 }
 
 func (s *Store) UpsertSkill(ctx context.Context, skill Skill) error {
@@ -142,6 +180,22 @@ func (s *Store) ActivatePromptVersion(ctx context.Context, promptVersionID strin
 	return err
 }
 
+func (s *Store) LatestPromptVersionNumber(ctx context.Context, skillID string) (int, error) {
+	var latest sql.NullInt64
+	err := s.db.QueryRowContext(
+		ctx,
+		`SELECT MAX(version) FROM prompt_versions WHERE skill_id = `+s.placeholder(1),
+		skillID,
+	).Scan(&latest)
+	if err != nil {
+		return 0, err
+	}
+	if !latest.Valid {
+		return 0, nil
+	}
+	return int(latest.Int64), nil
+}
+
 func (s *Store) ActivePromptVersion(ctx context.Context, skillID string) (PromptVersion, error) {
 	row := s.db.QueryRowContext(
 		ctx,
@@ -182,6 +236,22 @@ func (s *Store) ActivePromptVersion(ctx context.Context, skillID string) (Prompt
 		prompt.DeactivatedAt = &deactivated.Time
 	}
 	return prompt, nil
+}
+
+func (s *Store) EvalOutputExists(ctx context.Context, outputID string) (bool, error) {
+	var existing string
+	err := s.db.QueryRowContext(
+		ctx,
+		`SELECT output_id FROM eval_outputs WHERE output_id = `+s.placeholder(1),
+		outputID,
+	).Scan(&existing)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *Store) CreateEvalRound(ctx context.Context, round EvalRound) error {

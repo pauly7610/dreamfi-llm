@@ -6,26 +6,50 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/pauly7610/dreamfi-llm/internal/config"
 	"github.com/pauly7610/dreamfi-llm/internal/onyx"
+	"github.com/pauly7610/dreamfi-llm/internal/store"
 	"github.com/pauly7610/dreamfi-llm/web/templates"
 )
 
 type Server struct {
 	settings config.Settings
 	onyx     *onyx.Client
+	store    *store.Store
+	now      func() time.Time
 }
 
-func NewRouter(settings config.Settings, onyxClient *onyx.Client) http.Handler {
+type Option func(*Server)
+
+func WithStore(repo *store.Store) Option {
+	return func(s *Server) {
+		s.store = repo
+	}
+}
+
+func WithNow(now func() time.Time) Option {
+	return func(s *Server) {
+		s.now = now
+	}
+}
+
+func NewRouter(settings config.Settings, onyxClient *onyx.Client, opts ...Option) http.Handler {
 	server := &Server{settings: settings, onyx: onyxClient}
+	for _, opt := range opts {
+		opt(server)
+	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /ready", server.ready)
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /api/ops/status", server.opsStatus)
 	mux.HandleFunc("GET /api/console", server.consoleData)
+	mux.HandleFunc("POST /api/ask", server.ask)
+	mux.HandleFunc("GET /api/workflows", server.workflowCatalog)
+	mux.HandleFunc("POST /api/workflows/generate", server.generateWorkflow)
 	mux.HandleFunc("GET /console", server.console)
 	mux.HandleFunc("GET /console/", server.console)
 	mux.HandleFunc("GET /", server.root)
@@ -117,6 +141,17 @@ func newRequestID() string {
 		return "request-id-unavailable"
 	}
 	return hex.EncodeToString(raw[:])
+}
+
+func newEntityID(prefix string) string {
+	return prefix + "-" + newRequestID()
+}
+
+func (s *Server) currentTime() time.Time {
+	if s.now != nil {
+		return s.now().UTC()
+	}
+	return time.Now().UTC()
 }
 
 func primaryNav() []templates.NavItem {
