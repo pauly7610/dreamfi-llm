@@ -77,6 +77,15 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
   migrated path exercises real fetch, persist, and ingest behavior without live
   network dependencies.
 
+## Phase 4 Scope
+
+- `internal/governance` ports confidence scoring, promotion decisions, gold
+  regression blocking, canary alerts, and publish guards into Go.
+- `internal/skills` ports the fixed nine-skill registry metadata so the Go path
+  has the same governed skill set as the current Python backend.
+- Tests mirror the existing Python confidence, promotion, publish, and registry
+  behavior before the heavier eval runner and prompt-rendering port lands.
+
 ## PR Language
 
 Use this language in PR descriptions unless the phase has a stronger, more
