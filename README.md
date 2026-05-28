@@ -238,7 +238,9 @@ The review layer summarizes:
 - publish activity and blocked publish attempts
 - integration metadata used by the current UI
 
-The React console source lives under `generators/web/`, and the backend serves the built assets from `generators/web/dist/` when they exist.
+The React console source remains under `generators/web/` as the parity oracle
+while the frontend moves to templ. The Go service now serves the active
+store-backed templ console from `web/templates/`.
 
 ## Local setup
 
@@ -272,12 +274,13 @@ make dreamfi-up
 make seed
 ```
 
-If you want to run the API directly from your local Python environment instead of Docker:
+If you want to run the API directly instead of Docker, keep Alembic and seeding
+on the Python toolchain, then start the Go service:
 
 ```bash
 alembic upgrade head
 make seed
-uvicorn dreamfi.api.app:app --host 0.0.0.0 --port 5001
+PORT=5001 make run-go
 ```
 
 4. Open Onyx at [http://localhost:3000](http://localhost:3000) and DreamFi at [http://localhost:5001/console](http://localhost:5001/console).
@@ -402,4 +405,6 @@ Notes:
 
 ## Deployment
 
-The repo includes a Dockerfile and `railway.json`. Railway health checks hit `GET /ready`, and the container entrypoint runs `alembic upgrade head` before starting `uvicorn`.
+The repo includes a Dockerfile and `railway.json`. Railway health checks hit
+`GET /ready`, and the container entrypoint runs `alembic upgrade head` before
+starting the Go DreamFi binary.

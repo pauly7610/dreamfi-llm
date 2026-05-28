@@ -26,14 +26,16 @@ services:
       ONYX_BASE_URL: ${ONYX_BASE_URL:-http://host.docker.internal:8080}
       ONYX_API_KEY: ${ONYX_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DREAMFI_AUTH_ENABLED: ${DREAMFI_AUTH_ENABLED:-false}
+      PORT: 5001
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "5001:5001"
     command: >
-      bash -lc "alembic upgrade head &&
-                uvicorn dreamfi.api.app:app --host 0.0.0.0 --port 5001"
+      sh -c "alembic upgrade head &&
+             exec dreamfi"
 
 volumes:
   dreamfi_pg_data:

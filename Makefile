@@ -85,8 +85,7 @@ ops-status:
 run-round:
 	python -m scripts.run_eval_round --skill=$(SKILL) --n=$(or $(N),10)
 
-console:
-	uvicorn dreamfi.api.app:app --host 0.0.0.0 --port 5001
+console: run-go
 
 lint:
 	ruff check dreamfi scripts tests
