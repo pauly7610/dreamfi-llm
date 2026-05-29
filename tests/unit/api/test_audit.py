@@ -25,7 +25,7 @@ def _session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     session = Session(engine)
-    seed_registry(session, repo_root=REPO_ROOT)
+    seed_registry(session, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in session.query(Skill).all():
         skill.onyx_persona_id = 100
     session.add(
@@ -150,6 +150,8 @@ def test_publish_attempt_audit_event_omits_destination_ref(tmp_path: Path) -> No
         criteria_json={},
         pass_fail="pass",
         confidence=Decimal("0.990"),
+        export_readiness=Decimal("0.990"),
+        export_breakdown_json={"hard_gate": 1.0},
     )
     session.add(output)
     session.commit()

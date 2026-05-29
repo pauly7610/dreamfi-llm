@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -703,27 +703,35 @@ def _failure_clusters(outputs: list[EvalOutput]) -> list[dict[str, object]]:
                 ),
             },
         )
-        record["count"] = int(record["count"]) + 1
-        if len(record["sample_output_ids"]) < 3:
-            record["sample_output_ids"].append(output.output_id)
-    return sorted(clusters.values(), key=lambda row: int(row["count"]), reverse=True)
+        record["count"] = cast(int, record["count"]) + 1
+        sample_output_ids = cast(list[str], record["sample_output_ids"])
+        if len(sample_output_ids) < 3:
+            sample_output_ids.append(output.output_id)
+    return sorted(
+        clusters.values(), key=lambda row: cast(int, row["count"]), reverse=True
+    )
 
 
 def _slo_status(summary: dict[str, float | int | None]) -> dict[str, object]:
     settings = get_settings()
     hard_gate = summary.get("hard_gate_pass_rate")
-    blocked = summary.get("blocked_artifact_count")
-    total = (summary.get("blocked_artifact_count") or 0) + (summary.get("publish_ready_count") or 0) + (
-        summary.get("published_artifact_count") or 0
-    ) + (summary.get("needs_review_count") or 0)
-    blocked_rate = (float(blocked) / float(total)) if total else None
+    blocked_count = int(summary.get("blocked_artifact_count") or 0)
+    total = (
+        blocked_count
+        + int(summary.get("publish_ready_count") or 0)
+        + int(summary.get("published_artifact_count") or 0)
+        + int(summary.get("needs_review_count") or 0)
+    )
+    blocked_rate = (float(blocked_count) / float(total)) if total else None
     publish_success = summary.get("publish_success_rate")
+    hard_gate_f = float(hard_gate) if hard_gate is not None else None
+    publish_success_f = float(publish_success) if publish_success is not None else None
     checks = [
         {
             "name": "hard_gate_pass_rate",
             "target": settings.dreamfi_slo_hard_gate_pass_rate,
             "actual": hard_gate,
-            "met": hard_gate is not None and float(hard_gate) >= settings.dreamfi_slo_hard_gate_pass_rate,
+            "met": hard_gate_f is not None and hard_gate_f >= settings.dreamfi_slo_hard_gate_pass_rate,
         },
         {
             "name": "blocked_rate",
@@ -735,7 +743,7 @@ def _slo_status(summary: dict[str, float | int | None]) -> dict[str, object]:
             "name": "publish_success_rate",
             "target": settings.dreamfi_slo_publish_success_rate,
             "actual": publish_success,
-            "met": publish_success is not None and float(publish_success) >= settings.dreamfi_slo_publish_success_rate,
+            "met": publish_success_f is not None and publish_success_f >= settings.dreamfi_slo_publish_success_rate,
         },
     ]
     return {
@@ -752,15 +760,15 @@ def _console_payload(session: Session, onyx: OnyxClient | None = None) -> dict[s
     ).all()
     active_by_skill = {prompt.skill_id: prompt for prompt in active_prompt_versions}
 
-    outputs = session.scalars(
+    outputs = list(session.scalars(
         select(EvalOutput).order_by(desc(EvalOutput.created_at)).limit(50)
-    ).all()
-    publishes = session.scalars(
+    ).all())
+    publishes = list(session.scalars(
         select(PublishLog).order_by(desc(PublishLog.created_at)).limit(10)
-    ).all()
-    publish_log_rows = session.scalars(
+    ).all())
+    publish_log_rows = list(session.scalars(
         select(PublishLog).order_by(desc(PublishLog.created_at)).limit(50)
-    ).all()
+    ).all())
     connector_documents = session.scalars(
         select(ConnectorDocument)
         .order_by(desc(ConnectorDocument.doc_updated_at))

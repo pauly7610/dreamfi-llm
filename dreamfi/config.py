@@ -46,7 +46,13 @@ class Settings(BaseSettings):
     onyx_base_url: str = Field(default="http://localhost:8080")
     onyx_api_key: str = Field(default="")
     anthropic_api_key: str = Field(default="")
+    openai_api_key: str = Field(default="")
     default_llm_model: str = Field(default="claude-3-5-sonnet-20241022")
+    fallback_llm_models: list[str] = Field(
+        default_factory=lambda: ["claude-3-5-haiku-20241022", "gpt-4o-mini"]
+    )
+    llm_request_timeout_seconds: float = Field(default=60.0)
+    llm_max_cost_usd_per_call: float = Field(default=1.0)
     log_level: str = Field(default="INFO")
     dreamfi_auth_enabled: bool = Field(default=True)
     dreamfi_auth_username: str = Field(default="dreamfi")
@@ -60,6 +66,7 @@ class Settings(BaseSettings):
     dreamfi_confidence_threshold: float = Field(default=0.75)  # 0-1
     dreamfi_improvement_threshold: float = Field(default=0.02)  # fraction
     dreamfi_freshness_halflife_days: float = Field(default=14.0)  # days
+    dreamfi_export_readiness_threshold: float = Field(default=0.80)  # 0-1
     dreamfi_ask_search_limit: int = Field(default=5)
     dreamfi_claim_lineage_target_citations: int = Field(default=3)
     dreamfi_min_outputs_per_eval_input: int = Field(default=1)

@@ -40,7 +40,7 @@ def session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     db = Session(engine)
-    seed_registry(db, repo_root=REPO_ROOT)
+    seed_registry(db, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in db.query(Skill).all():
         skill.onyx_persona_id = 100
     db.add(

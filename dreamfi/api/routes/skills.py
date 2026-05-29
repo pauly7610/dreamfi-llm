@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session
 from dreamfi.audit import add_audit_event
-from dreamfi.db.models import EvalRound, GoldExample, PromptVersion, Skill
+from dreamfi.db.models import EvalRound, GoldDriftEvent, GoldExample, PromptVersion, Skill
 from dreamfi.promotion.gate import GoldResult, PromotionGate
 
 router = APIRouter()
@@ -31,6 +31,20 @@ def _gold_failures_for_round(
     skill_id: str,
     round_id: str,
 ) -> tuple[list[GoldResult], list[GoldResult]]:
+    drift_rows = list(
+        session.scalars(
+            select(GoldDriftEvent).where(GoldDriftEvent.round_id == round_id)
+        )
+    )
+    regression_failures = [
+        GoldResult(
+            gold_id=row.gold_id,
+            prev="pass" if row.previous_result == "pass" else "fail",
+            new="pass" if row.new_result == "pass" else "fail",
+        )
+        for row in drift_rows
+    ]
+    seen_regression_ids = {row.gold_id for row in drift_rows}
     rows = session.scalars(
         select(GoldExample).where(
             GoldExample.skill_id == skill_id,
@@ -39,13 +53,12 @@ def _gold_failures_for_round(
             GoldExample.role.in_(["regression", "canary"]),
         )
     ).all()
-    regression_failures: list[GoldResult] = []
     canary_failures: list[GoldResult] = []
     for row in rows:
         result = GoldResult(gold_id=row.gold_id, prev="pass", new="fail")
         if row.role == "canary":
             canary_failures.append(result)
-        else:
+        elif row.gold_id not in seen_regression_ids:
             regression_failures.append(result)
     return regression_failures, canary_failures
 

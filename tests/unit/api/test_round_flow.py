@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
@@ -33,7 +34,7 @@ def session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     s = Session(engine)
-    seed_registry(s, repo_root=REPO_ROOT)
+    seed_registry(s, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in s.query(Skill).all():
         skill.onyx_persona_id = 100
     s.add(
@@ -158,6 +159,8 @@ def test_publish_blocks_external_destination_without_writer(
     assert output is not None
     output.pass_fail = "pass"
     output.confidence = 0.99
+    output.export_readiness = Decimal("0.990")
+    output.export_breakdown_json = {"hard_gate": 1.0}
     session.commit()
 
     response = client.post(

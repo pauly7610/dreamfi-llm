@@ -43,6 +43,9 @@ jobs:
       - name: Ruff
         run: python -m ruff check dreamfi/ tests/
 
+      - name: Mypy (strict)
+        run: python -m mypy --strict dreamfi
+
       - name: Pytest
         run: python -m pytest -q -m "not live_onyx"
 

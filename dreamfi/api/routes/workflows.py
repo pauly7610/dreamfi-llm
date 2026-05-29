@@ -119,7 +119,7 @@ class GenerateArtifactResponse(BaseModel):
 def _scope_filters(
     *, topic_id: str | None, source_id: str | None, source_ids: list[str]
 ) -> dict[str, Any]:
-    scoped_sources = sorted({source_id, *source_ids} - {None, ""})
+    scoped_sources = sorted(source for source in [source_id, *source_ids] if source)
     scope: dict[str, Any] = {}
     if topic_id:
         scope["topic_id"] = topic_id
@@ -179,7 +179,7 @@ def ask(
     session: Session = Depends(get_db_session),
     onyx: OnyxClient = Depends(get_onyx_client),
 ) -> AskResponse:
-    source_ids = sorted({body.source_id, *body.source_ids} - {None, ""})
+    source_ids = sorted(source for source in [body.source_id, *body.source_ids] if source)
     try:
         hits = onyx.admin_search(
             query=body.question,

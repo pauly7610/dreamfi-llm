@@ -7,10 +7,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
-from dreamfi.db.models import EvalRound, GoldExample, PromptVersion, Skill
+from dreamfi.db.models import EvalOutput, EvalRound, GoldDriftEvent, GoldExample, PromptVersion, Skill
 from dreamfi.evals.loader import parse_eval_template
 from dreamfi.skills.engine import SkillEngine
 from dreamfi.skills.registry import load_registry
@@ -46,6 +46,74 @@ def _prev_active_score(session: Session, skill_id: str) -> float | None:
     )
     prev = session.scalar(stmt)
     return float(prev.score) if prev is not None else None
+
+
+def _label_passed_any(outputs: list[EvalOutput]) -> dict[str, str]:
+    by_label: dict[str, str] = {}
+    for output in outputs:
+        previous = by_label.get(output.test_input_label)
+        if previous == "pass":
+            continue
+        by_label[output.test_input_label] = (
+            "pass" if output.pass_fail == "pass" else "fail"
+        )
+    return by_label
+
+
+def _prior_round(
+    session: Session, *, skill_id: str, exclude_round_id: str
+) -> EvalRound | None:
+    stmt = (
+        select(EvalRound)
+        .where(
+            EvalRound.skill_id == skill_id,
+            EvalRound.round_id != exclude_round_id,
+            EvalRound.completed_at.is_not(None),
+        )
+        .order_by(desc(EvalRound.completed_at))
+        .limit(1)
+    )
+    return session.scalar(stmt)
+
+
+def _emit_output_drift_events(
+    session: Session,
+    *,
+    round_row: EvalRound,
+    prompt_version_id: str,
+    excluded_labels: set[str],
+) -> list[GoldDriftEvent]:
+    prior = _prior_round(
+        session, skill_id=round_row.skill_id, exclude_round_id=round_row.round_id
+    )
+    if prior is None:
+        return []
+
+    previous = _label_passed_any(
+        list(session.scalars(select(EvalOutput).where(EvalOutput.round_id == prior.round_id)))
+    )
+    current = _label_passed_any(
+        list(session.scalars(select(EvalOutput).where(EvalOutput.round_id == round_row.round_id)))
+    )
+    events: list[GoldDriftEvent] = []
+    for label, new_result in current.items():
+        if label in excluded_labels:
+            continue
+        if previous.get(label) == "pass" and new_result == "fail":
+            events.append(
+                GoldDriftEvent(
+                    workspace_id="",
+                    skill_id=round_row.skill_id,
+                    gold_id=label,
+                    prompt_version_id=prompt_version_id,
+                    previous_result="pass",
+                    new_result="fail",
+                    round_id=round_row.round_id,
+                )
+            )
+    if events:
+        session.add_all(events)
+    return events
 
 
 def _artifacts_dir(skill_id: str, round_id: str) -> Path:
@@ -232,6 +300,12 @@ def run_round(
             prompt_version_id=prompt_version_id,
             round_id=round_row.round_id,
         )
+    )
+    _emit_output_drift_events(
+        session,
+        round_row=round_row,
+        prompt_version_id=prompt_version_id,
+        excluded_labels={_gold_label(example) for example in gold_examples},
     )
 
     score = passes / total if total else 0.0

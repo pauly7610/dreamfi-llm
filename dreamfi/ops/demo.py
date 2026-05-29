@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def ensure_active_prompts(session: Session) -> None:
-    seed_registry(session, repo_root=REPO_ROOT)
+    seed_registry(session, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in session.scalars(select(Skill)).all():
         active = session.scalar(
             select(PromptVersion)

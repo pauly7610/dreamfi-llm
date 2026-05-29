@@ -49,8 +49,11 @@ def test_publish_guard_blocks_low_confidence() -> None:
 
 
 def test_publish_guard_allows_good() -> None:
-    g = PublishGuard(confidence_threshold=0.75)
-    assert g.check(pass_fail="pass", confidence=0.80).allowed is True
+    g = PublishGuard(confidence_threshold=0.75, export_readiness_threshold=0.80)
+    assert (
+        g.check(pass_fail="pass", confidence=0.80, export_readiness=0.85).allowed
+        is True
+    )
 
 
 def test_publish_guard_none_confidence_blocks() -> None:

@@ -9,7 +9,17 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from dreamfi.api.auth import require_auth
-from dreamfi.api.routes import console, eval_rounds, health, learning, publish, settings, skills, workflows
+from dreamfi.api.routes import (
+    console,
+    context_ask,
+    eval_rounds,
+    health,
+    learning,
+    publish,
+    settings,
+    skills,
+    workflows,
+)
 from dreamfi.audit import write_audit_event_best_effort
 from dreamfi.config import get_settings
 
@@ -110,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(learning.router)
     app.include_router(settings.router)
     app.include_router(console.router)
+    app.include_router(context_ask.router)
     return app
 
 

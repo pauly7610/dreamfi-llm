@@ -12,8 +12,8 @@ from typing import Literal
 
 
 ConnectionMethod = Literal["onyx_native", "custom_ingestion"]
-ONYX_NATIVE = "onyx_native"
-CUSTOM_INGESTION = "custom_ingestion"
+ONYX_NATIVE: ConnectionMethod = "onyx_native"
+CUSTOM_INGESTION: ConnectionMethod = "custom_ingestion"
 DEFAULT_CUSTOM_SETUP_DETAIL = (
     "Ingest through an Onyx File/Web/S3 source or a DreamFi source bridge. "
     "DreamFi validates the document set, required metadata, and freshness."
