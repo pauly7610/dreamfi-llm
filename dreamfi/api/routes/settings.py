@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from dreamfi.api.deps import get_db_session, get_onyx_client
 from dreamfi.audit import add_audit_event
+from dreamfi.connectors import ConnectorSpec
 from dreamfi.connector_sync import SourceDocument, ingest_bridge_documents, sync_connector
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.onyx.errors import OnyxError
@@ -58,7 +59,7 @@ class BridgeIngestRequest(BaseModel):
     documents: list[BridgeDocumentRequest] = Field(min_length=1, max_length=500)
 
 
-def _connector_or_404(connector_id: str):
+def _connector_or_404(connector_id: str) -> ConnectorSpec:
     connector = connector_or_none(connector_id)
     if connector is None:
         raise HTTPException(status_code=404, detail="connector not found")

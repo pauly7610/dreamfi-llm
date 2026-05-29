@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from typing import cast
 
 from fastapi import Depends, FastAPI
 from starlette.requests import Request
@@ -93,7 +94,7 @@ def create_app() -> FastAPI:
         request.state.request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         started_at = time.perf_counter()
         try:
-            response = await call_next(request)
+            response = cast(Response, await call_next(request))
         except Exception as exc:
             duration_ms = int((time.perf_counter() - started_at) * 1000)
             _audit_request(
