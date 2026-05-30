@@ -1,5 +1,7 @@
 package templates
 
+import "strconv"
+
 type NavItem struct {
 	Label string
 	Href  string
@@ -7,12 +9,19 @@ type NavItem struct {
 
 type ConsoleData struct {
 	ProductName string
+	Version     string
+	CurrentPath string
 	Headline    string
 	Status      string
 	PrimaryNav  []NavItem
+	TopicRooms  []ConsoleTopic
+	Sources     []ConsoleSource
 	Metrics     []ConsoleMetric
 	Queue       []ConsoleQueueItem
 	Actions     []ConsoleAction
+	PromptChips []ConsoleAction
+	Threads     []ConsoleThread
+	TopicPulse  []ConsoleTopicPulse
 }
 
 type ConsoleMetric struct {
@@ -26,12 +35,201 @@ type ConsoleQueueItem struct {
 	Title  string
 	Detail string
 	Status string
+	Href   string
 }
 
 type ConsoleAction struct {
 	Label string
 	Href  string
 	Kind  string
+}
+
+type ConsoleTopic struct {
+	ID        string
+	Title     string
+	Question  string
+	Status    string
+	Freshness string
+	Dot       string
+	Change    string
+}
+
+type ConsoleSource struct {
+	ID       string
+	Name     string
+	Category string
+	Status   string
+	Detail   string
+	Method   string
+	Dot      string
+	Href     string
+}
+
+type ConsoleThread struct {
+	Title  string
+	Topic  string
+	Status string
+	Source string
+	Age    string
+	Href   string
+}
+
+type ConsoleTopicPulse struct {
+	Label string
+	Delta string
+	Value string
+	Tone  string
+}
+
+func hasPathPrefix(value string, prefix string) bool {
+	return len(value) >= len(prefix) && value[:len(prefix)] == prefix
+}
+
+func consolePageKind(path string) string {
+	if path == "/console" || path == "" {
+		return "home"
+	}
+	if hasPathPrefix(path, "/console/knowledge/ask") {
+		return "ask"
+	}
+	if hasPathPrefix(path, "/console/review") {
+		return "review"
+	}
+	if hasPathPrefix(path, "/console/artifacts") {
+		return "artifacts"
+	}
+	if hasPathPrefix(path, "/console/trust") {
+		return "trust"
+	}
+	if hasPathPrefix(path, "/console/topics") {
+		return "topics"
+	}
+	if hasPathPrefix(path, "/console/integrations") {
+		return "sources"
+	}
+	if hasPathPrefix(path, "/console/settings") {
+		return "settings"
+	}
+	if hasPathPrefix(path, "/console/methodology") {
+		return "methodology"
+	}
+	if hasPathPrefix(path, "/console/generate") {
+		return "generate"
+	}
+	return "home"
+}
+
+func consoleCrumb(path string) string {
+	switch consolePageKind(path) {
+	case "ask":
+		return "Ask"
+	case "review":
+		return "Inbox"
+	case "artifacts":
+		return "Artifacts"
+	case "trust":
+		return "Trust"
+	case "topics":
+		return "Topics"
+	case "sources":
+		return "Sources"
+	case "settings":
+		return "Settings"
+	case "methodology":
+		return "Methodology"
+	case "generate":
+		return "Generate"
+	default:
+		return "Home"
+	}
+}
+
+func activeState(current string, href string) string {
+	if href == "/console" {
+		if current == "/console" || current == "" {
+			return "true"
+		}
+		return "false"
+	}
+	if current == href || hasPathPrefix(current, href+"/") {
+		return "true"
+	}
+	return "false"
+}
+
+func navIconPath(label string) string {
+	switch label {
+	case "Home":
+		return "M2 7l6-5 6 5v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7z"
+	case "Ask":
+		return "M3 10c0-3 2-5 5-5s5 2 5 5-2 5-5 5l-3 1 1-2.5"
+	case "Inbox":
+		return "M2 9l2-5h8l2 5v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9zM2 9h3l1 1h4l1-1h3"
+	case "Artifacts":
+		return "M3 3h7l3 3v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM10 3v3h3"
+	case "Trust":
+		return "M8 1.5l5 2v4c0 3-2 5.5-5 7-3-1.5-5-4-5-7v-4l5-2z"
+	case "Settings":
+		return "M8 2v2M8 12v2M2 8h2M12 8h2M4.2 4.2l1.4 1.4M10.4 10.4l1.4 1.4M11.8 4.2l-1.4 1.4M5.6 10.4l-1.4 1.4M6 8a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"
+	case "Topics":
+		return "M2 4h12M2 8h12M2 12h8"
+	case "Sources":
+		return "M3 3h10v10H3zM3 7h10M7 3v10"
+	default:
+		return "M4 3h8M4 8h8M4 13h8"
+	}
+}
+
+func navCount(label string, data ConsoleData) string {
+	switch label {
+	case "Inbox":
+		if len(data.Queue) > 0 {
+			return strconv.Itoa(len(data.Queue))
+		}
+	case "Artifacts":
+		if len(data.Queue) > 0 {
+			return strconv.Itoa(len(data.Queue))
+		}
+	}
+	return ""
+}
+
+func navDot(label string, data ConsoleData) string {
+	if label == "Inbox" && len(data.Queue) > 0 {
+		return "warn"
+	}
+	return ""
+}
+
+func statusTone(value string) string {
+	if value == "reachable" || value == "connected" || value == "ok" || value == "published" || value == "publish_ready" || value == "good" {
+		return "good"
+	}
+	if value == "blocked" || value == "degraded" || value == "bad" {
+		return "bad"
+	}
+	if value == "needs_review" || value == "warning" || value == "warn" {
+		return "warn"
+	}
+	return "neutral"
+}
+
+func statusLabel(value string) string {
+	if value == "" {
+		return "unconfigured"
+	}
+	return value
+}
+
+func sourceInitial(name string) string {
+	if len(name) == 0 {
+		return "D"
+	}
+	return name[:1]
+}
+
+func topicHref(topic ConsoleTopic) string {
+	return "/console/topics/" + topic.ID
 }
 
 templ ConsoleShell(data ConsoleData) {
@@ -42,262 +240,1176 @@ templ ConsoleShell(data ConsoleData) {
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ data.ProductName }</title>
 			<style>
+				@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap');
+
 				:root {
-					color-scheme: light;
-					--bg: #f7f8fa;
-					--panel: #ffffff;
-					--ink: #17202a;
-					--muted: #607080;
-					--line: #d9e0e7;
-					--accent: #1a7f64;
-					--warn: #b96014;
+					color-scheme: dark;
+					--font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+					--font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+					--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+					--bg-0: #0c0d10;
+					--bg-1: #131418;
+					--bg-2: #1a1c21;
+					--bg-3: #22252b;
+					--line: #26282e;
+					--line-2: #2f3239;
+					--ink-0: #f3f3f1;
+					--ink-1: #b9bcc1;
+					--ink-2: #7a7f88;
+					--ink-3: #565a62;
+					--signal: #b8ff3d;
+					--signal-ink: #0c0d10;
+					--warn: #ffb938;
+					--bad: #ff6a5b;
+					--good: #5fe3a1;
+					--c-jira: #4f8cff;
+					--c-posthog: #ffb01f;
+					--c-metabase: #6c9bff;
+					--c-confluence: #2cc6ff;
+					--c-socure: #c47bff;
+					--c-klaviyo: #ff7a59;
+					--c-sardine: #ff5dab;
+					--c-ga: #ffa733;
+					--c-dragonboat: #5fe3a1;
+					--c-netxd: #ffd166;
+					--radius: 6px;
 				}
-				* { box-sizing: border-box; }
+
+				*,
+				*::before,
+				*::after { box-sizing: border-box; }
+
+				html,
+				body { min-height: 100%; margin: 0; }
+
 				body {
-					margin: 0;
-					font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-					background: var(--bg);
-					color: var(--ink);
+					background: var(--bg-0);
+					color: var(--ink-0);
+					font-family: var(--font-sans);
+					font-size: 12.5px;
+					line-height: 1.4;
+					-webkit-font-smoothing: antialiased;
 				}
+
+				a { color: inherit; text-decoration: none; }
+				button, input, textarea, select { font: inherit; }
+				button { cursor: pointer; }
+				h1, h2, h3, p { margin: 0; }
+
 				.shell {
 					min-height: 100vh;
 					display: grid;
-					grid-template-columns: minmax(210px, 16vw) 1fr;
+					grid-template-columns: 140px minmax(0, 1fr);
+					background: var(--bg-0);
 				}
+
 				.sidebar {
+					position: sticky;
+					top: 0;
+					height: 100vh;
+					display: flex;
+					flex-direction: column;
 					border-right: 1px solid var(--line);
-					background: #ffffff;
-					padding: 20px 16px;
+					background: #0b0c0f;
+					padding: 10px 8px;
 				}
+
 				.brand {
-					font-size: 18px;
-					font-weight: 700;
-					margin: 0 0 24px;
-				}
-				.nav {
-					display: grid;
-					gap: 6px;
-				}
-				.nav a {
-					color: var(--ink);
-					text-decoration: none;
-					padding: 10px 12px;
-					border-radius: 8px;
-					font-size: 14px;
-					font-weight: 600;
-				}
-				.nav a:hover {
-					background: #eef3f6;
-				}
-				.main {
-					min-width: 0;
-					display: grid;
-					grid-template-rows: auto 1fr;
-				}
-				.topbar {
-					height: 64px;
 					display: flex;
 					align-items: center;
-					justify-content: space-between;
-					padding: 0 28px;
-					border-bottom: 1px solid var(--line);
-					background: rgba(255, 255, 255, 0.86);
+					gap: 7px;
+					min-height: 26px;
+					padding: 0 5px 9px;
+					border-bottom: 1px solid rgba(38, 40, 46, 0.7);
 				}
-				.topbar h1 {
-					font-size: 18px;
-					margin: 0;
-				}
-				.status {
-					display: inline-flex;
-					align-items: center;
-					gap: 8px;
-					font-size: 13px;
-					font-weight: 700;
-					color: var(--muted);
-				}
-				.status-dot {
-					width: 9px;
-					height: 9px;
-					border-radius: 50%;
-					background: var(--warn);
-				}
-				.status[data-state="reachable"] .status-dot {
-					background: var(--accent);
-				}
-				.workspace {
-					padding: 28px;
+
+				.brand-mark {
+					width: 16px;
+					height: 16px;
 					display: grid;
-					grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-					gap: 16px;
-					align-content: start;
-				}
-				.panel {
-					background: var(--panel);
-					border: 1px solid var(--line);
-					border-radius: 8px;
-					padding: 18px;
-					min-height: 180px;
-				}
-				.panel h2 {
-					font-size: 15px;
-					margin: 0 0 12px;
-				}
-				.metric-grid {
-					display: grid;
-					grid-template-columns: repeat(3, minmax(0, 1fr));
-					gap: 10px;
-				}
-				.metric {
-					border: 1px solid var(--line);
-					border-radius: 8px;
-					padding: 12px;
-				}
-				.metric strong {
-					display: block;
-					font-size: 24px;
-					line-height: 1.2;
-				}
-				.metric span {
-					color: var(--muted);
+					place-items: center;
+					border-radius: 4px;
+					background: var(--ink-0);
+					color: var(--bg-0);
+					font-family: var(--font-serif);
 					font-size: 12px;
-					font-weight: 700;
+					font-style: italic;
 				}
-				.metric small {
-					display: block;
-					margin-top: 6px;
-					color: var(--muted);
-					font-size: 12px;
-				}
-				.queue {
-					display: grid;
-					gap: 10px;
-				}
-				.queue-row {
-					border-bottom: 1px solid var(--line);
-					padding-bottom: 10px;
-				}
-				.queue-row:last-child {
-					border-bottom: 0;
-					padding-bottom: 0;
-				}
-				.queue-row strong {
-					display: block;
-					font-size: 14px;
-				}
-				.queue-row span {
-					color: var(--muted);
-					font-size: 12px;
-				}
-				.badge {
-					display: inline-flex;
-					margin-top: 6px;
-					font-size: 11px;
-					font-weight: 800;
-					color: var(--muted);
+
+				.brand-name { font-size: 10px; font-weight: 700; }
+				.version { margin-left: auto; color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }
+
+				.nav-section { display: grid; gap: 2px; margin-top: 10px; }
+				.nav-label {
+					padding: 9px 6px 3px;
+					color: var(--ink-3);
+					font-family: var(--font-mono);
+					font-size: 8.5px;
 					text-transform: uppercase;
 				}
-				.actions {
-					margin-top: 16px;
-					display: flex;
-					flex-wrap: wrap;
-					gap: 8px;
+
+				.nav-item {
+					position: relative;
+					display: grid;
+					grid-template-columns: 16px minmax(0, 1fr) auto auto;
+					align-items: center;
+					gap: 7px;
+					min-height: 24px;
+					padding: 4px 6px;
+					border-radius: 5px;
+					color: var(--ink-1);
+					font-size: 10.5px;
 				}
-				.action-link {
+
+				.nav-item:hover,
+				.nav-item[data-active="true"] {
+					background: var(--bg-1);
+					color: var(--ink-0);
+				}
+
+				.nav-item[data-active="true"]::before {
+					content: "";
+					position: absolute;
+					left: 0;
+					top: 8px;
+					bottom: 8px;
+					width: 2px;
+					border-radius: 99px;
+					background: var(--signal);
+				}
+
+				.nav-icon {
+					width: 13px;
+					height: 13px;
+					display: inline-grid;
+					place-items: center;
+					color: var(--ink-2);
+				}
+
+				.nav-icon svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+				.nav-source-badge {
+					width: 13px;
+					height: 13px;
+					display: grid;
+					place-items: center;
+					border-radius: 3px;
+					background: var(--ink-3);
+					color: var(--bg-0);
+					font-family: var(--font-mono);
+					font-size: 7.5px;
+					font-weight: 700;
+				}
+				.nav-source-badge[data-source="jira"] { background: var(--c-jira); color: white; }
+				.nav-source-badge[data-source="posthog"] { background: var(--c-posthog); }
+				.nav-source-badge[data-source="metabase"] { background: var(--c-metabase); color: white; }
+				.nav-source-badge[data-source="confluence"] { background: var(--c-confluence); }
+				.nav-source-badge[data-source="socure"] { background: var(--c-socure); color: white; }
+				.nav-source-badge[data-source="klaviyo"] { background: var(--c-klaviyo); color: white; }
+				.nav-source-badge[data-source="sardine"] { background: var(--c-sardine); color: white; }
+				.nav-source-badge[data-source="ga"] { background: var(--c-ga); }
+				.nav-source-badge[data-source="dragonboat"] { background: var(--c-dragonboat); }
+				.nav-source-badge[data-source="netxd"] { background: var(--c-netxd); }
+				.nav-item span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+				.nav-count { color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }
+				.nav-dot { width: 4px; height: 4px; border-radius: 99px; background: var(--ink-3); }
+				.nav-dot[data-tone="good"] { background: var(--good); }
+				.nav-dot[data-tone="warn"] { background: var(--warn); }
+				.nav-dot[data-tone="bad"] { background: var(--bad); }
+
+				.sidebar-footer {
+					margin-top: auto;
+					display: flex;
+					align-items: center;
+					gap: 6px;
+					padding: 8px 6px 0;
+					border-top: 1px solid rgba(38, 40, 46, 0.7);
+					color: var(--ink-2);
+					font-size: 9.5px;
+				}
+
+				.avatar {
+					width: 16px;
+					height: 16px;
+					display: grid;
+					place-items: center;
+					border-radius: 50%;
+					background: #6c6cff;
+					color: white;
+					font-family: var(--font-mono);
+					font-size: 7.5px;
+				}
+
+				.main { min-width: 0; }
+				.topbar {
+					position: sticky;
+					top: 0;
+					z-index: 2;
+					height: 32px;
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto;
+					align-items: center;
+					gap: 16px;
+					border-bottom: 1px solid var(--line);
+					background: rgba(12, 13, 16, 0.92);
+					backdrop-filter: blur(12px);
+					padding: 0 12px;
+				}
+
+				.crumb {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					min-width: 0;
+					color: var(--ink-2);
+					font-size: 9.5px;
+				}
+
+				.crumb strong { color: var(--ink-0); font-size: 10.5px; font-weight: 600; }
+				.topbar-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+				.search {
+					display: flex;
+					align-items: center;
+					gap: 8px;
+					min-width: 156px;
+					height: 22px;
+					padding: 0 8px;
+					border: 1px solid var(--line);
+					border-radius: 5px;
+					color: var(--ink-2);
+					font-size: 9.5px;
+				}
+
+				.kbd {
+					border: 1px solid var(--line);
+					border-radius: 3px;
+					color: var(--ink-3);
+					font-family: var(--font-mono);
+					font-size: 8px;
+					padding: 0 5px;
+				}
+
+				.page {
+					width: min(100%, 1120px);
+					margin: 0;
+					padding: 18px 20px 28px;
+				}
+
+				.eyebrow {
+					color: var(--ink-2);
+					font-family: var(--font-mono);
+					font-size: 8.5px;
+					font-weight: 500;
+					text-transform: uppercase;
+				}
+
+				.display-question {
+					max-width: 980px;
+					color: var(--ink-0);
+					font-family: var(--font-serif);
+					font-size: clamp(30px, 3.2vw, 42px);
+					font-weight: 400;
+					line-height: 1.03;
+					margin-top: 4px;
+					white-space: nowrap;
+				}
+
+				.display-question em { color: var(--ink-1); font-style: italic; }
+
+				.ask-form {
+					margin-top: 10px;
+					display: grid;
+					grid-template-columns: 1fr auto;
+					align-items: center;
+					max-width: 580px;
+					min-height: 38px;
+					border: 1px solid var(--line);
+					border-radius: 8px;
+					background: var(--bg-1);
+					box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+				}
+
+				.ask-form input {
+					width: 100%;
+					min-width: 0;
+					border: 0;
+					outline: 0;
+					background: transparent;
+					color: var(--ink-0);
+					padding: 0 15px;
+					font-size: 10.5px;
+				}
+
+				.ask-form input::placeholder { color: var(--ink-3); }
+
+				.btn {
 					display: inline-flex;
 					align-items: center;
 					justify-content: center;
-					min-height: 36px;
-					padding: 0 12px;
+					gap: 8px;
+					min-height: 26px;
+					padding: 0 10px;
+					border: 1px solid var(--line);
+					border-radius: 5px;
+					background: var(--bg-1);
+					color: var(--ink-0);
+					font-size: 9.5px;
+					font-weight: 600;
+					white-space: nowrap;
+				}
+
+				.btn:hover { border-color: var(--line-2); background: var(--bg-2); }
+				.btn-primary { border-color: var(--signal); background: var(--signal); color: var(--signal-ink); }
+				.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-1); }
+				.btn-sm { min-height: 22px; padding: 0 7px; font-size: 9.5px; }
+				.ask-form .btn { margin-right: 7px; }
+
+				.chips {
+					display: flex;
+					flex-wrap: wrap;
+					gap: 4px;
+					margin-top: 7px;
+					max-width: 620px;
+				}
+
+				.chip {
+					display: inline-flex;
+					align-items: center;
+					gap: 6px;
+					min-height: 20px;
+					border: 1px solid var(--line);
+					border-radius: 999px;
+					padding: 0 8px;
+					color: var(--ink-1);
+					background: rgba(19, 20, 24, 0.7);
+					font-size: 9.5px;
+				}
+
+				.chips .chip {
+					min-height: 18px;
+					padding: 0 6px;
+					font-size: 7.6px;
+				}
+
+				.chip[data-tone="good"],
+				.value[data-tone="good"] { color: var(--good); }
+				.chip[data-tone="warn"],
+				.value[data-tone="warn"] { color: var(--warn); }
+				.chip[data-tone="bad"],
+				.value[data-tone="bad"] { color: var(--bad); }
+
+				.grid-main {
+					display: grid;
+					grid-template-columns: minmax(0, 1.42fr) minmax(220px, 0.58fr);
+					gap: 12px;
+					margin-top: 14px;
+				}
+
+				.surface {
+					overflow: hidden;
 					border: 1px solid var(--line);
 					border-radius: 8px;
-					color: var(--ink);
-					text-decoration: none;
+					background: var(--bg-1);
+				}
+
+				.section-head {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					gap: 12px;
+					min-height: 32px;
+					padding: 6px 12px;
+					border-bottom: 1px solid var(--line);
+				}
+
+				.section-head h2,
+				.section-head h3 { font-size: 11.5px; font-weight: 600; }
+
+				.section-head .meta {
+					color: var(--ink-2);
+					font-family: var(--font-mono);
+					font-size: 8.5px;
+					text-transform: uppercase;
+				}
+
+				.table {
+					width: 100%;
+					border-collapse: collapse;
+				}
+
+				.table th,
+				.table td {
+					border-bottom: 1px solid var(--line);
+					padding: 4px 12px;
+					font-size: 9.4px;
+					line-height: 1.15;
+					text-align: left;
+					vertical-align: middle;
+				}
+
+				.table th {
+					color: var(--ink-3);
+					font-family: var(--font-mono);
+					font-size: 7.6px;
+					font-weight: 500;
+					text-transform: uppercase;
+				}
+
+				.table tr:last-child td { border-bottom: 0; }
+				.strong { color: var(--ink-0); font-weight: 500; }
+				.muted { color: var(--ink-2); }
+				.num { font-family: var(--font-mono); }
+				.tone { color: var(--ink-2); font-family: var(--font-mono); font-size: 9.5px; }
+				.tone[data-tone="good"] { color: var(--good); }
+				.tone[data-tone="warn"] { color: var(--warn); }
+				.tone[data-tone="bad"] { color: var(--bad); }
+
+				.thread-table th:nth-child(1),
+				.thread-table td:nth-child(1) { width: 44%; }
+				.thread-table th:nth-child(2),
+				.thread-table td:nth-child(2) { width: 25%; }
+				.thread-table th:nth-child(3),
+				.thread-table td:nth-child(3) { width: 21%; }
+				.thread-table th:nth-child(4),
+				.thread-table td:nth-child(4) { width: 10%; }
+				.thread-table .strong { font-size: 9.4px; line-height: 1.08; }
+				.thread-table .muted { font-size: 8.5px; }
+
+				.topic-pulse { display: grid; }
+				.pulse-row {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) auto auto;
+					align-items: center;
+					gap: 8px;
+					min-height: 32px;
+					padding: 0 12px;
+					border-bottom: 1px solid var(--line);
+					font-size: 9.5px;
+				}
+				.pulse-row:last-child { border-bottom: 0; }
+				.pulse-row .num { font-size: 10px; }
+				.pulse-row .tone { font-size: 8.5px; }
+
+				.source-grid {
+					display: grid;
+					grid-template-columns: repeat(5, minmax(96px, 1fr));
+					border-top: 1px solid var(--line);
+				}
+
+				.source-card {
+					position: relative;
+					min-width: 0;
+					display: grid;
+					grid-template-columns: 22px minmax(0, 1fr);
+					gap: 7px;
+					align-items: start;
+					min-height: 58px;
+					padding: 8px 18px 8px 12px;
+					border-right: 1px solid var(--line);
+					border-bottom: 1px solid var(--line);
+				}
+
+				.source-card:nth-child(5n) { border-right: 0; }
+				.source-badge {
+					width: 19px;
+					height: 19px;
+					display: grid;
+					place-items: center;
+					border-radius: 5px;
+					background: var(--ink-3);
+					color: var(--bg-0);
+					font-family: var(--font-mono);
+					font-size: 8.5px;
+					font-weight: 700;
+				}
+
+				.source-card .strong {
+					font-size: 9px;
+					line-height: 1.1;
+				}
+
+				.source-card .muted {
+					display: inline-block;
+					font-size: 7.8px;
+					line-height: 1.15;
+				}
+
+				.source-card[data-source="jira"] .source-badge { background: var(--c-jira); color: white; }
+				.source-card[data-source="posthog"] .source-badge { background: var(--c-posthog); }
+				.source-card[data-source="metabase"] .source-badge { background: var(--c-metabase); color: white; }
+				.source-card[data-source="confluence"] .source-badge { background: var(--c-confluence); }
+				.source-card[data-source="socure"] .source-badge { background: var(--c-socure); color: white; }
+				.source-card[data-source="klaviyo"] .source-badge { background: var(--c-klaviyo); color: white; }
+				.source-card[data-source="sardine"] .source-badge { background: var(--c-sardine); color: white; }
+				.source-card[data-source="ga"] .source-badge { background: var(--c-ga); }
+				.source-card[data-source="dragonboat"] .source-badge { background: var(--c-dragonboat); }
+				.source-card[data-source="netxd"] .source-badge { background: var(--c-netxd); }
+
+				.status-dot {
+					position: absolute;
+					top: 12px;
+					right: 12px;
+					width: 5px;
+					height: 5px;
+					border-radius: 99px;
+					background: var(--ink-3);
+				}
+				.status-dot[data-tone="good"] { background: var(--good); }
+				.status-dot[data-tone="warn"] { background: var(--warn); }
+				.status-dot[data-tone="bad"] { background: var(--bad); }
+
+				.metric-grid {
+					display: grid;
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+					gap: 1px;
+					background: var(--line);
+				}
+
+				.metric {
+					min-height: 76px;
+					display: flex;
+					flex-direction: column;
+					justify-content: space-between;
+					background: var(--bg-1);
+					padding: 11px;
+				}
+
+				.metric strong {
+					color: var(--ink-0);
+					font-family: var(--font-mono);
+					font-size: 20px;
+					font-weight: 600;
+				}
+
+				.metric span { color: var(--ink-2); font-size: 9.5px; }
+
+				.two-col {
+					display: grid;
+					grid-template-columns: minmax(0, 1fr) minmax(240px, 0.55fr);
+					gap: 12px;
+					margin-top: 14px;
+				}
+
+				.detail-copy {
+					color: var(--ink-2);
 					font-size: 13px;
-					font-weight: 800;
-					background: #ffffff;
+					line-height: 1.7;
+					max-width: 760px;
 				}
-				.action-link[data-kind="primary"] {
-					border-color: var(--accent);
-					background: var(--accent);
-					color: #ffffff;
+
+				.empty-state {
+					padding: 28px 16px;
+					color: var(--ink-2);
 				}
-				@media (max-width: 820px) {
-					.shell {
-						grid-template-columns: 1fr;
-					}
+
+				.actions {
+					display: flex;
+					flex-wrap: wrap;
+					gap: 8px;
+					padding: 16px;
+					border-top: 1px solid var(--line);
+				}
+
+				@media (max-width: 720px) {
+					.shell { grid-template-columns: 1fr; }
 					.sidebar {
+						position: relative;
+						height: auto;
 						border-right: 0;
 						border-bottom: 1px solid var(--line);
 					}
-					.nav {
-						grid-template-columns: repeat(3, minmax(0, 1fr));
-					}
-					.workspace {
-						grid-template-columns: 1fr;
-						padding: 16px;
-					}
+					.sidebar-footer { display: none; }
+					.nav-section { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+					.nav-label { grid-column: 1 / -1; }
+					.topbar { top: 0; }
+					.page { padding: 28px 16px; }
+					.display-question { white-space: normal; }
+					.grid-main,
+					.two-col { grid-template-columns: 1fr; }
+					.source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+					.source-card:nth-child(5n) { border-right: 1px solid var(--line); }
+					.source-card:nth-child(2n) { border-right: 0; }
+				}
+
+				@media (max-width: 640px) {
+					.display-question { font-size: 34px; }
+					.ask-form { grid-template-columns: 1fr; padding-bottom: 8px; }
+					.ask-form input { min-height: 48px; }
+					.ask-form .btn { margin: 0 8px; }
+					.search { display: none; }
+					.nav-section { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+					.metric-grid { grid-template-columns: 1fr; }
+					.source-grid { grid-template-columns: 1fr; }
+					.source-card,
+					.source-card:nth-child(2n),
+					.source-card:nth-child(5n) { border-right: 0; }
+					.table th:nth-child(3),
+					.table td:nth-child(3) { display: none; }
 				}
 			</style>
 		</head>
 		<body>
 			<div class="shell">
-				<aside class="sidebar">
-					<p class="brand">{ data.ProductName }</p>
-					<nav class="nav" aria-label="Primary">
-						for _, item := range data.PrimaryNav {
-							<a href={ item.Href }>{ item.Label }</a>
-						}
-					</nav>
-				</aside>
+				@ConsoleSidebar(data)
 				<main class="main">
 					<header class="topbar">
-						<h1>{ data.Headline }</h1>
-						<div class="status" data-state={ data.Status }>
-							<span class="status-dot"></span>
-							<span>Onyx { data.Status }</span>
-						</div>
+					<div class="crumb" aria-label={ data.Headline }>
+						<strong>{ consoleCrumb(data.CurrentPath) }</strong>
+						if consolePageKind(data.CurrentPath) != "home" {
+							<span class="topbar-caption">{ data.Headline }</span>
+						}
+					</div>
+						<a class="search" href="/console/knowledge/ask" aria-label="Ask anything">
+							<span>Search</span>
+							<span class="kbd">Cmd K</span>
+						</a>
 					</header>
-					<section class="workspace" aria-label="Console workspace">
-						<div class="panel">
-							<h2>Review Posture</h2>
-							<div class="metric-grid">
-								for _, metric := range data.Metrics {
-									<div class="metric" data-tone={ metric.Tone }>
-										<strong>{ metric.Value }</strong>
-										<span>{ metric.Label }</span>
-										if metric.Detail != "" {
-											<small>{ metric.Detail }</small>
-										}
-									</div>
-								}
-							</div>
-							<div class="actions">
-								for _, action := range data.Actions {
-									<a class="action-link" data-kind={ action.Kind } href={ action.Href }>{ action.Label }</a>
-								}
-							</div>
-						</div>
-						<div class="panel">
-							<h2>Priority Queue</h2>
-							<div class="queue">
-								if len(data.Queue) == 0 {
-									<div class="queue-row">
-										<strong>No artifacts yet</strong>
-										<span>Generate a workflow artifact to populate the review queue.</span>
-									</div>
-								}
-								for _, item := range data.Queue {
-									<div class="queue-row">
-										<strong>{ item.Title }</strong>
-										<span>{ item.Detail }</span>
-										<em class="badge">{ item.Status }</em>
-									</div>
-								}
-							</div>
-						</div>
-					</section>
+					if consolePageKind(data.CurrentPath) == "ask" {
+						@ConsoleAskPage(data)
+					} else if consolePageKind(data.CurrentPath) == "review" {
+						@ConsoleReviewPage(data)
+					} else if consolePageKind(data.CurrentPath) == "artifacts" {
+						@ConsoleArtifactsPage(data)
+					} else if consolePageKind(data.CurrentPath) == "trust" {
+						@ConsoleTrustPage(data)
+					} else if consolePageKind(data.CurrentPath) == "topics" {
+						@ConsoleTopicsPage(data)
+					} else if consolePageKind(data.CurrentPath) == "sources" {
+						@ConsoleSourcesPage(data)
+					} else if consolePageKind(data.CurrentPath) == "settings" {
+						@ConsoleSettingsPage(data)
+					} else if consolePageKind(data.CurrentPath) == "methodology" {
+						@ConsoleMethodologyPage(data)
+					} else if consolePageKind(data.CurrentPath) == "generate" {
+						@ConsoleGeneratePage(data)
+					} else {
+						@ConsoleHomePage(data)
+					}
 				</main>
 			</div>
 		</body>
 	</html>
+}
+
+templ ConsoleSidebar(data ConsoleData) {
+	<aside class="sidebar">
+		<a class="brand" href="/console" aria-label="DreamFi home">
+			<span class="brand-mark">D</span>
+			<span class="brand-name">DreamFi</span>
+			<span class="version">{ data.Version }</span>
+		</a>
+		<nav class="nav-section" aria-label="Primary">
+			for _, item := range data.PrimaryNav {
+				<a class="nav-item" href={ item.Href } data-active={ activeState(data.CurrentPath, item.Href) }>
+					<span class="nav-icon">
+						<svg viewBox="0 0 16 16" aria-hidden="true">
+							<path d={ navIconPath(item.Label) }></path>
+						</svg>
+					</span>
+					<span>{ item.Label }</span>
+					if navCount(item.Label, data) != "" {
+						<span class="nav-count">{ navCount(item.Label, data) }</span>
+					}
+					if navDot(item.Label, data) != "" {
+						<span class="nav-dot" data-tone={ navDot(item.Label, data) }></span>
+					}
+				</a>
+			}
+		</nav>
+		<div class="nav-section">
+			<div class="nav-label">Topic rooms</div>
+			for _, topic := range data.TopicRooms {
+				<a class="nav-item" href={ topicHref(topic) } data-active={ activeState(data.CurrentPath, topicHref(topic)) }>
+					<span class="nav-icon">
+						<svg viewBox="0 0 16 16" aria-hidden="true">
+							<path d={ navIconPath("Topics") }></path>
+						</svg>
+					</span>
+					<span>{ topic.Title }</span>
+					if topic.Dot != "" {
+						<span class="nav-dot" data-tone={ topic.Dot }></span>
+					}
+				</a>
+			}
+		</div>
+		<div class="nav-section">
+			<div class="nav-label">Sources</div>
+			for _, source := range data.Sources {
+				<a class="nav-item" href={ source.Href } data-active={ activeState(data.CurrentPath, source.Href) }>
+					<span class="nav-source-badge" data-source={ source.ID }>{ sourceInitial(source.Name) }</span>
+					<span>{ source.Name }</span>
+					if source.Dot != "" {
+						<span class="nav-dot" data-tone={ source.Dot }></span>
+					}
+				</a>
+			}
+		</div>
+		<div class="sidebar-footer">
+			<span class="avatar">PM</span>
+			<span>
+				<span class="strong">Priya M.</span><br/>
+				<span>Risk and Compliance</span>
+			</span>
+		</div>
+	</aside>
+}
+
+templ ConsoleHomePage(data ConsoleData) {
+	<section class="page" aria-label="DreamFi console home">
+		<div class="eyebrow">Home - fresh signals overnight</div>
+		<h1 class="display-question">Ask DreamFi <em>what the company already knows.</em></h1>
+		@AskForm(data)
+		<div class="grid-main">
+			@OpenThreads(data)
+			@TopicPulse(data)
+		</div>
+		@SourcesBand(data)
+	</section>
+}
+
+templ ConsoleAskPage(data ConsoleData) {
+	<section class="page" aria-label="Ask DreamFi">
+		<div class="eyebrow">Ask - grounded by connected sources</div>
+		<h1 class="display-question">Ask DreamFi <em>what the company already knows.</em></h1>
+		@AskForm(data)
+		<div class="two-col">
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Receipts</div>
+						<h2>Sources this answer can use</h2>
+					</div>
+					<a class="btn btn-sm btn-ghost" href="/console/integrations">Open sources</a>
+				</div>
+				<div class="source-grid">
+					for _, source := range data.Sources {
+						@SourceCard(source)
+					}
+				</div>
+			</div>
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Next best</div>
+						<h2>Run with context</h2>
+					</div>
+				</div>
+				<div class="actions">
+					for _, action := range data.Actions {
+						<a class={ "btn " + buttonClass(action.Kind) } href={ action.Href }>{ action.Label }</a>
+					}
+				</div>
+			</div>
+		</div>
+	</section>
+}
+
+templ ConsoleTopicsPage(data ConsoleData) {
+	<section class="page" aria-label="Topic rooms">
+		<div class="eyebrow">Topic rooms - product operating memory</div>
+		<h1 class="display-question">Topic rooms <em>keep the work legible.</em></h1>
+		<div class="grid-main">
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Active</div>
+						<h2>Topic rooms</h2>
+					</div>
+					<a class="btn btn-sm btn-ghost" href="/console/knowledge/ask">Ask from a room</a>
+				</div>
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Thread</th>
+							<th>State</th>
+							<th>Freshness</th>
+							<th>Move</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, topic := range data.TopicRooms {
+							<tr>
+								<td>
+									<a class="strong" href={ topicHref(topic) }>{ topic.Question }</a>
+									<div class="muted">{ topic.Title }</div>
+								</td>
+								<td><span class="chip" data-tone={ topic.Dot }>{ topic.Status }</span></td>
+								<td class="num">{ topic.Freshness }</td>
+								<td class="tone" data-tone={ topic.Dot }>{ topic.Change }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			@TopicPulse(data)
+		</div>
+	</section>
+}
+
+templ ConsoleSourcesPage(data ConsoleData) {
+	<section class="page" aria-label="Source directory">
+		<div class="eyebrow">Sources - connected context</div>
+		<h1 class="display-question">Source directory <em>without clogging context.</em></h1>
+		<div class="surface" style="margin-top: 26px;">
+			<div class="section-head">
+				<div>
+					<div class="meta">Connected</div>
+					<h2>Sources</h2>
+				</div>
+				<span class="meta">{ statusLabel(data.Status) } Onyx</span>
+			</div>
+			<div class="source-grid">
+				for _, source := range data.Sources {
+					@SourceCard(source)
+				}
+			</div>
+		</div>
+		<div class="two-col">
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Runtime contract</div>
+						<h2>Freshness gates</h2>
+					</div>
+				</div>
+				<div style="padding: 16px;">
+					<p class="detail-copy">Each source advertises method, status, and freshness posture before the agent uses it. Real-time systems can be queried on demand, while stale systems should be labeled and paired with a live lookup path before answering operational questions.</p>
+				</div>
+			</div>
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Audit</div>
+						<h2>Data contract</h2>
+					</div>
+				</div>
+				<table class="table">
+					<tbody>
+						for _, source := range data.Sources[:minTemplateInt(len(data.Sources), 5)] {
+							<tr>
+								<td class="strong">{ source.Name }</td>
+								<td class="muted">{ source.Method }</td>
+								<td><span class="tone" data-tone={ statusTone(source.Status) }>{ source.Status }</span></td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</section>
+}
+
+templ ConsoleReviewPage(data ConsoleData) {
+	<section class="page" aria-label="Review queue">
+		<div class="eyebrow">Inbox - human review</div>
+		<h1 class="display-question">Review queue <em>covering blocked and publish-ready work.</em></h1>
+		<div class="two-col">
+			@ArtifactQueue(data)
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Posture</div>
+						<h2>Review posture</h2>
+					</div>
+				</div>
+				@MetricGrid(data)
+			</div>
+		</div>
+	</section>
+}
+
+templ ConsoleArtifactsPage(data ConsoleData) {
+	<section class="page" aria-label="Artifact library">
+		<div class="eyebrow">Artifacts - generated work</div>
+		<h1 class="display-question">Artifact library <em>with receipts attached.</em></h1>
+		<div class="surface" style="margin-top: 26px;">
+			<div class="section-head">
+				<div>
+					<div class="meta">Current queue</div>
+					<h2>Artifact library</h2>
+				</div>
+				<a class="btn btn-sm btn-primary" href="/console/generate/weekly-brief">Generate</a>
+			</div>
+			@MetricGrid(data)
+			<div class="actions">
+				for _, action := range data.Actions {
+					<a class={ "btn " + buttonClass(action.Kind) } href={ action.Href }>{ action.Label }</a>
+				}
+			</div>
+		</div>
+		<div style="margin-top: 18px;">
+			@ArtifactQueue(data)
+		</div>
+	</section>
+}
+
+templ ConsoleTrustPage(data ConsoleData) {
+	<section class="page" aria-label="Trust posture">
+		<div class="eyebrow">Trust - system health</div>
+		<h1 class="display-question">Trust posture <em>with the receipts exposed.</em></h1>
+		<div class="two-col">
+			<div class="surface">
+				<div class="section-head">
+					<div>
+						<div class="meta">Measured</div>
+						<h2>{ data.Headline }</h2>
+					</div>
+					<span class="chip" data-tone={ statusTone(data.Status) }>Onyx { statusLabel(data.Status) }</span>
+				</div>
+				@MetricGrid(data)
+			</div>
+			@ArtifactQueue(data)
+		</div>
+		@SourcesBand(data)
+	</section>
+}
+
+templ ConsoleSettingsPage(data ConsoleData) {
+	<section class="page" aria-label="Connector settings">
+		<div class="eyebrow">Settings - source configuration</div>
+		<h1 class="display-question">Connector settings <em>stay separate from context.</em></h1>
+		<div class="surface" style="margin-top: 26px;">
+			<div class="section-head">
+				<div>
+					<div class="meta">Contracts</div>
+					<h2>Connector settings</h2>
+				</div>
+			</div>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Source</th>
+						<th>Method</th>
+						<th>Status</th>
+						<th>Detail</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, source := range data.Sources {
+						<tr>
+							<td class="strong">{ source.Name }</td>
+							<td class="muted">{ source.Method }</td>
+							<td><span class="tone" data-tone={ statusTone(source.Status) }>{ source.Status }</span></td>
+							<td class="muted">{ source.Detail }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+}
+
+templ ConsoleMethodologyPage(data ConsoleData) {
+	<section class="page" aria-label="Methodology">
+		<div class="eyebrow">Methodology - three-level shared context</div>
+		<h1 class="display-question">Methodology <em>keeps answers inspectable.</em></h1>
+		<div class="surface" style="margin-top: 26px;">
+			<div class="section-head">
+				<div>
+					<div class="meta">Operating model</div>
+					<h2>Shared context ladder</h2>
+				</div>
+			</div>
+			<table class="table">
+				<tbody>
+					<tr>
+						<td class="strong">Company memory</td>
+						<td class="muted">Stable instructions, skills, domain terms, and artifact standards.</td>
+					</tr>
+					<tr>
+						<td class="strong">Runtime retrieval</td>
+						<td class="muted">Question-scoped source contracts, freshness labels, and evidence packs.</td>
+					</tr>
+					<tr>
+						<td class="strong">Workflow skills</td>
+						<td class="muted">Repeatable coworker-like paths that turn questions into reviewable outputs.</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</section>
+}
+
+templ ConsoleGeneratePage(data ConsoleData) {
+	<section class="page" aria-label="Generate artifact">
+		<div class="eyebrow">Generate - workflow artifact</div>
+		<h1 class="display-question">Generate artifact <em>from the current context.</em></h1>
+		<div class="surface" style="margin-top: 26px;">
+			<div class="section-head">
+				<div>
+					<div class="meta">Available</div>
+					<h2>Workflow generators</h2>
+				</div>
+			</div>
+			<div class="actions">
+				for _, action := range data.Actions {
+					<a class={ "btn " + buttonClass(action.Kind) } href={ action.Href }>{ action.Label }</a>
+				}
+			</div>
+		</div>
+	</section>
+}
+
+templ AskForm(data ConsoleData) {
+	<form class="ask-form" action="/console/knowledge/ask" method="get">
+		<input type="search" name="q" placeholder="Why did KYC conversion drop last week?" aria-label="Ask DreamFi"/>
+		<button class="btn btn-primary" type="submit">Ask with receipts</button>
+	</form>
+	<div class="chips" aria-label="Suggested questions">
+		for _, chip := range data.PromptChips {
+			<a class="chip" href={ chip.Href }>{ chip.Label }</a>
+		}
+	</div>
+}
+
+templ OpenThreads(data ConsoleData) {
+	<div class="surface">
+		<div class="section-head">
+			<div>
+				<div class="meta">Operations</div>
+				<h2>Open threads</h2>
+			</div>
+			<a class="btn btn-sm btn-ghost" href="/console/review">Open inbox</a>
+		</div>
+		<table class="table thread-table">
+			<thead>
+				<tr>
+					<th>Thread</th>
+					<th>Room</th>
+					<th>Status</th>
+					<th>Updated</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, item := range data.Threads {
+					<tr>
+						<td>
+							<a class="strong" href={ item.Href }>{ item.Title }</a>
+							<div class="muted">{ item.Source }</div>
+						</td>
+						<td><span class="chip">{ item.Topic }</span></td>
+						<td><span class="tone" data-tone={ statusTone(item.Status) }>{ item.Status }</span></td>
+						<td class="num">{ item.Age }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ TopicPulse(data ConsoleData) {
+	<div class="surface">
+		<div class="section-head">
+			<div>
+				<div class="meta">Last 14 days</div>
+				<h2>Topic pulse</h2>
+			</div>
+			<span class="meta">70</span>
+		</div>
+		<div class="topic-pulse">
+			for _, pulse := range data.TopicPulse {
+				<div class="pulse-row">
+					<span>{ pulse.Label }</span>
+					<span class="tone" data-tone={ pulse.Tone }>{ pulse.Delta }</span>
+					<span class="num">{ pulse.Value }</span>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ SourcesBand(data ConsoleData) {
+	<div class="surface" style="margin-top: 12px;">
+		<div class="section-head">
+			<div>
+				<div class="meta">Source intelligence</div>
+				<h2>Sources</h2>
+			</div>
+			<span class="meta">{ sourceCountLabel(data) } connected</span>
+		</div>
+		<div class="source-grid">
+			for _, source := range data.Sources {
+				@SourceCard(source)
+			}
+		</div>
+	</div>
+}
+
+templ SourceCard(source ConsoleSource) {
+	<a class="source-card" data-source={ source.ID } href={ source.Href }>
+		<span class="source-badge">{ sourceInitial(source.Name) }</span>
+		<span>
+			<span class="strong">{ source.Name }</span><br/>
+			<span class="muted">{ source.Detail }</span>
+		</span>
+		<span class="status-dot" data-tone={ statusTone(source.Status) }></span>
+	</a>
+}
+
+templ MetricGrid(data ConsoleData) {
+	<div class="metric-grid">
+		for _, metric := range data.Metrics {
+			<div class="metric" data-tone={ metric.Tone }>
+				<span>{ metric.Label }</span>
+				<strong>{ metric.Value }</strong>
+				<span>{ metric.Detail }</span>
+			</div>
+		}
+	</div>
+}
+
+templ ArtifactQueue(data ConsoleData) {
+	<div class="surface">
+		<div class="section-head">
+			<div>
+				<div class="meta">Current queue</div>
+				<h2>Review queue</h2>
+			</div>
+			<a class="btn btn-sm btn-ghost" href="/console/artifacts">All artifacts</a>
+		</div>
+		if len(data.Queue) == 0 {
+			<div class="empty-state">
+				<div class="strong">No artifacts yet</div>
+				<p>Generate a workflow artifact to populate the review queue.</p>
+			</div>
+		} else {
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Artifact</th>
+						<th>Evidence</th>
+						<th>Status</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, item := range data.Queue {
+						<tr>
+							<td><a class="strong" href={ item.Href }>{ item.Title }</a></td>
+							<td class="muted">{ item.Detail }</td>
+							<td><span class="tone" data-tone={ statusTone(item.Status) }>{ item.Status }</span></td>
+							<td><a class="btn btn-sm" href={ item.Href }>Resolve</a></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	</div>
+}
+
+func buttonClass(kind string) string {
+	if kind == "primary" {
+		return "btn-primary"
+	}
+	return "btn-ghost"
+}
+
+func minTemplateInt(left int, right int) int {
+	if left < right {
+		return left
+	}
+	return right
+}
+
+func sourceCountLabel(data ConsoleData) string {
+	return strconv.Itoa(len(data.Sources))
 }

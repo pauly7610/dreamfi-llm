@@ -72,6 +72,44 @@ func TestRouterServesTemplConsoleWithAuth(t *testing.T) {
 	}
 }
 
+func TestConsoleRoutesRenderDarkConsolePages(t *testing.T) {
+	router := NewRouter(config.Settings{AuthEnabled: false}, nil)
+	cases := []struct {
+		path  string
+		wants []string
+	}{
+		{path: "/console", wants: []string{"Ask DreamFi", "Open threads", "Sources"}},
+		{path: "/console/knowledge/ask", wants: []string{"Ask DreamFi", "Ask with receipts", "Sources this answer can use"}},
+		{path: "/console/ask", wants: []string{"Ask DreamFi", "Ask with receipts", "Sources this answer can use"}},
+		{path: "/console/topics", wants: []string{"Topic rooms", "KYC conversion"}},
+		{path: "/console/topics/kyc-conversion", wants: []string{"Topic rooms", "Why did KYC conversion drop 4.2 pts?"}},
+		{path: "/console/integrations", wants: []string{"Source directory", "Jira", "NetXD"}},
+		{path: "/console/integrations/jira", wants: []string{"Source directory", "Jira", "NetXD"}},
+		{path: "/console/sources", wants: []string{"Source directory", "Jira", "NetXD"}},
+		{path: "/console/review", wants: []string{"Review queue", "Review posture"}},
+		{path: "/console/artifacts", wants: []string{"Artifact library", "Review queue"}},
+		{path: "/console/trust", wants: []string{"Trust posture", "Trust, measured."}},
+		{path: "/console/settings", wants: []string{"Connector settings", "Onyx native"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+			}
+			html := rec.Body.String()
+			for _, want := range tc.wants {
+				if !strings.Contains(html, want) {
+					t.Fatalf("console HTML for %s missing %q", tc.path, want)
+				}
+			}
+		})
+	}
+}
+
 func TestRouterAddsRequestID(t *testing.T) {
 	router := NewRouter(config.Settings{AuthEnabled: true}, onyx.NewClient("http://onyx.invalid", ""))
 	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
