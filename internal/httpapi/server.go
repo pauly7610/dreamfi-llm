@@ -102,7 +102,7 @@ func (s *Server) console(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "console payload failed", http.StatusInternalServerError)
 		return
 	}
-	renderComponent(w, r, templates.ConsoleShell(consoleTemplateData(payload)))
+	renderComponent(w, r, templates.ConsoleShell(consoleTemplateData(payload, normalizeConsolePath(r.URL.Path))))
 }
 
 func (s *Server) root(w http.ResponseWriter, r *http.Request) {
@@ -165,11 +165,42 @@ func (s *Server) onyxStatus(ctx context.Context) string {
 
 func primaryNav() []templates.NavItem {
 	return []templates.NavItem{
-		{Label: "Ask", Href: "/console/ask"},
+		{Label: "Home", Href: "/console"},
+		{Label: "Ask", Href: "/console/knowledge/ask"},
+		{Label: "Inbox", Href: "/console/review"},
 		{Label: "Topics", Href: "/console/topics"},
-		{Label: "Sources", Href: "/console/sources"},
+		{Label: "Sources", Href: "/console/integrations"},
 		{Label: "Artifacts", Href: "/console/artifacts"},
 		{Label: "Trust", Href: "/console/trust"},
 		{Label: "Settings", Href: "/console/settings"},
 	}
+}
+
+func normalizeConsolePath(path string) string {
+	clean := strings.TrimRight(path, "/")
+	if clean == "" || clean == "/console" {
+		return "/console"
+	}
+	if clean == "/console/ask" || strings.HasPrefix(clean, "/console/ask/") {
+		return "/console/knowledge/ask"
+	}
+	if clean == "/console/knowledge" {
+		return "/console/knowledge/ask"
+	}
+	if clean == "/console/sources" || strings.HasPrefix(clean, "/console/sources/") {
+		return "/console/integrations" + strings.TrimPrefix(clean, "/console/sources")
+	}
+	if clean == "/console/inbox" || strings.HasPrefix(clean, "/console/inbox/") {
+		return "/console/review" + strings.TrimPrefix(clean, "/console/inbox")
+	}
+	if clean == "/console/generators" || strings.HasPrefix(clean, "/console/generators/") {
+		return "/console/generate/weekly-brief"
+	}
+	if clean == "/console/planning" || strings.HasPrefix(clean, "/console/planning/") {
+		return "/console/topics"
+	}
+	if clean == "/console/metrics" || strings.HasPrefix(clean, "/console/metrics/") {
+		return "/console/integrations/metabase"
+	}
+	return clean
 }
