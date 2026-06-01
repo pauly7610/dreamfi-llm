@@ -25,7 +25,7 @@ def session() -> Session:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     s = Session(engine)
-    seed_registry(s, repo_root=REPO_ROOT)
+    seed_registry(s, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     # Attach a persona id to every skill.
     for skill in s.query(Skill).all():
         skill.onyx_persona_id = 100 + hash(skill.skill_id) % 100

@@ -361,11 +361,11 @@ def ops_status(session: Session, onyx: OnyxClient) -> dict[str, Any]:
     environment = environment_readiness()
     database = database_readiness(session)
     onyx_status = onyx.ping()
-    connectors = (
-        connector_readiness(onyx=onyx)
-        if onyx_status == "reachable"
-        else {"status": "error", "reason": "onyx_unreachable", "connectors": []}
-    )
+    connectors: dict[str, Any]
+    if onyx_status == "reachable":
+        connectors = connector_readiness(onyx=onyx)
+    else:
+        connectors = {"status": "error", "reason": "onyx_unreachable", "connectors": []}
     replays = replay_readiness(session)
     audit = audit_readiness(session)
     failures = []
@@ -373,7 +373,10 @@ def ops_status(session: Session, onyx: OnyxClient) -> dict[str, Any]:
         failures.append("database")
     if onyx_status != "reachable":
         failures.append("onyx")
-    if connectors.get("counts", {}).get("degraded") or connectors.get("counts", {}).get("not_configured"):
+    connector_counts = connectors.get("counts", {})
+    if isinstance(connector_counts, dict) and (
+        connector_counts.get("degraded") or connector_counts.get("not_configured")
+    ):
         failures.append("connectors")
     if replays["error_count_24h"]:
         failures.append("replay")

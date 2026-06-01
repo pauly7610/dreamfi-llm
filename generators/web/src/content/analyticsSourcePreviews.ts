@@ -154,7 +154,7 @@ export const analyticsSourcePreviews: Record<string, SourceDataPreview> = {
       {
         title: 'Marketing impact brief',
         detail: 'Generate a brief that connects lifecycle messaging to product outcomes.',
-        href: '/console/generate/business-prd?source=klaviyo',
+        href: '/console/generate/technical-prd?source=klaviyo',
       },
       {
         title: 'Flow effectiveness check',

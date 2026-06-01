@@ -53,8 +53,7 @@ export function Sidebar({ activeId, groups, footer }: { activeId: string; footer
   return (
     <aside className="sidebar">
       <a className="brand" href="/console" aria-label="DreamFi home">
-        <div className="brand-mark">d</div>
-        <div className="brand-name">DreamFi</div>
+        <img className="brand-logo" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" aria-hidden="true" />
       </a>
 
       {groups.map((group) => (

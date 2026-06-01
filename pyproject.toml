@@ -18,6 +18,7 @@ dependencies = [
   "tenacity>=8.2",
   "cryptography>=42",
   "click>=8.1",
+  "litellm>=1.40",
   "uvicorn>=0.30",
 ]
 
@@ -27,11 +28,17 @@ dev = [
   "pytest-asyncio>=0.23",
   "respx>=0.21",
   "ruff>=0.5",
+  "mypy>=1.10",
 ]
 
 [tool.setuptools.packages.find]
 include = ["dreamfi*"]
 exclude = ["tests*", "evals*", "generators*", "deployment*", "ui_support*"]
+
+[tool.mypy]
+exclude = [
+  "dreamfi/db/migrations/versions/.*\\.py$",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

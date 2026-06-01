@@ -179,6 +179,228 @@ class OnyxDocumentMap(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
 
 
+class ContextBundleRow(Base):
+    __tablename__ = "context_bundles"
+
+    bundle_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic: Mapped[str] = mapped_column(Text, nullable=False)
+    topic_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+    refreshed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now, index=True
+    )
+    ttl_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=3600)
+    freshness_score: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    coverage_score: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+
+    sources: Mapped[list[ContextSourceRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    entities: Mapped[list[ContextEntityRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    claims: Mapped[list[ContextClaimRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+    open_questions: Mapped[list[OpenQuestionRow]] = relationship(
+        back_populates="bundle", cascade="all, delete-orphan"
+    )
+
+
+class ContextSourceRow(Base):
+    __tablename__ = "context_sources"
+
+    source_row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    source_type: Mapped[str] = mapped_column(String, nullable=False)
+    source_id: Mapped[str] = mapped_column(String, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String, nullable=False)
+    raw_ref: Mapped[str] = mapped_column(Text, nullable=False)
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="sources")
+
+
+class ContextEntityRow(Base):
+    __tablename__ = "context_entities"
+
+    entity_row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    entity_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    canonical_name: Mapped[str] = mapped_column(Text, nullable=False)
+    relationships_json: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="entities")
+
+
+class ContextClaimRow(Base):
+    __tablename__ = "context_claims"
+
+    claim_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    sot_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    citation_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    confidence: Mapped[Decimal] = mapped_column(
+        Numeric(4, 3), nullable=False, default=Decimal("0")
+    )
+    last_verified_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="claims")
+
+
+class OpenQuestionRow(Base):
+    __tablename__ = "open_questions"
+
+    question_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    bundle_id: Mapped[str] = mapped_column(
+        ForeignKey("context_bundles.bundle_id", ondelete="CASCADE"), nullable=False
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    why_open: Mapped[str] = mapped_column(String, nullable=False)
+    suggested_owner: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    bundle: Mapped[ContextBundleRow] = relationship(back_populates="open_questions")
+
+
+class ContextQuestionRow(Base):
+    __tablename__ = "context_questions"
+
+    question_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    asker: Mapped[str] = mapped_column(String, nullable=False, default="")
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    question_norm: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    answer_excerpt: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    tokens_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    asked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class ContextChangeRow(Base):
+    __tablename__ = "context_changes"
+
+    change_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    topic_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    change_type: Mapped[str] = mapped_column(String, nullable=False)
+    detail: Mapped[str] = mapped_column(Text, nullable=False)
+    old_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    new_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class MetricCatalogRow(Base):
+    __tablename__ = "metric_catalog"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "metric_id", name="uq_metric_catalog_ws_metric"
+        ),
+    )
+
+    row_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    metric_id: Mapped[str] = mapped_column(String, nullable=False)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    definition: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    owner: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_systems_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+
+
+class MetricSnapshotRow(Base):
+    __tablename__ = "metric_snapshots"
+
+    snapshot_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    metric_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    source_system: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    value: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+
+class TopicRow(Base):
+    __tablename__ = "topics"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "canonical_name", "type", name="uq_topics_ws_name_type"
+        ),
+    )
+
+    topic_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    canonical_name: Mapped[str] = mapped_column(String, nullable=False)
+    attributes_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utc_now
+    )
+
+    aliases: Mapped[list[TopicAliasRow]] = relationship(
+        back_populates="topic", cascade="all, delete-orphan"
+    )
+
+
+class TopicAliasRow(Base):
+    __tablename__ = "topic_aliases"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "alias_norm", name="uq_topic_aliases_ws_norm"),
+    )
+
+    alias_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    topic_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    alias: Mapped[str] = mapped_column(String, nullable=False)
+    alias_norm: Mapped[str] = mapped_column(String, nullable=False)
+
+    topic: Mapped[TopicRow] = relationship(back_populates="aliases")
+
+
+class TopicRelationRow(Base):
+    __tablename__ = "topic_relations"
+
+    relation_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    from_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    to_id: Mapped[str] = mapped_column(
+        ForeignKey("topics.topic_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    relation_type: Mapped[str] = mapped_column(String, nullable=False)
+    confidence: Mapped[Decimal] = mapped_column(
+        Numeric(4, 3), nullable=False, default=Decimal("1.000")
+    )
+    source_bundle_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class ConnectorSetting(Base):
     __tablename__ = "connector_settings"
     __table_args__ = (
@@ -340,6 +562,71 @@ class ArtifactFeedback(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
 
 
+class WorkflowTrace(Base):
+    __tablename__ = "workflow_traces"
+    __table_args__ = (
+        Index("ix_workflow_traces_workspace_created", "workspace_id", "created_at"),
+        Index("ix_workflow_traces_workflow_created", "workflow_type", "created_at"),
+        Index("ix_workflow_traces_topic_created", "topic_id", "created_at"),
+        Index("ix_workflow_traces_outcome_created", "outcome", "created_at"),
+    )
+
+    trace_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False)
+    actor_id: Mapped[str] = mapped_column(String, nullable=False)
+    workflow_type: Mapped[str] = mapped_column(String, nullable=False)
+    starter_question_hash: Mapped[str] = mapped_column(String, nullable=False)
+    starter_question_pattern: Mapped[str] = mapped_column(Text, nullable=False)
+    topic_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    required_identifiers_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    steps_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    accepted_evidence_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    rejected_evidence_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    human_edits_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    outcome: Mapped[str] = mapped_column(String, nullable=False, default="completed")
+    final_artifact_ref: Mapped[str | None] = mapped_column(String, nullable=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    private: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+
+
+class SkillCandidate(Base):
+    __tablename__ = "skill_candidates"
+    __table_args__ = (
+        Index("ix_skill_candidates_status_created", "status", "created_at"),
+        Index("ix_skill_candidates_workspace_workflow", "workspace_id", "workflow_type"),
+    )
+
+    candidate_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid_str)
+    workspace_id: Mapped[str] = mapped_column(String, nullable=False)
+    workflow_type: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft")
+    source_trace_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    trace_ids_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    intent_summary: Mapped[str] = mapped_column(Text, nullable=False)
+    required_inputs_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    source_contract_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    tool_plan_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    freshness_contract_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    answer_contract_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    refusal_rules_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    eval_seed_cases_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    evidence_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    reviewer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=_utc_now,
+        onupdate=_utc_now,
+    )
+
+
 class LearningProposal(Base):
     __tablename__ = "learning_proposals"
     __table_args__ = (
@@ -434,12 +721,21 @@ __all__ = [
     "ConnectorSetting",
     "ConnectorSyncRun",
     "ConsoleTopic",
+    "ContextBundleRow",
+    "ContextChangeRow",
+    "ContextClaimRow",
+    "ContextEntityRow",
+    "ContextQuestionRow",
+    "ContextSourceRow",
     "EvalOutput",
     "EvalRound",
     "GoldDriftEvent",
     "GoldExample",
     "GoldRole",
+    "MetricCatalogRow",
+    "MetricSnapshotRow",
     "OnyxDocumentMap",
+    "OpenQuestionRow",
     "PromptVersion",
     "ProductionOutcome",
     "PublishLog",
@@ -448,4 +744,9 @@ __all__ = [
     "ReplaySchedule",
     "ResultStatus",
     "Skill",
+    "SkillCandidate",
+    "TopicAliasRow",
+    "TopicRelationRow",
+    "TopicRow",
+    "WorkflowTrace",
 ]

@@ -2,12 +2,26 @@
 
 This repo contains DreamFi's internal ProductOS, built on top of [Onyx](https://github.com/onyx-dot-app/onyx). It gives the product team a place to ask questions, inspect evidence from connected systems, manage topic rooms, and generate reviewable artifacts. The backend handles prompt rendering, retrieval, evaluation, confidence scoring, audit logging, and publish controls.
 
+![DreamFi ProductOS trust console](../docs/screenshots/dreamfi-llm-console.png)
+
+## Product Brief
+
+| Lens | Summary |
+| --- | --- |
+| Problem | Product questions, source evidence, generated artifacts, and trust decisions can live in separate systems, which makes AI-assisted work hard to verify or publish safely. |
+| What we built | A governed ProductOS on top of Onyx with Ask, topic rooms, source workspaces, artifact generation, eval-backed skills, confidence scoring, audit logs, and publish controls. |
+| Business value | DreamFi can turn product evidence into reusable work while keeping citations, freshness, review state, and approval history attached to the output. |
+| Technical approach | Go/templ console paths, Python ops, eval, and context workflows, Postgres persistence, scoped Onyx retrieval, custom connector sync, context-bundle APIs, Jinja prompt versions, immutable eval rounds, confidence scoring, export readiness, and audit-safe APIs. |
+| Proposed solutions | Keep connector context lean, keep source freshness explicit at runtime, preserve Go/templ parity with Python support APIs, keep replay schedules covering high-risk workflows, and turn freshness plus eval failures into harder blockers before publish. |
+
 ## What the system does
 
 - Gives DreamFi's product team a shared frontend for asking questions, browsing source systems, reviewing topic rooms, and managing generated work.
 - Seeds one Onyx document set and one Onyx persona per DreamFi skill.
 - Renders Jinja prompt templates for the active prompt version of each skill.
 - Sends prompts through `dreamfi.onyx.client.OnyxClient`, captures citations, and reads source freshness from retrieved documents.
+- Scopes Ask searches with topic and source filters when a caller provides `topic_id`, `source_id`, or `source_ids`.
+- Builds typed context bundles through `/v1/context/ask`, with source-grounded claims, open questions, topic linking, and memory.
 - Runs immutable eval runners for every generated output.
 - Computes per-output confidence from eval score, citation count, freshness, and hard-gate status.
 - Stores prompt versions, eval rounds, outputs, publish logs, gold examples, and drift events in SQL.
@@ -16,6 +30,18 @@ This repo contains DreamFi's internal ProductOS, built on top of [Onyx](https://
 - Captures human feedback and production outcomes so recurring failures can become reviewed prompt-improvement candidates.
 - Exposes an operator console plus HTTP endpoints for round execution, history, promotion, and publish decisions.
 
+## Internal Access
+
+DreamFi ProductOS is an internal operator tool. Browser users authenticate with
+HTTP Basic auth, and API clients can use `Authorization: Bearer <token>`.
+Placeholder auth values are rejected at runtime so local defaults cannot drift
+into production.
+
+The Go service sets baseline browser security headers, uses request timeouts,
+and shuts down gracefully on process termination. Connector credentials are
+never returned through API payloads; custom connector keys are encrypted at rest
+when `DREAMFI_CONNECTOR_SECRET_KEY` is configured.
+
 ## ProductOS
 
 The frontend is organized around product work rather than model operations. The main surfaces are:
@@ -23,7 +49,7 @@ The frontend is organized around product work rather than model operations. The 
 - `Ask`: start with a product question, retrieve evidence from connected systems, and keep citations attached to the answer.
 - `Topic rooms`: work inside recurring decision spaces like KYC conversion, onboarding, funding, and lifecycle messaging.
 - `Source workspaces`: open connected systems such as Jira, Confluence, Dragonboat, Metabase, PostHog, Klaviyo, NetXD, Sardine, Socure, and Google Analytics in a product-friendly workspace view.
-- `Generated artifacts`: turn grounded context into workflows like weekly PM briefs, technical PRDs, business PRDs, and risk BRDs.
+- `Generated artifacts`: turn grounded context into workflows like weekly PM briefs, technical PRDs, and risk BRDs.
 - `Trust review`: inspect blocked work, risky work, publish readiness, and the health of the connected evidence behind each artifact.
 
 The intended operating model is:
@@ -41,6 +67,42 @@ Analytics, Klaviyo, NetXD, Sardine, and Socure use DreamFi's custom connector
 sync layer or the bridge ingest endpoint. DreamFi never returns raw API keys;
 custom connector keys are encrypted at rest when
 `DREAMFI_CONNECTOR_SECRET_KEY` is configured.
+
+## Freshness model
+
+DreamFi treats connectors as available data surfaces, not automatic prompt
+context. The current Ask path is intentionally scoped, but it is still indexed
+retrieval:
+
+```text
+Question
+    |
+    v
+Optional topic/source scope
+    |
+    v
+Onyx admin search with dreamfi_scope filters
+    |
+    v
+Citations + updated_at freshness signals
+```
+
+Connector readiness checks prove document-set presence, scoped retrieval, and
+document freshness using `DREAMFI_CONNECTOR_STALE_AFTER_DAYS`. Workflow
+confidence and export readiness also read Onyx document `updated_at` values, so
+stale evidence can lower trust and block publish decisions.
+
+Ask responses include a `source_plan` alongside the answer and citations. The
+plan tells the console whether the question was scoped, which authoritative
+sources were used, whether the question is freshness sensitive, and what
+blockers remain before the answer should be treated as decision-grade.
+
+The repo does not yet ship identifier-scoped live reads for recent operational
+questions. For fintech cases like a fraud decline that happened two hours ago,
+the next architecture step is a source-specific freshness contract: if Sardine
+fraud data is stale, DreamFi should either fetch the exact Sardine decision by
+identifier or block the fraud conclusion. A fresh NetXD ledger record should not
+stand in for stale Sardine fraud evidence.
 
 ## Custom connector sync
 
@@ -69,9 +131,9 @@ The first adapter set covers the current non-native sources:
 - PostHog: insights and dashboards for a configured project.
 - Google Analytics: GA4 report rows for a configured property.
 - Klaviyo: campaigns, flows, and segments.
-- NetXD, Sardine, and Socure: configurable REST endpoint pulls for the relevant payment, risk, and identity evidence.
+- NetXD, Sardine, and Socure: configurable REST endpoint pulls for payment, risk, and identity evidence.
 
-The Settings page exposes the runtime knobs for these sources: base URLs,
+The Settings page exposes the sync knobs for these sources: base URLs,
 endpoint paths, REST auth header/scheme where applicable, GA4 report date
 ranges, GA4 dimensions/metrics, Klaviyo API revision, and optional DreamFi
 metadata defaults for product area, topic IDs, and owner.
@@ -84,21 +146,61 @@ systems whose production API shape needs a custom exporter, clients can post
 pre-normalized records to `/api/settings/connectors/{connector_id}/documents`;
 DreamFi still persists and ingests them through the same path.
 
+Custom sync remains platform plumbing. It warms indexed context and keeps
+Onyx-backed source packets useful. It is not an agent-facing skill and it is
+not designed to run every second.
+
 ## Skill layer
 
-DreamFi currently ships a fixed skill layer of 9 locked eval-backed skills:
+DreamFi's active Python skill registry currently ships 3 PM-adjacent
+eval-backed skills:
 
 - `meeting_summary`
-- `cold_email`
-- `landing_page_copy`
-- `newsletter_headline`
-- `product_description`
-- `resume_bullet`
-- `short_form_script`
 - `agent_system_prompt`
 - `support_agent`
 
-Those skills are the governed generation layer behind the product workflows. They provide prompt versioning, evals, scoring, promotion checks, and publish checks.
+Those skills are the governed generation layer behind the product workflows.
+They provide prompt versioning, evals, scoring, promotion checks, and publish
+checks. The six older marketing/copy skills remain on disk under `evals/` and
+in `ARCHIVED_SKILLS` for historical compatibility, but they are not part of the
+active Python registry and do not seed or surface in the Python console path.
+
+Current migration notes:
+
+- `make seed` and the Python eval path use the 3-skill active registry as the operational source of truth.
+- The Go `internal/skills` registry follows the same 3-skill active set. Historical skills are kept separately for compatibility and audit history.
+- The live workflow catalog is limited to `weekly-brief`, `technical-prd`, and `risk-brd`. Business PRD generation was removed from the active catalog until it has a real active skill mapping.
+
+## Workflow traces and skill candidates
+
+DreamFi can now track repeated user workflows as reviewed skill candidates.
+This is the practical version of "putting your coworker into a skill": capture
+the repeatable work pattern, mine it for contracts, then let a human decide
+whether it should become a governed skill.
+
+Workflow traces store:
+
+- workflow type, workspace, actor, topic, and outcome
+- selected source systems and required identifiers
+- ordered steps, tools, accepted evidence, and rejected evidence
+- human edits and final artifact references
+- a redacted starter-question pattern plus a SHA-256 hash, not the raw starter question
+
+Skill mining clusters non-private traces by workspace and workflow type. When a
+workflow repeats often enough, DreamFi creates a draft `SkillCandidate` with:
+
+- intent summary
+- required inputs
+- source contract
+- tool plan
+- freshness contract
+- answer contract
+- refusal rules
+- eval seed cases based on redacted historical traces
+
+This does not modify the active skill registry or write locked files under
+`evals/`. It gives Product and Engineering a reviewable candidate package for
+the next real skill PR.
 
 ## Core flow
 
@@ -190,17 +292,27 @@ supported it, which prompt version was created, and how it performed on replay.
 
 ## API surface
 
-The current backend exposes:
+The Go service currently exposes the cutover path:
 
 - `GET /ready` - liveness endpoint used by deploy health checks.
 - `GET /health` - service status plus Onyx reachability.
+- `GET /api/ops/status` - lightweight operational readiness payload for the Go service.
+- `GET /api/console` - JSON payload for the templ operator console.
+- `POST /api/ask` - run a scoped Onyx evidence search for an Ask question and return the answer, citations, and source plan.
+- `GET /api/workflows` - list console artifact workflow slugs and their backing skill IDs.
+- `POST /api/workflows/generate` - generate a weekly brief, technical PRD, or risk BRD artifact from current console context.
+- `GET /console` - active operator UI rendered by the Go/templ service.
+
+The Python app remains the ops, eval, learning, settings, and context-engine
+support layer while migration parity continues:
+
 - `GET /v1/skills/{skill_id}/history` - recent eval rounds for a skill.
 - `POST /v1/skills/{skill_id}/eval-round` - run a new eval round.
 - `POST /v1/skills/{skill_id}/promote` - activate a prompt version if promotion rules pass.
 - `POST /v1/skills/{skill_id}/publish` - record and enforce publish policy for an output. `return-only` is the supported destination until a real destination writer is configured.
-- `POST /api/ask` - run a scoped Onyx evidence search for an Ask question.
-- `POST /api/workflows/generate` - generate a weekly brief, technical PRD, business PRD, or risk BRD artifact from current console context.
-- `GET /api/workflows` - list console artifact workflow slugs and their backing skill IDs.
+- `POST /v1/context/ask` - build a persisted `ContextBundle` with grounded claims, open questions, topic links, and memory.
+- `POST /api/ask` - run a scoped Onyx evidence search for an Ask question and return the answer, citations, and source plan.
+- `POST /api/workflows/generate` and `GET /api/workflows` - Python parity versions of the console artifact APIs.
 - `POST /api/learning/feedback` - record approved, edited, or rejected artifact review outcomes.
 - `GET /api/learning/failure-clusters` - group recurring failures by workflow, source, criteria, missing section, evidence, freshness, and readiness signals.
 - `POST /api/learning/proposals/generate` - create reviewed prompt-improvement candidates from repeated failure clusters.
@@ -208,6 +320,11 @@ The current backend exposes:
 - `POST /api/learning/feedback/{feedback_id}/gold` - convert reviewed artifacts into gold exemplars, regressions, counter examples, or canaries.
 - `POST /api/learning/replay-schedules` and `POST /api/learning/replay-schedules/run-due` - schedule and run gold/workflow replay.
 - `POST /api/learning/outcomes` - record whether generated work was published, revised, ignored, reverted, or used in a decision.
+- `POST /api/learning/workflow-traces` - record a redacted workflow trace for mining repeatable expert work.
+- `GET /api/learning/workflow-traces` - list recent non-private workflow traces.
+- `POST /api/learning/skill-candidates/generate` - mine repeated traces into draft skill candidates.
+- `GET /api/learning/skill-candidates` - list draft, approved, or rejected skill candidates.
+- `POST /api/learning/skill-candidates/{candidate_id}/approve` and `/reject` - review a candidate without mutating the active skill registry.
 - `GET /api/settings/status` - read environment, persistence, job, and connector activation readiness.
 - `POST /api/settings/connectors/{connector_id}/secret` - save connector credentials without returning or auditing raw API keys; custom connector keys are encrypted when app storage is used.
 - `POST /api/settings/connectors/{connector_id}/config` - save non-secret setup values such as base URLs, project IDs, property IDs, and endpoint paths.
@@ -215,14 +332,14 @@ The current backend exposes:
 - `POST /api/settings/connectors/{connector_id}/documents` - accept pre-normalized documents from an external source bridge/export job.
 - `POST /api/settings/connectors/{connector_id}/document-set`, `/validate`, `/activate`, and `/deactivate` - confirm Onyx document sets, run freshness probes, and gate activation.
 - `GET /api/console` - JSON payload for the operator console.
-- `GET /console` - operator UI, backed by the checked-in React build when present.
+- `GET /console` - Python console/parity UI when running the FastAPI app.
 
 ## Frontend
 
 The frontend currently includes:
 
 - a home/product source room for cross-system product questions
-- ask flows with evidence receipts
+- ask flows with citations attached to answers
 - topic rooms for recurring product decisions
 - source directories and connector-specific workspaces
 - artifact views for generated work
@@ -322,10 +439,11 @@ live.
 
 `make run-replay` runs due gold/workflow replay schedules. In production, run it
 from cron, Railway scheduled jobs, or the scheduler you use for internal tools.
-`make ops-status` prints the same readiness payload exposed at
-`GET /api/ops/status`, covering environment placeholders, database migration
-version, Onyx reachability, connector readiness, replay failures, and audit-log
-activity.
+`make ops-status` prints the same rich readiness payload exposed by the Python
+`GET /api/ops/status` route, covering environment placeholders, database
+migration version, Onyx reachability, connector readiness, replay failures, and
+audit-log activity. The Go service also exposes `GET /api/ops/status`, but that
+cutover endpoint is currently a lighter health payload.
 
 ## Environment
 
@@ -337,7 +455,9 @@ Important settings from `.env.example`:
 - `ONYX_BASE_URL`
 - `ONYX_API_KEY`
 - `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
 - `DEFAULT_LLM_MODEL`
+- `FALLBACK_LLM_MODELS`
 - `DREAMFI_CONFIDENCE_THRESHOLD`
 - `DREAMFI_IMPROVEMENT_THRESHOLD`
 - `DREAMFI_FRESHNESS_HALFLIFE_DAYS`
@@ -348,6 +468,9 @@ Important settings from `.env.example`:
 - `DREAMFI_PROBE_CONNECTOR_STATUS`
 - `DREAMFI_CONNECTOR_PROBE_SEARCH_LIMIT`
 - `DREAMFI_CONNECTOR_STALE_AFTER_DAYS`
+- `DREAMFI_CONNECTOR_HTTP_TIMEOUT_SECONDS`
+- `DREAMFI_CONNECTOR_SYNC_BATCH_SIZE`
+- `DREAMFI_CONNECTOR_SECRET_KEY`
 - `DREAMFI_WORKFLOW_MIN_CITATIONS`
 - `DREAMFI_WORKFLOW_MIN_SECTION_WORDS`
 - `DREAMFI_WORKFLOW_REQUIRE_SCOPE`
@@ -357,6 +480,9 @@ Important settings from `.env.example`:
 - `DREAMFI_LEARNING_CLUSTER_WINDOW_DAYS`
 - `DREAMFI_LEARNING_STALE_FRESHNESS_THRESHOLD`
 - `DREAMFI_LEARNING_REPLAY_DEFAULT_CADENCE_DAYS`
+- `DREAMFI_SKILL_MINING_MIN_TRACES`
+- `DREAMFI_SKILL_MINING_WINDOW_DAYS`
+- `DREAMFI_SKILL_MINING_EVAL_SEED_LIMIT`
 - `DREAMFI_SLO_HARD_GATE_PASS_RATE`
 - `DREAMFI_SLO_BLOCKED_RATE`
 - `DREAMFI_SLO_PUBLISH_SUCCESS_RATE`
@@ -379,13 +505,28 @@ sources are shown as `degraded`. The probe uses the same
 `dreamfi_scope.source_ids` metadata filter as the Ask and workflow APIs, so each
 connector's documents should carry its connector id, such as `jira` or `socure`.
 
+Readiness is not the same thing as answer freshness. Readiness says the
+connector is configured and has retrievable indexed evidence. For recent
+operational questions, the repo still needs source-specific runtime freshness
+contracts so DreamFi can decide whether indexed evidence is current enough,
+whether to fetch an exact source record, or whether to block the conclusion.
+
 ## Development
 
 ```bash
-make test        # unit + mocked integration tests
-make test-live   # live Onyx tests only
-make lint        # ruff
-make format      # ruff format
+make verify       # ruff, Python tests, Go tests, and Go build
+make test         # unit + mocked integration tests
+make test-go      # Go backend + templ unit tests
+make build-go     # build the Go DreamFi service
+make test-live    # live Onyx tests only
+make lint         # ruff
+make format       # ruff format
+```
+
+From the repo root, the full local parity check is:
+
+```bash
+yarn llm:verify
 ```
 
 Notes:

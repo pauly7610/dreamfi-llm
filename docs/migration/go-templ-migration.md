@@ -41,6 +41,9 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
    trust, methodology, and settings.
 7. Phase 7 cutover: switch local/Docker/Railway entry points to the Go binary after all
    old API contracts and frontend smoke paths are covered by Go tests.
+8. Phase 8 context and learning parity: port workflow traces, skill candidates,
+   context Ask, connector activation, and source freshness contracts only after
+   the Python path is stable and fully tested.
 
 ## Phase 1 Scope
 
@@ -84,8 +87,12 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
 
 - `internal/governance` ports confidence scoring, promotion decisions, gold
   regression blocking, canary alerts, and publish guards into Go.
-- `internal/skills` ports the fixed nine-skill registry metadata so the Go path
-  has the same governed skill set as the current Python backend.
+- `internal/skills` currently ports the historical nine-skill registry metadata
+  for migration parity, while the Python runtime has already narrowed the active
+  registry to `meeting_summary`, `agent_system_prompt`, and `support_agent`.
+- Follow-up migration work must decide whether Go should mirror the three-skill
+  active registry now or keep historical metadata until Go seeding is
+  authoritative.
 - Tests mirror the existing Python confidence, promotion, publish, and registry
   behavior before the heavier eval runner and prompt-rendering port lands.
 
@@ -127,6 +134,17 @@ oracle until every behavior below has Go/templ tests and cutover evidence.
   follow-up cleanup.
 - This completes the deployment cutover phase of the VP of Eng migration while
   keeping DB migrations and existing tests intact.
+
+## Phase 8 Scope
+
+- Keep Python as the source of truth for workflow traces, skill candidates,
+  settings, connector activation, and context Ask until Go has equivalent tests.
+- Port `workflow_traces` and `skill_candidates` read/write paths to Go only
+  after the console review surface is designed.
+- Do not auto-create skills from approved candidates. The Go path should expose
+  review state and candidate contracts, then hand off to an explicit skill PR.
+- Runtime freshness contracts for NetXD, Sardine, and Socure should land before
+  any operational skill claims production readiness.
 
 ## PR Language
 

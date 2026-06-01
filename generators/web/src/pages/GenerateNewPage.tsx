@@ -154,7 +154,7 @@ export function GenerateNewPage({ data, onDataChanged, templateName }: GenerateN
             <div className="table-scroll table-scroll-medium">
               <table className="dfi-table">
                 <tbody>
-                  {['weekly-brief', 'technical-prd', 'business-prd', 'risk-brd']
+                  {['weekly-brief', 'technical-prd', 'risk-brd']
                     .filter((slug) => slug !== templateName)
                     .map((slug) => (
                       <tr key={slug}>

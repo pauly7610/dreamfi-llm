@@ -268,13 +268,13 @@ func ConsoleShell(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(data.ProductName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 241, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 241, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><style>\n\t\t\t\t@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap');\n\n\t\t\t\t:root {\n\t\t\t\t\tcolor-scheme: dark;\n\t\t\t\t\t--font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n\t\t\t\t\t--font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;\n\t\t\t\t\t--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;\n\t\t\t\t\t--bg-0: #0c0d10;\n\t\t\t\t\t--bg-1: #131418;\n\t\t\t\t\t--bg-2: #1a1c21;\n\t\t\t\t\t--bg-3: #22252b;\n\t\t\t\t\t--line: #26282e;\n\t\t\t\t\t--line-2: #2f3239;\n\t\t\t\t\t--ink-0: #f3f3f1;\n\t\t\t\t\t--ink-1: #b9bcc1;\n\t\t\t\t\t--ink-2: #7a7f88;\n\t\t\t\t\t--ink-3: #565a62;\n\t\t\t\t\t--signal: #b8ff3d;\n\t\t\t\t\t--signal-ink: #0c0d10;\n\t\t\t\t\t--warn: #ffb938;\n\t\t\t\t\t--bad: #ff6a5b;\n\t\t\t\t\t--good: #5fe3a1;\n\t\t\t\t\t--c-jira: #4f8cff;\n\t\t\t\t\t--c-posthog: #ffb01f;\n\t\t\t\t\t--c-metabase: #6c9bff;\n\t\t\t\t\t--c-confluence: #2cc6ff;\n\t\t\t\t\t--c-socure: #c47bff;\n\t\t\t\t\t--c-klaviyo: #ff7a59;\n\t\t\t\t\t--c-sardine: #ff5dab;\n\t\t\t\t\t--c-ga: #ffa733;\n\t\t\t\t\t--c-dragonboat: #5fe3a1;\n\t\t\t\t\t--c-netxd: #ffd166;\n\t\t\t\t\t--radius: 6px;\n\t\t\t\t}\n\n\t\t\t\t*,\n\t\t\t\t*::before,\n\t\t\t\t*::after { box-sizing: border-box; }\n\n\t\t\t\thtml,\n\t\t\t\tbody { min-height: 100%; margin: 0; }\n\n\t\t\t\tbody {\n\t\t\t\t\tbackground: var(--bg-0);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-sans);\n\t\t\t\t\tfont-size: 12.5px;\n\t\t\t\t\tline-height: 1.4;\n\t\t\t\t\t-webkit-font-smoothing: antialiased;\n\t\t\t\t}\n\n\t\t\t\ta { color: inherit; text-decoration: none; }\n\t\t\t\tbutton, input, textarea, select { font: inherit; }\n\t\t\t\tbutton { cursor: pointer; }\n\t\t\t\th1, h2, h3, p { margin: 0; }\n\n\t\t\t\t.shell {\n\t\t\t\t\tmin-height: 100vh;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 140px minmax(0, 1fr);\n\t\t\t\t\tbackground: var(--bg-0);\n\t\t\t\t}\n\n\t\t\t\t.sidebar {\n\t\t\t\t\tposition: sticky;\n\t\t\t\t\ttop: 0;\n\t\t\t\t\theight: 100vh;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-direction: column;\n\t\t\t\t\tborder-right: 1px solid var(--line);\n\t\t\t\t\tbackground: #0b0c0f;\n\t\t\t\t\tpadding: 10px 8px;\n\t\t\t\t}\n\n\t\t\t\t.brand {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\tmin-height: 26px;\n\t\t\t\t\tpadding: 0 5px 9px;\n\t\t\t\t\tborder-bottom: 1px solid rgba(38, 40, 46, 0.7);\n\t\t\t\t}\n\n\t\t\t\t.brand-mark {\n\t\t\t\t\twidth: 16px;\n\t\t\t\t\theight: 16px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 4px;\n\t\t\t\t\tbackground: var(--ink-0);\n\t\t\t\t\tcolor: var(--bg-0);\n\t\t\t\t\tfont-family: var(--font-serif);\n\t\t\t\t\tfont-size: 12px;\n\t\t\t\t\tfont-style: italic;\n\t\t\t\t}\n\n\t\t\t\t.brand-name { font-size: 10px; font-weight: 700; }\n\t\t\t\t.version { margin-left: auto; color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }\n\n\t\t\t\t.nav-section { display: grid; gap: 2px; margin-top: 10px; }\n\t\t\t\t.nav-label {\n\t\t\t\t\tpadding: 9px 6px 3px;\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.nav-item {\n\t\t\t\t\tposition: relative;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 16px minmax(0, 1fr) auto auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\tmin-height: 24px;\n\t\t\t\t\tpadding: 4px 6px;\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tcolor: var(--ink-1);\n\t\t\t\t\tfont-size: 10.5px;\n\t\t\t\t}\n\n\t\t\t\t.nav-item:hover,\n\t\t\t\t.nav-item[data-active=\"true\"] {\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t}\n\n\t\t\t\t.nav-item[data-active=\"true\"]::before {\n\t\t\t\t\tcontent: \"\";\n\t\t\t\t\tposition: absolute;\n\t\t\t\t\tleft: 0;\n\t\t\t\t\ttop: 8px;\n\t\t\t\t\tbottom: 8px;\n\t\t\t\t\twidth: 2px;\n\t\t\t\t\tborder-radius: 99px;\n\t\t\t\t\tbackground: var(--signal);\n\t\t\t\t}\n\n\t\t\t\t.nav-icon {\n\t\t\t\t\twidth: 13px;\n\t\t\t\t\theight: 13px;\n\t\t\t\t\tdisplay: inline-grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t}\n\n\t\t\t\t.nav-icon svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }\n\t\t\t\t.nav-source-badge {\n\t\t\t\t\twidth: 13px;\n\t\t\t\t\theight: 13px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 3px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t\tcolor: var(--bg-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.5px;\n\t\t\t\t\tfont-weight: 700;\n\t\t\t\t}\n\t\t\t\t.nav-source-badge[data-source=\"jira\"] { background: var(--c-jira); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"posthog\"] { background: var(--c-posthog); }\n\t\t\t\t.nav-source-badge[data-source=\"metabase\"] { background: var(--c-metabase); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"confluence\"] { background: var(--c-confluence); }\n\t\t\t\t.nav-source-badge[data-source=\"socure\"] { background: var(--c-socure); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"klaviyo\"] { background: var(--c-klaviyo); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"sardine\"] { background: var(--c-sardine); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"ga\"] { background: var(--c-ga); }\n\t\t\t\t.nav-source-badge[data-source=\"dragonboat\"] { background: var(--c-dragonboat); }\n\t\t\t\t.nav-source-badge[data-source=\"netxd\"] { background: var(--c-netxd); }\n\t\t\t\t.nav-item span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n\t\t\t\t.nav-count { color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }\n\t\t\t\t.nav-dot { width: 4px; height: 4px; border-radius: 99px; background: var(--ink-3); }\n\t\t\t\t.nav-dot[data-tone=\"good\"] { background: var(--good); }\n\t\t\t\t.nav-dot[data-tone=\"warn\"] { background: var(--warn); }\n\t\t\t\t.nav-dot[data-tone=\"bad\"] { background: var(--bad); }\n\n\t\t\t\t.sidebar-footer {\n\t\t\t\t\tmargin-top: auto;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 6px;\n\t\t\t\t\tpadding: 8px 6px 0;\n\t\t\t\t\tborder-top: 1px solid rgba(38, 40, 46, 0.7);\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.avatar {\n\t\t\t\t\twidth: 16px;\n\t\t\t\t\theight: 16px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tbackground: #6c6cff;\n\t\t\t\t\tcolor: white;\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.5px;\n\t\t\t\t}\n\n\t\t\t\t.main { min-width: 0; }\n\t\t\t\t.topbar {\n\t\t\t\t\tposition: sticky;\n\t\t\t\t\ttop: 0;\n\t\t\t\t\tz-index: 2;\n\t\t\t\t\theight: 32px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 16px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tbackground: rgba(12, 13, 16, 0.92);\n\t\t\t\t\tbackdrop-filter: blur(12px);\n\t\t\t\t\tpadding: 0 12px;\n\t\t\t\t}\n\n\t\t\t\t.crumb {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.crumb strong { color: var(--ink-0); font-size: 10.5px; font-weight: 600; }\n\t\t\t\t.topbar-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n\t\t\t\t.search {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-width: 156px;\n\t\t\t\t\theight: 22px;\n\t\t\t\t\tpadding: 0 8px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.kbd {\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 3px;\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8px;\n\t\t\t\t\tpadding: 0 5px;\n\t\t\t\t}\n\n\t\t\t\t.page {\n\t\t\t\t\twidth: min(100%, 1120px);\n\t\t\t\t\tmargin: 0;\n\t\t\t\t\tpadding: 18px 20px 28px;\n\t\t\t\t}\n\n\t\t\t\t.eyebrow {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\tfont-weight: 500;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.display-question {\n\t\t\t\t\tmax-width: 980px;\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-serif);\n\t\t\t\t\tfont-size: clamp(30px, 3.2vw, 42px);\n\t\t\t\t\tfont-weight: 400;\n\t\t\t\t\tline-height: 1.03;\n\t\t\t\t\tmargin-top: 4px;\n\t\t\t\t\twhite-space: nowrap;\n\t\t\t\t}\n\n\t\t\t\t.display-question em { color: var(--ink-1); font-style: italic; }\n\n\t\t\t\t.ask-form {\n\t\t\t\t\tmargin-top: 10px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 1fr auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tmax-width: 580px;\n\t\t\t\t\tmin-height: 38px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 8px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tbox-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);\n\t\t\t\t}\n\n\t\t\t\t.ask-form input {\n\t\t\t\t\twidth: 100%;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tborder: 0;\n\t\t\t\t\toutline: 0;\n\t\t\t\t\tbackground: transparent;\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tpadding: 0 15px;\n\t\t\t\t\tfont-size: 10.5px;\n\t\t\t\t}\n\n\t\t\t\t.ask-form input::placeholder { color: var(--ink-3); }\n\n\t\t\t\t.btn {\n\t\t\t\t\tdisplay: inline-flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-height: 26px;\n\t\t\t\t\tpadding: 0 10px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t\tfont-weight: 600;\n\t\t\t\t\twhite-space: nowrap;\n\t\t\t\t}\n\n\t\t\t\t.btn:hover { border-color: var(--line-2); background: var(--bg-2); }\n\t\t\t\t.btn-primary { border-color: var(--signal); background: var(--signal); color: var(--signal-ink); }\n\t\t\t\t.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-1); }\n\t\t\t\t.btn-sm { min-height: 22px; padding: 0 7px; font-size: 9.5px; }\n\t\t\t\t.ask-form .btn { margin-right: 7px; }\n\n\t\t\t\t.chips {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-wrap: wrap;\n\t\t\t\t\tgap: 4px;\n\t\t\t\t\tmargin-top: 7px;\n\t\t\t\t\tmax-width: 620px;\n\t\t\t\t}\n\n\t\t\t\t.chip {\n\t\t\t\t\tdisplay: inline-flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 6px;\n\t\t\t\t\tmin-height: 20px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 999px;\n\t\t\t\t\tpadding: 0 8px;\n\t\t\t\t\tcolor: var(--ink-1);\n\t\t\t\t\tbackground: rgba(19, 20, 24, 0.7);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.chips .chip {\n\t\t\t\t\tmin-height: 18px;\n\t\t\t\t\tpadding: 0 6px;\n\t\t\t\t\tfont-size: 7.6px;\n\t\t\t\t}\n\n\t\t\t\t.chip[data-tone=\"good\"],\n\t\t\t\t.value[data-tone=\"good\"] { color: var(--good); }\n\t\t\t\t.chip[data-tone=\"warn\"],\n\t\t\t\t.value[data-tone=\"warn\"] { color: var(--warn); }\n\t\t\t\t.chip[data-tone=\"bad\"],\n\t\t\t\t.value[data-tone=\"bad\"] { color: var(--bad); }\n\n\t\t\t\t.grid-main {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1.42fr) minmax(220px, 0.58fr);\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmargin-top: 14px;\n\t\t\t\t}\n\n\t\t\t\t.surface {\n\t\t\t\t\toverflow: hidden;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 8px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t}\n\n\t\t\t\t.section-head {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: space-between;\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmin-height: 32px;\n\t\t\t\t\tpadding: 6px 12px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.section-head h2,\n\t\t\t\t.section-head h3 { font-size: 11.5px; font-weight: 600; }\n\n\t\t\t\t.section-head .meta {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.table {\n\t\t\t\t\twidth: 100%;\n\t\t\t\t\tborder-collapse: collapse;\n\t\t\t\t}\n\n\t\t\t\t.table th,\n\t\t\t\t.table td {\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tpadding: 4px 12px;\n\t\t\t\t\tfont-size: 9.4px;\n\t\t\t\t\tline-height: 1.15;\n\t\t\t\t\ttext-align: left;\n\t\t\t\t\tvertical-align: middle;\n\t\t\t\t}\n\n\t\t\t\t.table th {\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.6px;\n\t\t\t\t\tfont-weight: 500;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.table tr:last-child td { border-bottom: 0; }\n\t\t\t\t.strong { color: var(--ink-0); font-weight: 500; }\n\t\t\t\t.muted { color: var(--ink-2); }\n\t\t\t\t.num { font-family: var(--font-mono); }\n\t\t\t\t.tone { color: var(--ink-2); font-family: var(--font-mono); font-size: 9.5px; }\n\t\t\t\t.tone[data-tone=\"good\"] { color: var(--good); }\n\t\t\t\t.tone[data-tone=\"warn\"] { color: var(--warn); }\n\t\t\t\t.tone[data-tone=\"bad\"] { color: var(--bad); }\n\n\t\t\t\t.thread-table th:nth-child(1),\n\t\t\t\t.thread-table td:nth-child(1) { width: 44%; }\n\t\t\t\t.thread-table th:nth-child(2),\n\t\t\t\t.thread-table td:nth-child(2) { width: 25%; }\n\t\t\t\t.thread-table th:nth-child(3),\n\t\t\t\t.thread-table td:nth-child(3) { width: 21%; }\n\t\t\t\t.thread-table th:nth-child(4),\n\t\t\t\t.thread-table td:nth-child(4) { width: 10%; }\n\t\t\t\t.thread-table .strong { font-size: 9.4px; line-height: 1.08; }\n\t\t\t\t.thread-table .muted { font-size: 8.5px; }\n\n\t\t\t\t.topic-pulse { display: grid; }\n\t\t\t\t.pulse-row {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) auto auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-height: 32px;\n\t\t\t\t\tpadding: 0 12px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\t\t\t\t.pulse-row:last-child { border-bottom: 0; }\n\t\t\t\t.pulse-row .num { font-size: 10px; }\n\t\t\t\t.pulse-row .tone { font-size: 8.5px; }\n\n\t\t\t\t.source-grid {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: repeat(5, minmax(96px, 1fr));\n\t\t\t\t\tborder-top: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.source-card {\n\t\t\t\t\tposition: relative;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 22px minmax(0, 1fr);\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\talign-items: start;\n\t\t\t\t\tmin-height: 58px;\n\t\t\t\t\tpadding: 8px 18px 8px 12px;\n\t\t\t\t\tborder-right: 1px solid var(--line);\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.source-card:nth-child(5n) { border-right: 0; }\n\t\t\t\t.source-badge {\n\t\t\t\t\twidth: 19px;\n\t\t\t\t\theight: 19px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t\tcolor: var(--bg-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\tfont-weight: 700;\n\t\t\t\t}\n\n\t\t\t\t.source-card .strong {\n\t\t\t\t\tfont-size: 9px;\n\t\t\t\t\tline-height: 1.1;\n\t\t\t\t}\n\n\t\t\t\t.source-card .muted {\n\t\t\t\t\tdisplay: inline-block;\n\t\t\t\t\tfont-size: 7.8px;\n\t\t\t\t\tline-height: 1.15;\n\t\t\t\t}\n\n\t\t\t\t.source-card[data-source=\"jira\"] .source-badge { background: var(--c-jira); color: white; }\n\t\t\t\t.source-card[data-source=\"posthog\"] .source-badge { background: var(--c-posthog); }\n\t\t\t\t.source-card[data-source=\"metabase\"] .source-badge { background: var(--c-metabase); color: white; }\n\t\t\t\t.source-card[data-source=\"confluence\"] .source-badge { background: var(--c-confluence); }\n\t\t\t\t.source-card[data-source=\"socure\"] .source-badge { background: var(--c-socure); color: white; }\n\t\t\t\t.source-card[data-source=\"klaviyo\"] .source-badge { background: var(--c-klaviyo); color: white; }\n\t\t\t\t.source-card[data-source=\"sardine\"] .source-badge { background: var(--c-sardine); color: white; }\n\t\t\t\t.source-card[data-source=\"ga\"] .source-badge { background: var(--c-ga); }\n\t\t\t\t.source-card[data-source=\"dragonboat\"] .source-badge { background: var(--c-dragonboat); }\n\t\t\t\t.source-card[data-source=\"netxd\"] .source-badge { background: var(--c-netxd); }\n\n\t\t\t\t.status-dot {\n\t\t\t\t\tposition: absolute;\n\t\t\t\t\ttop: 12px;\n\t\t\t\t\tright: 12px;\n\t\t\t\t\twidth: 5px;\n\t\t\t\t\theight: 5px;\n\t\t\t\t\tborder-radius: 99px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t}\n\t\t\t\t.status-dot[data-tone=\"good\"] { background: var(--good); }\n\t\t\t\t.status-dot[data-tone=\"warn\"] { background: var(--warn); }\n\t\t\t\t.status-dot[data-tone=\"bad\"] { background: var(--bad); }\n\n\t\t\t\t.metric-grid {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: repeat(3, minmax(0, 1fr));\n\t\t\t\t\tgap: 1px;\n\t\t\t\t\tbackground: var(--line);\n\t\t\t\t}\n\n\t\t\t\t.metric {\n\t\t\t\t\tmin-height: 76px;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-direction: column;\n\t\t\t\t\tjustify-content: space-between;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tpadding: 11px;\n\t\t\t\t}\n\n\t\t\t\t.metric strong {\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 20px;\n\t\t\t\t\tfont-weight: 600;\n\t\t\t\t}\n\n\t\t\t\t.metric span { color: var(--ink-2); font-size: 9.5px; }\n\n\t\t\t\t.two-col {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) minmax(240px, 0.55fr);\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmargin-top: 14px;\n\t\t\t\t}\n\n\t\t\t\t.detail-copy {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 13px;\n\t\t\t\t\tline-height: 1.7;\n\t\t\t\t\tmax-width: 760px;\n\t\t\t\t}\n\n\t\t\t\t.empty-state {\n\t\t\t\t\tpadding: 28px 16px;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t}\n\n\t\t\t\t.actions {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-wrap: wrap;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tpadding: 16px;\n\t\t\t\t\tborder-top: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t@media (max-width: 720px) {\n\t\t\t\t\t.shell { grid-template-columns: 1fr; }\n\t\t\t\t\t.sidebar {\n\t\t\t\t\t\tposition: relative;\n\t\t\t\t\t\theight: auto;\n\t\t\t\t\t\tborder-right: 0;\n\t\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\t}\n\t\t\t\t\t.sidebar-footer { display: none; }\n\t\t\t\t\t.nav-section { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n\t\t\t\t\t.nav-label { grid-column: 1 / -1; }\n\t\t\t\t\t.topbar { top: 0; }\n\t\t\t\t\t.page { padding: 28px 16px; }\n\t\t\t\t\t.display-question { white-space: normal; }\n\t\t\t\t\t.grid-main,\n\t\t\t\t\t.two-col { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n\t\t\t\t\t.source-card:nth-child(5n) { border-right: 1px solid var(--line); }\n\t\t\t\t\t.source-card:nth-child(2n) { border-right: 0; }\n\t\t\t\t}\n\n\t\t\t\t@media (max-width: 640px) {\n\t\t\t\t\t.display-question { font-size: 34px; }\n\t\t\t\t\t.ask-form { grid-template-columns: 1fr; padding-bottom: 8px; }\n\t\t\t\t\t.ask-form input { min-height: 48px; }\n\t\t\t\t\t.ask-form .btn { margin: 0 8px; }\n\t\t\t\t\t.search { display: none; }\n\t\t\t\t\t.nav-section { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n\t\t\t\t\t.metric-grid { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-grid { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-card,\n\t\t\t\t\t.source-card:nth-child(2n),\n\t\t\t\t\t.source-card:nth-child(5n) { border-right: 0; }\n\t\t\t\t\t.table th:nth-child(3),\n\t\t\t\t\t.table td:nth-child(3) { display: none; }\n\t\t\t\t}\n\t\t\t</style></head><body><div class=\"shell\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/dreamfi-logo.svg\"><style>\n\t\t\t\t@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap');\n\n\t\t\t\t:root {\n\t\t\t\t\tcolor-scheme: dark;\n\t\t\t\t\t--font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n\t\t\t\t\t--font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;\n\t\t\t\t\t--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;\n\t\t\t\t\t--bg-0: #0c0d10;\n\t\t\t\t\t--bg-1: #131418;\n\t\t\t\t\t--bg-2: #1a1c21;\n\t\t\t\t\t--bg-3: #22252b;\n\t\t\t\t\t--line: #26282e;\n\t\t\t\t\t--line-2: #2f3239;\n\t\t\t\t\t--ink-0: #f3f3f1;\n\t\t\t\t\t--ink-1: #b9bcc1;\n\t\t\t\t\t--ink-2: #7a7f88;\n\t\t\t\t\t--ink-3: #565a62;\n\t\t\t\t\t--signal: #b8ff3d;\n\t\t\t\t\t--signal-ink: #0c0d10;\n\t\t\t\t\t--warn: #ffb938;\n\t\t\t\t\t--bad: #ff6a5b;\n\t\t\t\t\t--good: #5fe3a1;\n\t\t\t\t\t--c-jira: #4f8cff;\n\t\t\t\t\t--c-posthog: #ffb01f;\n\t\t\t\t\t--c-metabase: #6c9bff;\n\t\t\t\t\t--c-confluence: #2cc6ff;\n\t\t\t\t\t--c-socure: #c47bff;\n\t\t\t\t\t--c-klaviyo: #ff7a59;\n\t\t\t\t\t--c-sardine: #ff5dab;\n\t\t\t\t\t--c-ga: #ffa733;\n\t\t\t\t\t--c-dragonboat: #5fe3a1;\n\t\t\t\t\t--c-netxd: #ffd166;\n\t\t\t\t\t--radius: 6px;\n\t\t\t\t}\n\n\t\t\t\t*,\n\t\t\t\t*::before,\n\t\t\t\t*::after { box-sizing: border-box; }\n\n\t\t\t\thtml,\n\t\t\t\tbody { min-height: 100%; margin: 0; }\n\n\t\t\t\tbody {\n\t\t\t\t\tbackground: var(--bg-0);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-sans);\n\t\t\t\t\tfont-size: 12.5px;\n\t\t\t\t\tline-height: 1.4;\n\t\t\t\t\t-webkit-font-smoothing: antialiased;\n\t\t\t\t}\n\n\t\t\t\ta { color: inherit; text-decoration: none; }\n\t\t\t\tbutton, input, textarea, select { font: inherit; }\n\t\t\t\tbutton { cursor: pointer; }\n\t\t\t\th1, h2, h3, p { margin: 0; }\n\n\t\t\t\t.shell {\n\t\t\t\t\tmin-height: 100vh;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 140px minmax(0, 1fr);\n\t\t\t\t\tbackground: var(--bg-0);\n\t\t\t\t}\n\n\t\t\t\t.sidebar {\n\t\t\t\t\tposition: sticky;\n\t\t\t\t\ttop: 0;\n\t\t\t\t\theight: 100vh;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-direction: column;\n\t\t\t\t\tborder-right: 1px solid var(--line);\n\t\t\t\t\tbackground: #0b0c0f;\n\t\t\t\t\tpadding: 10px 8px;\n\t\t\t\t}\n\n\t\t\t\t.brand {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\tmin-height: 32px;\n\t\t\t\t\tpadding: 0 5px 9px;\n\t\t\t\t\tborder-bottom: 1px solid rgba(38, 40, 46, 0.7);\n\t\t\t\t}\n\n\t\t\t\t.brand-logo {\n\t\t\t\t\twidth: 46px;\n\t\t\t\t\theight: 32px;\n\t\t\t\t\tflex: 0 0 auto;\n\t\t\t\t\tobject-fit: contain;\n\t\t\t\t\tpadding: 2px;\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tbackground: var(--ink-0);\n\t\t\t\t}\n\n\t\t\t\t.version { margin-left: auto; color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }\n\n\t\t\t\t.nav-section { display: grid; gap: 2px; margin-top: 10px; }\n\t\t\t\t.nav-label {\n\t\t\t\t\tpadding: 9px 6px 3px;\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.nav-item {\n\t\t\t\t\tposition: relative;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 16px minmax(0, 1fr) auto auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\tmin-height: 24px;\n\t\t\t\t\tpadding: 4px 6px;\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tcolor: var(--ink-1);\n\t\t\t\t\tfont-size: 10.5px;\n\t\t\t\t}\n\n\t\t\t\t.nav-item:hover,\n\t\t\t\t.nav-item[data-active=\"true\"] {\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t}\n\n\t\t\t\t.nav-item[data-active=\"true\"]::before {\n\t\t\t\t\tcontent: \"\";\n\t\t\t\t\tposition: absolute;\n\t\t\t\t\tleft: 0;\n\t\t\t\t\ttop: 8px;\n\t\t\t\t\tbottom: 8px;\n\t\t\t\t\twidth: 2px;\n\t\t\t\t\tborder-radius: 99px;\n\t\t\t\t\tbackground: var(--signal);\n\t\t\t\t}\n\n\t\t\t\t.nav-icon {\n\t\t\t\t\twidth: 13px;\n\t\t\t\t\theight: 13px;\n\t\t\t\t\tdisplay: inline-grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t}\n\n\t\t\t\t.nav-icon svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }\n\t\t\t\t.nav-source-badge {\n\t\t\t\t\twidth: 13px;\n\t\t\t\t\theight: 13px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 3px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t\tcolor: var(--bg-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.5px;\n\t\t\t\t\tfont-weight: 700;\n\t\t\t\t}\n\t\t\t\t.nav-source-badge[data-source=\"jira\"] { background: var(--c-jira); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"posthog\"] { background: var(--c-posthog); }\n\t\t\t\t.nav-source-badge[data-source=\"metabase\"] { background: var(--c-metabase); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"confluence\"] { background: var(--c-confluence); }\n\t\t\t\t.nav-source-badge[data-source=\"socure\"] { background: var(--c-socure); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"klaviyo\"] { background: var(--c-klaviyo); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"sardine\"] { background: var(--c-sardine); color: white; }\n\t\t\t\t.nav-source-badge[data-source=\"ga\"] { background: var(--c-ga); }\n\t\t\t\t.nav-source-badge[data-source=\"dragonboat\"] { background: var(--c-dragonboat); }\n\t\t\t\t.nav-source-badge[data-source=\"netxd\"] { background: var(--c-netxd); }\n\t\t\t\t.nav-item span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n\t\t\t\t.nav-count { color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }\n\t\t\t\t.nav-dot { width: 4px; height: 4px; border-radius: 99px; background: var(--ink-3); }\n\t\t\t\t.nav-dot[data-tone=\"good\"] { background: var(--good); }\n\t\t\t\t.nav-dot[data-tone=\"warn\"] { background: var(--warn); }\n\t\t\t\t.nav-dot[data-tone=\"bad\"] { background: var(--bad); }\n\n\t\t\t\t.sidebar-footer {\n\t\t\t\t\tmargin-top: auto;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 6px;\n\t\t\t\t\tpadding: 8px 6px 0;\n\t\t\t\t\tborder-top: 1px solid rgba(38, 40, 46, 0.7);\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.avatar {\n\t\t\t\t\twidth: 16px;\n\t\t\t\t\theight: 16px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 50%;\n\t\t\t\t\tbackground: #6c6cff;\n\t\t\t\t\tcolor: white;\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.5px;\n\t\t\t\t}\n\n\t\t\t\t.main { min-width: 0; }\n\t\t\t\t.topbar {\n\t\t\t\t\tposition: sticky;\n\t\t\t\t\ttop: 0;\n\t\t\t\t\tz-index: 2;\n\t\t\t\t\theight: 32px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 16px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tbackground: rgba(12, 13, 16, 0.92);\n\t\t\t\t\tbackdrop-filter: blur(12px);\n\t\t\t\t\tpadding: 0 12px;\n\t\t\t\t}\n\n\t\t\t\t.crumb {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.crumb strong { color: var(--ink-0); font-size: 10.5px; font-weight: 600; }\n\t\t\t\t.topbar-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n\t\t\t\t.search {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-width: 156px;\n\t\t\t\t\theight: 22px;\n\t\t\t\t\tpadding: 0 8px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.kbd {\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 3px;\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8px;\n\t\t\t\t\tpadding: 0 5px;\n\t\t\t\t}\n\n\t\t\t\t.page {\n\t\t\t\t\twidth: min(100%, 1120px);\n\t\t\t\t\tmargin: 0;\n\t\t\t\t\tpadding: 18px 20px 28px;\n\t\t\t\t}\n\n\t\t\t\t.eyebrow {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\tfont-weight: 500;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.display-question {\n\t\t\t\t\tmax-width: 980px;\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-serif);\n\t\t\t\t\tfont-size: clamp(30px, 3.2vw, 42px);\n\t\t\t\t\tfont-weight: 400;\n\t\t\t\t\tline-height: 1.03;\n\t\t\t\t\tmargin-top: 4px;\n\t\t\t\t\twhite-space: nowrap;\n\t\t\t\t}\n\n\t\t\t\t.display-question em { color: var(--ink-1); font-style: italic; }\n\n\t\t\t\t.ask-form {\n\t\t\t\t\tmargin-top: 10px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 1fr auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tmax-width: 580px;\n\t\t\t\t\tmin-height: 38px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 8px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tbox-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);\n\t\t\t\t}\n\n\t\t\t\t.ask-form input {\n\t\t\t\t\twidth: 100%;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tborder: 0;\n\t\t\t\t\toutline: 0;\n\t\t\t\t\tbackground: transparent;\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tpadding: 0 15px;\n\t\t\t\t\tfont-size: 10.5px;\n\t\t\t\t}\n\n\t\t\t\t.ask-form input::placeholder { color: var(--ink-3); }\n\n\t\t\t\t.btn {\n\t\t\t\t\tdisplay: inline-flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-height: 26px;\n\t\t\t\t\tpadding: 0 10px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t\tfont-weight: 600;\n\t\t\t\t\twhite-space: nowrap;\n\t\t\t\t}\n\n\t\t\t\t.btn:hover { border-color: var(--line-2); background: var(--bg-2); }\n\t\t\t\t.btn-primary { border-color: var(--signal); background: var(--signal); color: var(--signal-ink); }\n\t\t\t\t.btn-ghost { border-color: transparent; background: transparent; color: var(--ink-1); }\n\t\t\t\t.btn-sm { min-height: 22px; padding: 0 7px; font-size: 9.5px; }\n\t\t\t\t.ask-form .btn { margin-right: 7px; }\n\n\t\t\t\t.chips {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-wrap: wrap;\n\t\t\t\t\tgap: 4px;\n\t\t\t\t\tmargin-top: 7px;\n\t\t\t\t\tmax-width: 620px;\n\t\t\t\t}\n\n\t\t\t\t.chip {\n\t\t\t\t\tdisplay: inline-flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 6px;\n\t\t\t\t\tmin-height: 20px;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 999px;\n\t\t\t\t\tpadding: 0 8px;\n\t\t\t\t\tcolor: var(--ink-1);\n\t\t\t\t\tbackground: rgba(19, 20, 24, 0.7);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\n\t\t\t\t.chips .chip {\n\t\t\t\t\tmin-height: 18px;\n\t\t\t\t\tpadding: 0 6px;\n\t\t\t\t\tfont-size: 7.6px;\n\t\t\t\t}\n\n\t\t\t\t.chip[data-tone=\"good\"],\n\t\t\t\t.value[data-tone=\"good\"] { color: var(--good); }\n\t\t\t\t.chip[data-tone=\"warn\"],\n\t\t\t\t.value[data-tone=\"warn\"] { color: var(--warn); }\n\t\t\t\t.chip[data-tone=\"bad\"],\n\t\t\t\t.value[data-tone=\"bad\"] { color: var(--bad); }\n\n\t\t\t\t.grid-main {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1.42fr) minmax(220px, 0.58fr);\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmargin-top: 14px;\n\t\t\t\t}\n\n\t\t\t\t.surface {\n\t\t\t\t\toverflow: hidden;\n\t\t\t\t\tborder: 1px solid var(--line);\n\t\t\t\t\tborder-radius: 8px;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t}\n\n\t\t\t\t.section-head {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tjustify-content: space-between;\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmin-height: 32px;\n\t\t\t\t\tpadding: 6px 12px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.section-head h2,\n\t\t\t\t.section-head h3 { font-size: 11.5px; font-weight: 600; }\n\n\t\t\t\t.section-head .meta {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.table {\n\t\t\t\t\twidth: 100%;\n\t\t\t\t\tborder-collapse: collapse;\n\t\t\t\t}\n\n\t\t\t\t.table th,\n\t\t\t\t.table td {\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tpadding: 4px 12px;\n\t\t\t\t\tfont-size: 9.4px;\n\t\t\t\t\tline-height: 1.15;\n\t\t\t\t\ttext-align: left;\n\t\t\t\t\tvertical-align: middle;\n\t\t\t\t}\n\n\t\t\t\t.table th {\n\t\t\t\t\tcolor: var(--ink-3);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 7.6px;\n\t\t\t\t\tfont-weight: 500;\n\t\t\t\t\ttext-transform: uppercase;\n\t\t\t\t}\n\n\t\t\t\t.table tr:last-child td { border-bottom: 0; }\n\t\t\t\t.strong { color: var(--ink-0); font-weight: 500; }\n\t\t\t\t.muted { color: var(--ink-2); }\n\t\t\t\t.num { font-family: var(--font-mono); }\n\t\t\t\t.tone { color: var(--ink-2); font-family: var(--font-mono); font-size: 9.5px; }\n\t\t\t\t.tone[data-tone=\"good\"] { color: var(--good); }\n\t\t\t\t.tone[data-tone=\"warn\"] { color: var(--warn); }\n\t\t\t\t.tone[data-tone=\"bad\"] { color: var(--bad); }\n\n\t\t\t\t.thread-table th:nth-child(1),\n\t\t\t\t.thread-table td:nth-child(1) { width: 44%; }\n\t\t\t\t.thread-table th:nth-child(2),\n\t\t\t\t.thread-table td:nth-child(2) { width: 25%; }\n\t\t\t\t.thread-table th:nth-child(3),\n\t\t\t\t.thread-table td:nth-child(3) { width: 21%; }\n\t\t\t\t.thread-table th:nth-child(4),\n\t\t\t\t.thread-table td:nth-child(4) { width: 10%; }\n\t\t\t\t.thread-table .strong { font-size: 9.4px; line-height: 1.08; }\n\t\t\t\t.thread-table .muted { font-size: 8.5px; }\n\n\t\t\t\t.topic-pulse { display: grid; }\n\t\t\t\t.pulse-row {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) auto auto;\n\t\t\t\t\talign-items: center;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tmin-height: 32px;\n\t\t\t\t\tpadding: 0 12px;\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\tfont-size: 9.5px;\n\t\t\t\t}\n\t\t\t\t.pulse-row:last-child { border-bottom: 0; }\n\t\t\t\t.pulse-row .num { font-size: 10px; }\n\t\t\t\t.pulse-row .tone { font-size: 8.5px; }\n\n\t\t\t\t.source-grid {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: repeat(5, minmax(96px, 1fr));\n\t\t\t\t\tborder-top: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.source-card {\n\t\t\t\t\tposition: relative;\n\t\t\t\t\tmin-width: 0;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: 22px minmax(0, 1fr);\n\t\t\t\t\tgap: 7px;\n\t\t\t\t\talign-items: start;\n\t\t\t\t\tmin-height: 58px;\n\t\t\t\t\tpadding: 8px 18px 8px 12px;\n\t\t\t\t\tborder-right: 1px solid var(--line);\n\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t.source-card:nth-child(5n) { border-right: 0; }\n\t\t\t\t.source-badge {\n\t\t\t\t\twidth: 19px;\n\t\t\t\t\theight: 19px;\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tplace-items: center;\n\t\t\t\t\tborder-radius: 5px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t\tcolor: var(--bg-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 8.5px;\n\t\t\t\t\tfont-weight: 700;\n\t\t\t\t}\n\n\t\t\t\t.source-card .strong {\n\t\t\t\t\tfont-size: 9px;\n\t\t\t\t\tline-height: 1.1;\n\t\t\t\t}\n\n\t\t\t\t.source-card .muted {\n\t\t\t\t\tdisplay: inline-block;\n\t\t\t\t\tfont-size: 7.8px;\n\t\t\t\t\tline-height: 1.15;\n\t\t\t\t}\n\n\t\t\t\t.source-card[data-source=\"jira\"] .source-badge { background: var(--c-jira); color: white; }\n\t\t\t\t.source-card[data-source=\"posthog\"] .source-badge { background: var(--c-posthog); }\n\t\t\t\t.source-card[data-source=\"metabase\"] .source-badge { background: var(--c-metabase); color: white; }\n\t\t\t\t.source-card[data-source=\"confluence\"] .source-badge { background: var(--c-confluence); }\n\t\t\t\t.source-card[data-source=\"socure\"] .source-badge { background: var(--c-socure); color: white; }\n\t\t\t\t.source-card[data-source=\"klaviyo\"] .source-badge { background: var(--c-klaviyo); color: white; }\n\t\t\t\t.source-card[data-source=\"sardine\"] .source-badge { background: var(--c-sardine); color: white; }\n\t\t\t\t.source-card[data-source=\"ga\"] .source-badge { background: var(--c-ga); }\n\t\t\t\t.source-card[data-source=\"dragonboat\"] .source-badge { background: var(--c-dragonboat); }\n\t\t\t\t.source-card[data-source=\"netxd\"] .source-badge { background: var(--c-netxd); }\n\n\t\t\t\t.status-dot {\n\t\t\t\t\tposition: absolute;\n\t\t\t\t\ttop: 12px;\n\t\t\t\t\tright: 12px;\n\t\t\t\t\twidth: 5px;\n\t\t\t\t\theight: 5px;\n\t\t\t\t\tborder-radius: 99px;\n\t\t\t\t\tbackground: var(--ink-3);\n\t\t\t\t}\n\t\t\t\t.status-dot[data-tone=\"good\"] { background: var(--good); }\n\t\t\t\t.status-dot[data-tone=\"warn\"] { background: var(--warn); }\n\t\t\t\t.status-dot[data-tone=\"bad\"] { background: var(--bad); }\n\n\t\t\t\t.metric-grid {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: repeat(3, minmax(0, 1fr));\n\t\t\t\t\tgap: 1px;\n\t\t\t\t\tbackground: var(--line);\n\t\t\t\t}\n\n\t\t\t\t.metric {\n\t\t\t\t\tmin-height: 76px;\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-direction: column;\n\t\t\t\t\tjustify-content: space-between;\n\t\t\t\t\tbackground: var(--bg-1);\n\t\t\t\t\tpadding: 11px;\n\t\t\t\t}\n\n\t\t\t\t.metric strong {\n\t\t\t\t\tcolor: var(--ink-0);\n\t\t\t\t\tfont-family: var(--font-mono);\n\t\t\t\t\tfont-size: 20px;\n\t\t\t\t\tfont-weight: 600;\n\t\t\t\t}\n\n\t\t\t\t.metric span { color: var(--ink-2); font-size: 9.5px; }\n\n\t\t\t\t.two-col {\n\t\t\t\t\tdisplay: grid;\n\t\t\t\t\tgrid-template-columns: minmax(0, 1fr) minmax(240px, 0.55fr);\n\t\t\t\t\tgap: 12px;\n\t\t\t\t\tmargin-top: 14px;\n\t\t\t\t}\n\n\t\t\t\t.detail-copy {\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t\tfont-size: 13px;\n\t\t\t\t\tline-height: 1.7;\n\t\t\t\t\tmax-width: 760px;\n\t\t\t\t}\n\n\t\t\t\t.empty-state {\n\t\t\t\t\tpadding: 28px 16px;\n\t\t\t\t\tcolor: var(--ink-2);\n\t\t\t\t}\n\n\t\t\t\t.actions {\n\t\t\t\t\tdisplay: flex;\n\t\t\t\t\tflex-wrap: wrap;\n\t\t\t\t\tgap: 8px;\n\t\t\t\t\tpadding: 16px;\n\t\t\t\t\tborder-top: 1px solid var(--line);\n\t\t\t\t}\n\n\t\t\t\t@media (max-width: 720px) {\n\t\t\t\t\t.shell { grid-template-columns: 1fr; }\n\t\t\t\t\t.sidebar {\n\t\t\t\t\t\tposition: relative;\n\t\t\t\t\t\theight: auto;\n\t\t\t\t\t\tborder-right: 0;\n\t\t\t\t\t\tborder-bottom: 1px solid var(--line);\n\t\t\t\t\t}\n\t\t\t\t\t.sidebar-footer { display: none; }\n\t\t\t\t\t.nav-section { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n\t\t\t\t\t.nav-label { grid-column: 1 / -1; }\n\t\t\t\t\t.topbar { top: 0; }\n\t\t\t\t\t.page { padding: 28px 16px; }\n\t\t\t\t\t.display-question { white-space: normal; }\n\t\t\t\t\t.grid-main,\n\t\t\t\t\t.two-col { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n\t\t\t\t\t.source-card:nth-child(5n) { border-right: 1px solid var(--line); }\n\t\t\t\t\t.source-card:nth-child(2n) { border-right: 0; }\n\t\t\t\t}\n\n\t\t\t\t@media (max-width: 640px) {\n\t\t\t\t\t.display-question { font-size: 34px; }\n\t\t\t\t\t.ask-form { grid-template-columns: 1fr; padding-bottom: 8px; }\n\t\t\t\t\t.ask-form input { min-height: 48px; }\n\t\t\t\t\t.ask-form .btn { margin: 0 8px; }\n\t\t\t\t\t.search { display: none; }\n\t\t\t\t\t.nav-section { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n\t\t\t\t\t.metric-grid { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-grid { grid-template-columns: 1fr; }\n\t\t\t\t\t.source-card,\n\t\t\t\t\t.source-card:nth-child(2n),\n\t\t\t\t\t.source-card:nth-child(5n) { border-right: 0; }\n\t\t\t\t\t.table th:nth-child(3),\n\t\t\t\t\t.table td:nth-child(3) { display: none; }\n\t\t\t\t}\n\t\t\t</style></head><body><div class=\"shell\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -289,7 +289,7 @@ func ConsoleShell(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Headline)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 855, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 852, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -302,7 +302,7 @@ func ConsoleShell(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(consoleCrumb(data.CurrentPath))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 856, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 853, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -320,7 +320,7 @@ func ConsoleShell(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Headline)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 858, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 855, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -415,14 +415,14 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<aside class=\"sidebar\"><a class=\"brand\" href=\"/console\" aria-label=\"DreamFi home\"><span class=\"brand-mark\">D</span> <span class=\"brand-name\">DreamFi</span> <span class=\"version\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<aside class=\"sidebar\"><a class=\"brand\" href=\"/console\" aria-label=\"DreamFi home\"><img class=\"brand-logo\" src=\"/static/dreamfi-logo.svg\" alt=\"DreamFi\"> <span class=\"version\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.Version)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 898, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 894, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -440,7 +440,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var8 templ.SafeURL
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinURLErrs(item.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 902, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 898, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -453,7 +453,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(activeState(data.CurrentPath, item.Href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 902, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 898, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -466,7 +466,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(navIconPath(item.Label))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 905, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 901, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -479,7 +479,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(item.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 908, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 904, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -497,7 +497,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(navCount(item.Label, data))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 910, Col: 58}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 906, Col: 58}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -516,7 +516,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(navDot(item.Label, data))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 913, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 909, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -544,7 +544,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var14 templ.SafeURL
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinURLErrs(topicHref(topic))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 921, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 917, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -557,7 +557,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(activeState(data.CurrentPath, topicHref(topic)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 921, Col: 111}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 917, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -570,7 +570,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(navIconPath("Topics"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 924, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 920, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -583,7 +583,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 927, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 923, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -601,7 +601,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Dot)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 929, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 925, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -629,7 +629,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var19 templ.SafeURL
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinURLErrs(source.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 937, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 933, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -642,7 +642,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(activeState(data.CurrentPath, source.Href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 937, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 933, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -655,7 +655,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(source.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 938, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 934, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -668,7 +668,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(sourceInitial(source.Name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 938, Col: 90}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 934, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -681,7 +681,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(source.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 939, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 935, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -699,7 +699,7 @@ func ConsoleSidebar(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(source.Dot)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 941, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 937, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -849,7 +849,7 @@ func ConsoleAskPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var29 templ.SafeURL
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinURLErrs(action.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 998, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 994, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 			if templ_7745c5c3_Err != nil {
@@ -862,7 +862,7 @@ func ConsoleAskPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(action.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 998, Col: 88}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 994, Col: 88}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 			if templ_7745c5c3_Err != nil {
@@ -914,7 +914,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var32 templ.SafeURL
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinURLErrs(topicHref(topic))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1032, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1028, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
@@ -927,7 +927,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Question)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1032, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1028, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -940,7 +940,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var34 string
 			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1033, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1029, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
@@ -953,7 +953,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Dot)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1035, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1031, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -966,7 +966,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1035, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1031, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -979,7 +979,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Freshness)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1036, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1032, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -992,7 +992,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Dot)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1037, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1033, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -1005,7 +1005,7 @@ func ConsoleTopicsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(topic.Change)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1037, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1033, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -1060,7 +1060,7 @@ func ConsoleSourcesPage(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var41 string
 		templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(statusLabel(data.Status))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1058, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1054, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 		if templ_7745c5c3_Err != nil {
@@ -1088,7 +1088,7 @@ func ConsoleSourcesPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var42 string
 			templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(source.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1089, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1085, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 			if templ_7745c5c3_Err != nil {
@@ -1101,7 +1101,7 @@ func ConsoleSourcesPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var43 string
 			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(source.Method)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1090, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1086, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 			if templ_7745c5c3_Err != nil {
@@ -1114,7 +1114,7 @@ func ConsoleSourcesPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var44 string
 			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(source.Status))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1091, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1087, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 			if templ_7745c5c3_Err != nil {
@@ -1127,7 +1127,7 @@ func ConsoleSourcesPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var45 string
 			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(source.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1091, Col: 86}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1087, Col: 86}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
@@ -1250,7 +1250,7 @@ func ConsoleArtifactsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var50 templ.SafeURL
 			templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinURLErrs(action.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1135, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1131, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 			if templ_7745c5c3_Err != nil {
@@ -1263,7 +1263,7 @@ func ConsoleArtifactsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var51 string
 			templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(action.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1135, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1131, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 			if templ_7745c5c3_Err != nil {
@@ -1318,7 +1318,7 @@ func ConsoleTrustPage(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(data.Headline)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1154, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1150, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 		if templ_7745c5c3_Err != nil {
@@ -1331,7 +1331,7 @@ func ConsoleTrustPage(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(data.Status))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1156, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1152, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -1344,7 +1344,7 @@ func ConsoleTrustPage(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var55 string
 		templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(statusLabel(data.Status))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1156, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1152, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 		if templ_7745c5c3_Err != nil {
@@ -1415,7 +1415,7 @@ func ConsoleSettingsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var57 string
 			templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(source.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1189, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1185, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 			if templ_7745c5c3_Err != nil {
@@ -1428,7 +1428,7 @@ func ConsoleSettingsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var58 string
 			templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(source.Method)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1190, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1186, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 			if templ_7745c5c3_Err != nil {
@@ -1441,7 +1441,7 @@ func ConsoleSettingsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var59 string
 			templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(source.Status))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1191, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1187, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 			if templ_7745c5c3_Err != nil {
@@ -1454,7 +1454,7 @@ func ConsoleSettingsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var60 string
 			templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(source.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1191, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1187, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 			if templ_7745c5c3_Err != nil {
@@ -1467,7 +1467,7 @@ func ConsoleSettingsPage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var61 string
 			templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(source.Detail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1192, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1188, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 			if templ_7745c5c3_Err != nil {
@@ -1566,7 +1566,7 @@ func ConsoleGeneratePage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var66 templ.SafeURL
 			templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinURLErrs(action.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1245, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1241, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 			if templ_7745c5c3_Err != nil {
@@ -1579,7 +1579,7 @@ func ConsoleGeneratePage(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var67 string
 			templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(action.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1245, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1241, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 			if templ_7745c5c3_Err != nil {
@@ -1631,7 +1631,7 @@ func AskForm(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var69 templ.SafeURL
 			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinURLErrs(chip.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1259, Col: 35}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1255, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 			if templ_7745c5c3_Err != nil {
@@ -1644,7 +1644,7 @@ func AskForm(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var70 string
 			templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(chip.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1259, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1255, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 			if templ_7745c5c3_Err != nil {
@@ -1696,7 +1696,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var72 templ.SafeURL
 			templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinURLErrs(item.Href)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1286, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1282, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 			if templ_7745c5c3_Err != nil {
@@ -1709,7 +1709,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var73 string
 			templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(item.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1286, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1282, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 			if templ_7745c5c3_Err != nil {
@@ -1722,7 +1722,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var74 string
 			templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.JoinStringErrs(item.Source)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1287, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1283, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var74))
 			if templ_7745c5c3_Err != nil {
@@ -1735,7 +1735,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var75 string
 			templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(item.Topic)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1289, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1285, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 			if templ_7745c5c3_Err != nil {
@@ -1748,7 +1748,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var76 string
 			templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(item.Status))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1290, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1286, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 			if templ_7745c5c3_Err != nil {
@@ -1761,7 +1761,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var77 string
 			templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.JoinStringErrs(item.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1290, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1286, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var77))
 			if templ_7745c5c3_Err != nil {
@@ -1774,7 +1774,7 @@ func OpenThreads(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var78 string
 			templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs(item.Age)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1291, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1287, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 			if templ_7745c5c3_Err != nil {
@@ -1826,7 +1826,7 @@ func TopicPulse(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var80 string
 			templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs(pulse.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1311, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1307, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 			if templ_7745c5c3_Err != nil {
@@ -1839,7 +1839,7 @@ func TopicPulse(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var81 string
 			templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinStringErrs(pulse.Tone)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1312, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1308, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 			if templ_7745c5c3_Err != nil {
@@ -1852,7 +1852,7 @@ func TopicPulse(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var82 string
 			templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs(pulse.Delta)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1312, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1308, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 			if templ_7745c5c3_Err != nil {
@@ -1865,7 +1865,7 @@ func TopicPulse(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var83 string
 			templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinStringErrs(pulse.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1313, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1309, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 			if templ_7745c5c3_Err != nil {
@@ -1912,7 +1912,7 @@ func SourcesBand(data ConsoleData) templ.Component {
 		var templ_7745c5c3_Var85 string
 		templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(sourceCountLabel(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1327, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1323, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 		if templ_7745c5c3_Err != nil {
@@ -1964,7 +1964,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var87 string
 		templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(source.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1338, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1334, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 		if templ_7745c5c3_Err != nil {
@@ -1977,7 +1977,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var88 templ.SafeURL
 		templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinURLErrs(source.Href)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1338, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1334, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 		if templ_7745c5c3_Err != nil {
@@ -1990,7 +1990,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var89 string
 		templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(sourceInitial(source.Name))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1339, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1335, Col: 57}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 		if templ_7745c5c3_Err != nil {
@@ -2003,7 +2003,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var90 string
 		templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(source.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1341, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1337, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 		if templ_7745c5c3_Err != nil {
@@ -2016,7 +2016,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var91 string
 		templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinStringErrs(source.Detail)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1342, Col: 38}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1338, Col: 38}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 		if templ_7745c5c3_Err != nil {
@@ -2029,7 +2029,7 @@ func SourceCard(source ConsoleSource) templ.Component {
 		var templ_7745c5c3_Var92 string
 		templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(source.Status))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1344, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1340, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 		if templ_7745c5c3_Err != nil {
@@ -2076,7 +2076,7 @@ func MetricGrid(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var94 string
 			templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(metric.Tone)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1351, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1347, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 			if templ_7745c5c3_Err != nil {
@@ -2089,7 +2089,7 @@ func MetricGrid(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var95 string
 			templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.JoinStringErrs(metric.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1352, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1348, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var95))
 			if templ_7745c5c3_Err != nil {
@@ -2102,7 +2102,7 @@ func MetricGrid(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var96 string
 			templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.JoinStringErrs(metric.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1353, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1349, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var96))
 			if templ_7745c5c3_Err != nil {
@@ -2115,7 +2115,7 @@ func MetricGrid(data ConsoleData) templ.Component {
 			var templ_7745c5c3_Var97 string
 			templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.JoinStringErrs(metric.Detail)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1354, Col: 25}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1350, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var97))
 			if templ_7745c5c3_Err != nil {
@@ -2177,7 +2177,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var99 templ.SafeURL
 				templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.JoinURLErrs(item.Href)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1387, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1383, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var99))
 				if templ_7745c5c3_Err != nil {
@@ -2190,7 +2190,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var100 string
 				templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.JoinStringErrs(item.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1387, Col: 60}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1383, Col: 60}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var100))
 				if templ_7745c5c3_Err != nil {
@@ -2203,7 +2203,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var101 string
 				templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinStringErrs(item.Detail)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1388, Col: 38}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1384, Col: 38}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
 				if templ_7745c5c3_Err != nil {
@@ -2216,7 +2216,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var102 string
 				templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.JoinStringErrs(statusTone(item.Status))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1389, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1385, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var102))
 				if templ_7745c5c3_Err != nil {
@@ -2229,7 +2229,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var103 string
 				templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinStringErrs(item.Status)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1389, Col: 81}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1385, Col: 81}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
 				if templ_7745c5c3_Err != nil {
@@ -2242,7 +2242,7 @@ func ArtifactQueue(data ConsoleData) templ.Component {
 				var templ_7745c5c3_Var104 templ.SafeURL
 				templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.JoinURLErrs(item.Href)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1390, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/console.templ`, Line: 1386, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var104))
 				if templ_7745c5c3_Err != nil {

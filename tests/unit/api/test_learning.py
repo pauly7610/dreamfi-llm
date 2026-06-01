@@ -27,7 +27,9 @@ from dreamfi.db.models import (
     PromptVersion,
     ReplayRun,
     ReplaySchedule,
+    SkillCandidate,
     Skill,
+    WorkflowTrace,
 )
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.skills.registry import seed_registry
@@ -40,7 +42,7 @@ def session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     db = Session(engine)
-    seed_registry(db, repo_root=REPO_ROOT)
+    seed_registry(db, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in db.query(Skill).all():
         skill.onyx_persona_id = 100
     db.add(
@@ -183,6 +185,125 @@ def test_feedback_capture_can_create_gold_without_storing_final_text(
     assert gold.role == "exemplar"
     assert gold.output_text == final_text
     assert gold.expected_pass_criteria["feedback_outcome"] == "approved"
+
+
+def _workflow_trace_payload(index: int) -> dict[str, object]:
+    return {
+        "workspace_id": "dreamfi",
+        "actor_id": "risk-analyst",
+        "workflow_type": "fraud decline review",
+        "starter_question": f"Why did transaction tx_ABC12345{index} decline for paul{index}@dreamfi.test?",
+        "topic_id": "fraud-declines",
+        "source_ids": ["netxd", "sardine", "socure"],
+        "required_identifiers": ["transaction_id", "decision_id"],
+        "steps": [
+            {
+                "action": "Check ledger state",
+                "source_id": "netxd",
+                "tool_name": "netxd_admin",
+                "evidence_refs": [f"netxd:{index}"],
+            },
+            {
+                "action": "Check fraud decision",
+                "source_id": "sardine",
+                "tool_name": "sardine_case_lookup",
+                "evidence_refs": [f"sardine:{index}"],
+            },
+            {
+                "action": "Check identity state",
+                "source_id": "socure",
+                "tool_name": "socure_report_lookup",
+                "evidence_refs": [f"socure:{index}"],
+            },
+        ],
+        "accepted_evidence": [
+            {"source_id": "sardine", "ref": f"sardine:{index}", "reason": "authoritative fraud decision"}
+        ],
+        "rejected_evidence": [
+            {"source_id": "netxd", "ref": f"netxd:{index}", "reason": "ledger is not fraud reason"}
+        ],
+        "human_edits": ["added freshness caveat", "removed unsupported fraud claim"],
+        "outcome": "approved",
+        "duration_seconds": 600 + index,
+    }
+
+
+def test_workflow_traces_redact_questions_and_mine_skill_candidate(
+    client: TestClient,
+    session: Session,
+) -> None:
+    for index in range(3):
+        response = client.post(
+            "/api/learning/workflow-traces",
+            json=_workflow_trace_payload(index),
+        )
+        assert response.status_code == 201, response.text
+        pattern = response.json()["trace"]["starter_question_pattern"]
+        assert "paul" not in pattern
+        assert "tx_ABC" not in pattern
+        assert "[email]" in pattern
+        assert "[identifier]" in pattern
+
+    trace = session.query(WorkflowTrace).first()
+    assert trace is not None
+    assert trace.starter_question_hash
+    assert trace.starter_question_pattern != _workflow_trace_payload(0)["starter_question"]
+
+    response = client.post(
+        "/api/learning/skill-candidates/generate",
+        json={"workspace_id": "dreamfi", "min_trace_count": 3},
+    )
+
+    assert response.status_code == 201, response.text
+    candidates = response.json()["candidates"]
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["workflow_type"] == "fraud_decline_review"
+    assert candidate["source_trace_count"] == 3
+    assert candidate["required_inputs"] == ["decision_id", "transaction_id"]
+    assert candidate["freshness_contract"]["mode"] == "operational"
+    assert "sardine" in candidate["freshness_contract"]["source_ids_requiring_source_of_truth_checks"]
+    assert candidate["tool_plan"][0]["action"] == "Check ledger state"
+    assert candidate["eval_seed_cases"][0]["starter_question_pattern"]
+    assert "tx_ABC" not in str(candidate["eval_seed_cases"])
+
+
+def test_skill_candidate_generation_is_idempotent_and_reviewable(
+    client: TestClient,
+    session: Session,
+) -> None:
+    for index in range(2):
+        response = client.post(
+            "/api/learning/workflow-traces",
+            json=_workflow_trace_payload(index),
+        )
+        assert response.status_code == 201, response.text
+
+    first = client.post(
+        "/api/learning/skill-candidates/generate",
+        json={"workspace_id": "dreamfi", "min_trace_count": 2},
+    )
+    second = client.post(
+        "/api/learning/skill-candidates/generate",
+        json={"workspace_id": "dreamfi", "min_trace_count": 2},
+    )
+
+    assert first.status_code == 201, first.text
+    assert second.status_code == 201, second.text
+    assert len(first.json()["candidates"]) == 1
+    assert second.json()["candidates"] == []
+
+    candidate_id = first.json()["candidates"][0]["candidate_id"]
+    approval = client.post(
+        f"/api/learning/skill-candidates/{candidate_id}/approve",
+        json={"reviewer_id": "vp-eng", "review_notes": "Turn this into a governed skill."},
+    )
+
+    assert approval.status_code == 200, approval.text
+    reviewed = session.get(SkillCandidate, candidate_id)
+    assert reviewed is not None
+    assert reviewed.status == "approved"
+    assert reviewed.reviewer_id == "vp-eng"
 
 
 def test_rejected_feedback_can_become_regression_gold(

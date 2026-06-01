@@ -46,6 +46,7 @@ func NewRouter(settings config.Settings, onyxClient *onyx.Client, opts ...Option
 
 	mux.HandleFunc("GET /ready", server.ready)
 	mux.HandleFunc("GET /health", server.health)
+	mux.HandleFunc("GET /static/dreamfi-logo.svg", server.dreamfiLogo)
 	mux.HandleFunc("GET /api/ops/status", server.opsStatus)
 	mux.HandleFunc("GET /api/console", server.consoleData)
 	mux.HandleFunc("POST /api/ask", server.ask)
@@ -55,7 +56,7 @@ func NewRouter(settings config.Settings, onyxClient *onyx.Client, opts ...Option
 	mux.HandleFunc("GET /console/", server.console)
 	mux.HandleFunc("GET /", server.root)
 
-	return requestIDMiddleware(AuthMiddleware(settings, mux))
+	return securityHeadersMiddleware(requestIDMiddleware(AuthMiddleware(settings, mux)))
 }
 
 func (s *Server) ready(w http.ResponseWriter, _ *http.Request) {
@@ -133,6 +134,18 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 			requestID = newRequestID()
 		}
 		w.Header().Set("X-Request-ID", requestID)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headers := w.Header()
+		headers.Set("X-Content-Type-Options", "nosniff")
+		headers.Set("X-Frame-Options", "DENY")
+		headers.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		headers.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		headers.Set("Cross-Origin-Opener-Policy", "same-origin")
 		next.ServeHTTP(w, r)
 	})
 }

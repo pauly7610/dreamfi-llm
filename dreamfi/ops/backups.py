@@ -12,7 +12,6 @@ from typing import Any
 
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.compiler import IdentifierPreparer
 
 from dreamfi.config import get_settings
 
@@ -69,7 +68,7 @@ def write_database_snapshot(
 
     bind = session.get_bind()
     inspector = inspect(bind)
-    preparer = IdentifierPreparer(bind.dialect)
+    preparer = bind.dialect.identifier_preparer
     tables = sorted(inspector.get_table_names())
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     path = destination / f"dreamfi-db-{timestamp}.jsonl.gz"

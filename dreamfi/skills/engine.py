@@ -11,12 +11,16 @@ from sqlalchemy.orm import Session
 
 from dreamfi.confidence.scorer import ConfidenceResult, ConfidenceScorer
 from dreamfi.config import get_settings
-from dreamfi.db.models import EvalOutput, PromptVersion, Skill
+from dreamfi.db.models import EvalOutput, GoldExample, PromptVersion, Skill
 from dreamfi.evals.runner import EvalResult, run_eval
 from dreamfi.gold.registry import GoldExampleRegistry
 from dreamfi.onyx.client import OnyxClient
 from dreamfi.onyx.models import ChatResult
-from dreamfi.trust.artifact import ExportReadinessInput, compute_export_readiness
+from dreamfi.trust.artifact import (
+    ExportReadinessInput,
+    ExportReadinessScore,
+    compute_export_readiness,
+)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 PROMPT_FILE_BY_SKILL = {
@@ -41,6 +45,7 @@ class GenerationResult:
     onyx_chat_session_id: str | None
     onyx_message_id: int | None
     onyx_citations: dict[int, str]
+    export_readiness: ExportReadinessScore | None = None
 
 
 class SkillEngine:
@@ -123,6 +128,53 @@ class SkillEngine:
             return rendered
         return f"{system_prompt}\n\n{rendered}"
 
+    def _regression_pass_rate(self, skill_id: str) -> float | None:
+        stmt = select(GoldExample).where(
+            GoldExample.skill_id == skill_id,
+            GoldExample.role == "regression",
+        )
+        rows = list(self.db.scalars(stmt))
+        scored = [r for r in rows if r.last_result in {"pass", "fail"}]
+        if not scored:
+            return None
+        passes = sum(1 for r in scored if r.last_result == "pass")
+        return passes / len(scored)
+
+    def _export_readiness(
+        self,
+        *,
+        skill_id: str,
+        eval_result: EvalResult,
+        conf: ConfidenceResult,
+    ) -> ExportReadinessScore | None:
+        claim_lineage_rate = 1.0 if conf.citation_count > 0 else 0.0
+        if eval_result.pass_fail != "pass":
+            return compute_export_readiness(
+                ExportReadinessInput(
+                    hard_gate_pass=False,
+                    confidence=conf.confidence,
+                    gold_regression_pass_rate=0.0,
+                    claim_lineage_rate=claim_lineage_rate,
+                    metric_freshness=conf.freshness_score,
+                    planning_hygiene_score=None,
+                )
+            )
+
+        regression_rate = self._regression_pass_rate(skill_id)
+        if regression_rate is None:
+            return None
+
+        return compute_export_readiness(
+            ExportReadinessInput(
+                hard_gate_pass=True,
+                confidence=conf.confidence,
+                gold_regression_pass_rate=regression_rate,
+                claim_lineage_rate=claim_lineage_rate,
+                metric_freshness=conf.freshness_score,
+                planning_hygiene_score=None,
+            )
+        )
+
     def _freshness_from_chat(self, chat: ChatResult) -> float:
         updated_ats = []
         for doc in chat.documents:
@@ -176,18 +228,8 @@ class SkillEngine:
             citation_count=len(chat.citations),
             hard_gate_passed=eval_result.pass_fail == "pass",
         )
-        settings = get_settings()
-        claim_lineage_target = max(1, settings.dreamfi_claim_lineage_target_citations)
-        export_readiness = compute_export_readiness(
-            ExportReadinessInput(
-                hard_gate_pass=eval_result.pass_fail == "pass",
-                confidence=conf.confidence,
-                gold_regression_pass_rate=1.0,
-                claim_lineage_rate=min(len(chat.citations), claim_lineage_target)
-                / claim_lineage_target,
-                metric_freshness=conf.freshness_score,
-                planning_hygiene_score=1.0,
-            )
+        export_readiness = self._export_readiness(
+            skill_id=skill, eval_result=eval_result, conf=conf
         )
 
         # Persist (only if a round is provided — eval rounds own aggregation)
@@ -205,8 +247,12 @@ class SkillEngine:
                 onyx_citations_json={str(k): v for k, v in chat.citations.items()},
                 freshness_score=conf.freshness_score,
                 confidence=conf.confidence,
-                export_readiness=export_readiness.value,
-                export_breakdown_json=export_readiness.breakdown,
+                export_readiness=(
+                    None if export_readiness is None else export_readiness.value
+                ),
+                export_breakdown_json=(
+                    None if export_readiness is None else dict(export_readiness.breakdown)
+                ),
             )
             self.db.add(row)
             self.db.flush()
@@ -220,4 +266,5 @@ class SkillEngine:
             onyx_chat_session_id=session.id,
             onyx_message_id=chat.message_id,
             onyx_citations=chat.citations,
+            export_readiness=export_readiness,
         )

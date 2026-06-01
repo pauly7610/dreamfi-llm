@@ -17,6 +17,12 @@ export type AskResponse = {
   confidence: number
   citations: AskCitation[]
   followups: string[]
+  source_plan: {
+    scope: string
+    authoritative_sources: string[]
+    requires_freshness: boolean
+    blockers: string[]
+  }
 }
 
 export type GenerateArtifactRequest = {

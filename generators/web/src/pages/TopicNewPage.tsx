@@ -17,7 +17,6 @@ type TopicNewPageProps = {
 const TOPIC_TEMPLATE_OPTIONS = [
   { slug: 'weekly-brief', label: generatorTitleFromSlug('weekly-brief') },
   { slug: 'technical-prd', label: generatorTitleFromSlug('technical-prd') },
-  { slug: 'business-prd', label: generatorTitleFromSlug('business-prd') },
   { slug: 'risk-brd', label: generatorTitleFromSlug('risk-brd') },
 ] as const
 

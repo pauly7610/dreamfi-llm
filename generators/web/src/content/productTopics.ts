@@ -134,7 +134,7 @@ export const productTopics: ProductTopic[] = [
     summary: 'Connect activation, payment readiness, transaction health, and ledger context for funding decisions.',
     question: 'Where are users getting stuck before first funding?',
     sources: ['metabase', 'posthog', 'netxd', 'jira', 'confluence'],
-    artifacts: ['Business PRD', 'Technical PRD'],
+    artifacts: ['Technical PRD', 'Weekly PM Brief'],
     defaultGeneratorSlug: 'technical-prd',
     toplineMetrics: [
       {
@@ -184,8 +184,8 @@ export const productTopics: ProductTopic[] = [
     summary: 'See how email, SMS, audiences, and acquisition signals support onboarding and activation.',
     question: 'Which lifecycle messages are helping users finish onboarding?',
     sources: ['klaviyo', 'ga', 'posthog', 'metabase', 'confluence'],
-    artifacts: ['Business PRD', 'Weekly PM Brief'],
-    defaultGeneratorSlug: 'business-prd',
+    artifacts: ['Technical PRD', 'Weekly PM Brief'],
+    defaultGeneratorSlug: 'technical-prd',
     toplineMetrics: [
       {
         label: 'Nudge open rate',

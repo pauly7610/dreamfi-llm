@@ -12,8 +12,8 @@ from typing import Literal
 
 
 ConnectionMethod = Literal["onyx_native", "custom_ingestion"]
-ONYX_NATIVE = "onyx_native"
-CUSTOM_INGESTION = "custom_ingestion"
+ONYX_NATIVE: ConnectionMethod = "onyx_native"
+CUSTOM_INGESTION: ConnectionMethod = "custom_ingestion"
 DEFAULT_CUSTOM_SETUP_DETAIL = (
     "Ingest through an Onyx File/Web/S3 source or a DreamFi source bridge. "
     "DreamFi validates the document set, required metadata, and freshness."
@@ -212,7 +212,7 @@ CONNECTORS: tuple[ConnectorSpec, ...] = (
         name="Dragonboat",
         category="planning",
         purpose="Roadmap, initiatives, and OKR alignment",
-        used_for=("business-prd", "weekly-brief"),
+        used_for=("technical-prd", "weekly-brief"),
         expected_document_set="dreamfi-source-dragonboat",
         href="/console/integrations/dragonboat",
         requires_dreamfi_secret=True,
@@ -231,7 +231,7 @@ CONNECTORS: tuple[ConnectorSpec, ...] = (
         name="Confluence",
         category="docs",
         purpose="Source docs and publish target for PRDs and specs",
-        used_for=("technical-prd", "business-prd", "risk-brd"),
+        used_for=("technical-prd", "risk-brd"),
         expected_document_set="dreamfi-source-confluence",
         href="/console/integrations/confluence",
         connection_method=ONYX_NATIVE,
@@ -246,7 +246,7 @@ CONNECTORS: tuple[ConnectorSpec, ...] = (
         name="Metabase",
         category="metrics",
         purpose="SQL-backed KPI and funnel dashboards",
-        used_for=("weekly-brief", "business-prd"),
+        used_for=("weekly-brief", "technical-prd"),
         expected_document_set="dreamfi-source-metabase",
         href="/console/integrations/metabase",
         requires_dreamfi_secret=True,
@@ -293,7 +293,7 @@ CONNECTORS: tuple[ConnectorSpec, ...] = (
         name="Google Analytics",
         category="marketing_analytics",
         purpose="Acquisition, traffic, and conversion signals",
-        used_for=("business-prd",),
+        used_for=("technical-prd",),
         expected_document_set="dreamfi-source-ga",
         href="/console/integrations/ga",
         requires_dreamfi_secret=True,
@@ -356,7 +356,7 @@ CONNECTORS: tuple[ConnectorSpec, ...] = (
         name="Klaviyo",
         category="marketing",
         purpose="Lifecycle campaigns, audiences, and sends",
-        used_for=("business-prd",),
+        used_for=("technical-prd",),
         expected_document_set="dreamfi-source-klaviyo",
         href="/console/integrations/klaviyo",
         requires_dreamfi_secret=True,

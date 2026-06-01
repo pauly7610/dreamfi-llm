@@ -25,7 +25,7 @@ from dreamfi.trust.artifact import ExportReadinessInput, compute_export_readines
 
 router = APIRouter()
 
-WorkflowSlug = Literal["weekly-brief", "technical-prd", "business-prd", "risk-brd"]
+WorkflowSlug = Literal["weekly-brief", "technical-prd", "risk-brd"]
 _PUBLISH_READY_CRITERIA = {
     "has_output",
     "meets_min_citations",
@@ -57,12 +57,6 @@ WORKFLOW_SPECS: dict[str, WorkflowSpec] = {
         skill_id="agent_system_prompt",
         sections=("Problem", "Requirements", "Technical approach", "Dependencies", "Rollout"),
     ),
-    "business-prd": WorkflowSpec(
-        slug="business-prd",
-        title="Business PRD",
-        skill_id="landing_page_copy",
-        sections=("Opportunity", "Customer impact", "Business case", "Launch plan", "Risks"),
-    ),
     "risk-brd": WorkflowSpec(
         slug="risk-brd",
         title="Risk BRD",
@@ -88,12 +82,20 @@ class AskCitation(BaseModel):
     updated_at: str | None = None
 
 
+class AskSourcePlan(BaseModel):
+    scope: str
+    authoritative_sources: list[str]
+    requires_freshness: bool
+    blockers: list[str]
+
+
 class AskResponse(BaseModel):
     question: str
     answer: str
     confidence: float
     citations: list[AskCitation]
     followups: list[str]
+    source_plan: AskSourcePlan
 
 
 class GenerateArtifactRequest(BaseModel):
@@ -119,7 +121,7 @@ class GenerateArtifactResponse(BaseModel):
 def _scope_filters(
     *, topic_id: str | None, source_id: str | None, source_ids: list[str]
 ) -> dict[str, Any]:
-    scoped_sources = sorted({source_id, *source_ids} - {None, ""})
+    scoped_sources = sorted(source for source in [source_id, *source_ids] if source)
     scope: dict[str, Any] = {}
     if topic_id:
         scope["topic_id"] = topic_id
@@ -172,6 +174,43 @@ def _followups(question: str, topic_id: str | None, source_ids: list[str]) -> li
     return followups[:4]
 
 
+def _source_plan(body: AskRequest, hits: list[SearchHit], source_ids: list[str]) -> AskSourcePlan:
+    authoritative_sources = source_ids or _source_ids_from_question(body.question)
+    requires_freshness = _asks_for_freshness(body.question)
+    blockers: list[str] = []
+    if requires_freshness:
+        if not authoritative_sources and not body.topic_id:
+            blockers.append("Pick a topic or source before treating this as current operational evidence.")
+        if any(hit.updated_at is None for hit in hits):
+            blockers.append("Freshness-sensitive ask returned evidence without updated_at; verify before publishing.")
+
+    scope = "indexed"
+    if body.topic_id or authoritative_sources:
+        scope = "scoped"
+    if requires_freshness:
+        scope = "freshness-sensitive"
+    return AskSourcePlan(
+        scope=scope,
+        authoritative_sources=authoritative_sources,
+        requires_freshness=requires_freshness,
+        blockers=blockers,
+    )
+
+
+def _source_ids_from_question(question: str) -> list[str]:
+    normalized = question.lower()
+    return [
+        source_id
+        for source_id in ("jira", "confluence", "metabase", "posthog", "socure", "sardine", "netxd", "dragonboat", "klaviyo")
+        if source_id in normalized
+    ]
+
+
+def _asks_for_freshness(question: str) -> bool:
+    normalized = question.lower()
+    return any(marker in normalized for marker in ("latest", "current", "today", "as of", "since", "changed", "change", "now", "fresh"))
+
+
 @router.post("/api/ask", response_model=AskResponse)
 def ask(
     body: AskRequest,
@@ -179,7 +218,7 @@ def ask(
     session: Session = Depends(get_db_session),
     onyx: OnyxClient = Depends(get_onyx_client),
 ) -> AskResponse:
-    source_ids = sorted({body.source_id, *body.source_ids} - {None, ""})
+    source_ids = sorted(source for source in [body.source_id, *body.source_ids] if source)
     try:
         hits = onyx.admin_search(
             query=body.question,
@@ -234,6 +273,7 @@ def ask(
         confidence=confidence,
         citations=[_serialize_hit(hit) for hit in hits],
         followups=_followups(body.question, body.topic_id, source_ids),
+        source_plan=_source_plan(body, hits, source_ids),
     )
 
 

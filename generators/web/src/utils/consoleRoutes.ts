@@ -11,14 +11,12 @@ const GENERATOR_ROUTE_ALIASES: Record<string, string> = {
   'weekly brief': 'weekly-brief',
   'weekly pm brief': 'weekly-brief',
   'technical prd': 'technical-prd',
-  'business prd': 'business-prd',
   'risk brd': 'risk-brd',
 }
 
 const GENERATOR_TITLES: Record<string, string> = {
   'weekly-brief': 'Weekly PM Brief',
   'technical-prd': 'Technical PRD',
-  'business-prd': 'Business PRD',
   'risk-brd': 'Risk BRD',
 }
 

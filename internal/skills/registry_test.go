@@ -2,9 +2,15 @@ package skills
 
 import "testing"
 
-func TestRegistryShipsNineSkills(t *testing.T) {
-	if len(Registry) != 9 {
-		t.Fatalf("len(Registry) = %d, want 9", len(Registry))
+func TestRegistryShipsActiveSkillsOnly(t *testing.T) {
+	if len(Registry) != 3 {
+		t.Fatalf("len(Registry) = %d, want 3", len(Registry))
+	}
+	if _, ok := ByID("landing_page_copy"); ok {
+		t.Fatal("archived landing_page_copy should not be in active registry")
+	}
+	if len(ArchivedRegistry) != 6 {
+		t.Fatalf("len(ArchivedRegistry) = %d, want 6", len(ArchivedRegistry))
 	}
 }
 

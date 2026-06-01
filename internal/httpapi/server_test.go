@@ -119,4 +119,10 @@ func TestRouterAddsRequestID(t *testing.T) {
 	if rec.Header().Get("X-Request-ID") == "" {
 		t.Fatalf("X-Request-ID was not set")
 	}
+	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Fatalf("X-Frame-Options = %q, want DENY", got)
+	}
 }

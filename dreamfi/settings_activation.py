@@ -48,7 +48,7 @@ from dreamfi.ops.readiness import (
     replay_readiness,
 )
 
-EXPECTED_ALEMBIC_HEAD = "20260507_0010"
+EXPECTED_ALEMBIC_HEAD = "20260529_0012"
 PLACEHOLDER_VALUES = {"", "change-me", "change-me-before-deploy", "onyx_pat_XXX", "sk-ant-XXX"}
 MIN_SECRET_LENGTH = 8
 

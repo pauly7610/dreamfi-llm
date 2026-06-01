@@ -26,7 +26,7 @@ function fallbackGeneratorSlugForQuestion(question: string | null | undefined): 
   }
 
   if (/(campaign|lifecycle|messaging|growth|business|market)/.test(normalizedQuestion)) {
-    return 'business-prd'
+    return 'technical-prd'
   }
 
   if (/(launch|delivery|technical|flow|onboarding|funding|integration)/.test(normalizedQuestion)) {
@@ -52,7 +52,7 @@ export function recommendedGeneratorSlugForContext({ question, source, topic, to
     }
 
     if (source.category === 'marketing' || source.category === 'marketing_analytics') {
-      return 'business-prd'
+      return 'technical-prd'
     }
 
     if (source.category === 'planning' || source.category === 'payments' || source.category === 'product_analytics') {

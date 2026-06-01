@@ -28,7 +28,7 @@ type workflowSpec struct {
 	Sections []string
 }
 
-var workflowOrder = []string{"weekly-brief", "technical-prd", "business-prd", "risk-brd"}
+var workflowOrder = []string{"weekly-brief", "technical-prd", "risk-brd"}
 
 var workflowSpecs = map[string]workflowSpec{
 	"weekly-brief": {
@@ -42,12 +42,6 @@ var workflowSpecs = map[string]workflowSpec{
 		Title:    "Technical PRD",
 		SkillID:  "agent_system_prompt",
 		Sections: []string{"Problem", "Requirements", "Technical approach", "Dependencies", "Rollout"},
-	},
-	"business-prd": {
-		Slug:     "business-prd",
-		Title:    "Business PRD",
-		SkillID:  "landing_page_copy",
-		Sections: []string{"Opportunity", "Customer impact", "Business case", "Launch plan", "Risks"},
 	},
 	"risk-brd": {
 		Slug:     "risk-brd",
@@ -88,6 +82,14 @@ type askResponse struct {
 	Confidence float64       `json:"confidence"`
 	Citations  []askCitation `json:"citations"`
 	Followups  []string      `json:"followups"`
+	SourcePlan askSourcePlan `json:"source_plan"`
+}
+
+type askSourcePlan struct {
+	Scope                string   `json:"scope"`
+	AuthoritativeSources []string `json:"authoritative_sources"`
+	RequiresFreshness    bool     `json:"requires_freshness"`
+	Blockers             []string `json:"blockers"`
 }
 
 type generateArtifactRequest struct {
@@ -208,6 +210,7 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 		Confidence: confidence,
 		Citations:  serializeHits(hits),
 		Followups:  followups(body.Question, body.TopicID, sourceIDs),
+		SourcePlan: sourcePlanForAsk(body, hits, sourceIDs),
 	})
 }
 
@@ -563,6 +566,61 @@ func followups(question string, topicID string, sourceIDs []string) []string {
 		return items[:4]
 	}
 	return items
+}
+
+func sourcePlanForAsk(body askRequest, hits []onyx.SearchHit, sourceIDs []string) askSourcePlan {
+	authoritativeSources := append([]string{}, sourceIDs...)
+	if len(authoritativeSources) == 0 {
+		authoritativeSources = sourceIDsFromQuestion(body.Question)
+	}
+	blockers := []string{}
+	requiresFreshness := asksForFreshness(body.Question)
+	if requiresFreshness {
+		if len(authoritativeSources) == 0 && strings.TrimSpace(body.TopicID) == "" {
+			blockers = append(blockers, "Pick a topic or source before treating this as current operational evidence.")
+		}
+		for _, hit := range hits {
+			if strings.TrimSpace(hit.UpdatedAt) == "" {
+				blockers = append(blockers, "Freshness-sensitive ask returned evidence without updated_at; verify before publishing.")
+				break
+			}
+		}
+	}
+	scope := "indexed"
+	if strings.TrimSpace(body.TopicID) != "" || len(authoritativeSources) > 0 {
+		scope = "scoped"
+	}
+	if requiresFreshness {
+		scope = "freshness-sensitive"
+	}
+	return askSourcePlan{
+		Scope:                scope,
+		AuthoritativeSources: authoritativeSources,
+		RequiresFreshness:    requiresFreshness,
+		Blockers:             blockers,
+	}
+}
+
+func sourceIDsFromQuestion(question string) []string {
+	normalized := strings.ToLower(question)
+	candidates := []string{"jira", "confluence", "metabase", "posthog", "socure", "sardine", "netxd", "dragonboat", "klaviyo"}
+	out := []string{}
+	for _, candidate := range candidates {
+		if strings.Contains(normalized, candidate) {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
+func asksForFreshness(question string) bool {
+	normalized := strings.ToLower(question)
+	for _, marker := range []string{"latest", "current", "today", "as of", "since", "changed", "change", "now", "fresh"} {
+		if strings.Contains(normalized, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func workflowPrompt(spec workflowSpec, question string, topicID string, sourceID string) string {

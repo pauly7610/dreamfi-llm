@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version-file: go.mod
           cache: true
 
       - name: Generate templ
@@ -47,15 +47,16 @@ jobs:
         run: python -m pytest -q -m "not live_onyx"
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
-          cache: yarn
-          cache-dependency-path: generators/web/yarn.lock
+          node-version: "22"
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install frontend dependencies
         working-directory: generators/web
-        run: yarn install --frozen-lockfile
+        run: yarn install --no-immutable
 
       - name: Frontend tests
         working-directory: generators/web

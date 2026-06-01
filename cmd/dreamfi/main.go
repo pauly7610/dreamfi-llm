@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/pauly7610/dreamfi-llm/internal/config"
 	"github.com/pauly7610/dreamfi-llm/internal/httpapi"
@@ -29,7 +34,26 @@ func main() {
 
 	addr := ":" + port
 	slog.Info("starting DreamFi Go service", "addr", addr)
-	if err := http.ListenAndServe(addr, router); err != nil {
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			slog.Error("DreamFi Go service shutdown failed", "error", err)
+		}
+	}()
+
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("DreamFi Go service stopped", "error", err)
 		os.Exit(1)
 	}

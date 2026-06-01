@@ -107,7 +107,6 @@ STATUS_RANK = {"connected": 0, "available": 1, "degraded": 2, "not_configured": 
 WORKFLOW_LABELS = {
     "weekly-brief": "Weekly PM brief",
     "technical-prd": "Technical PRD",
-    "business-prd": "Business PRD",
     "risk-brd": "Risk BRD",
 }
 

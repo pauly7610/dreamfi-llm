@@ -20,6 +20,8 @@ from dreamfi.db.models import (
     ProductionOutcome,
     ReplayRun,
     ReplaySchedule,
+    SkillCandidate,
+    WorkflowTrace,
 )
 from dreamfi.learning.loop import (
     approve_learning_proposal,
@@ -30,6 +32,12 @@ from dreamfi.learning.loop import (
     reject_learning_proposal,
     run_replay_schedule,
 )
+from dreamfi.learning.skill_mining import (
+    generate_skill_candidates,
+    normalize_workflow_type,
+    record_workflow_trace,
+    review_skill_candidate,
+)
 from dreamfi.onyx.client import OnyxClient
 
 router = APIRouter(prefix="/api/learning")
@@ -39,6 +47,7 @@ GoldGrowthRole = Literal["exemplar", "regression", "counter_example", "canary"]
 ProposalStatus = Literal["draft", "approved", "rejected", "applied"]
 ProductionOutcomeValue = Literal["published", "revised", "ignored", "reverted", "used_in_decision"]
 ReplayType = Literal["gold", "workflow", "source_refresh"]
+SkillCandidateStatus = Literal["draft", "approved", "rejected"]
 
 
 class FeedbackRequest(BaseModel):
@@ -85,6 +94,44 @@ class ReplayScheduleRequest(BaseModel):
     next_run_at: datetime | None = None
     created_by: str | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowTraceStep(BaseModel):
+    action: str = Field(min_length=1)
+    source_id: str | None = None
+    tool_name: str | None = None
+    evidence_refs: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowTraceRequest(BaseModel):
+    workspace_id: str = "default"
+    actor_id: str = Field(min_length=1)
+    workflow_type: str = Field(min_length=1)
+    starter_question: str = Field(min_length=1)
+    topic_id: str | None = None
+    source_ids: list[str] = Field(default_factory=list)
+    required_identifiers: list[str] = Field(default_factory=list)
+    steps: list[WorkflowTraceStep] = Field(default_factory=list)
+    accepted_evidence: list[dict[str, Any]] = Field(default_factory=list)
+    rejected_evidence: list[dict[str, Any]] = Field(default_factory=list)
+    human_edits: list[str] = Field(default_factory=list)
+    outcome: str = Field(default="completed", min_length=1)
+    final_artifact_ref: str | None = None
+    duration_seconds: int | None = Field(default=None, ge=0)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    private: bool = False
+
+
+class GenerateSkillCandidatesRequest(BaseModel):
+    workspace_id: str | None = None
+    min_trace_count: int | None = Field(default=None, ge=1)
+    window_days: int | None = Field(default=None, ge=1)
+
+
+class SkillCandidateReviewRequest(BaseModel):
+    reviewer_id: str = Field(min_length=1)
+    review_notes: str | None = None
 
 
 def _feedback_hash(body: FeedbackRequest, output: EvalOutput) -> str:
@@ -194,6 +241,56 @@ def _serialize_replay_run(row: ReplayRun) -> dict[str, Any]:
     }
 
 
+def _serialize_workflow_trace(row: WorkflowTrace) -> dict[str, Any]:
+    return {
+        "trace_id": row.trace_id,
+        "workspace_id": row.workspace_id,
+        "actor_id": row.actor_id,
+        "workflow_type": row.workflow_type,
+        "starter_question_hash": row.starter_question_hash,
+        "starter_question_pattern": row.starter_question_pattern,
+        "topic_id": row.topic_id,
+        "source_ids": row.source_ids_json,
+        "required_identifiers": row.required_identifiers_json,
+        "steps": row.steps_json,
+        "accepted_evidence": row.accepted_evidence_json,
+        "rejected_evidence": row.rejected_evidence_json,
+        "human_edits": row.human_edits_json,
+        "outcome": row.outcome,
+        "final_artifact_ref": row.final_artifact_ref,
+        "duration_seconds": row.duration_seconds,
+        "private": row.private,
+        "metadata": row.metadata_json,
+        "created_at": row.created_at.isoformat(),
+    }
+
+
+def _serialize_skill_candidate(row: SkillCandidate) -> dict[str, Any]:
+    return {
+        "candidate_id": row.candidate_id,
+        "workspace_id": row.workspace_id,
+        "workflow_type": row.workflow_type,
+        "title": row.title,
+        "status": row.status,
+        "source_trace_count": row.source_trace_count,
+        "trace_ids": row.trace_ids_json,
+        "intent_summary": row.intent_summary,
+        "required_inputs": row.required_inputs_json,
+        "source_contract": row.source_contract_json,
+        "tool_plan": row.tool_plan_json,
+        "freshness_contract": row.freshness_contract_json,
+        "answer_contract": row.answer_contract_json,
+        "refusal_rules": row.refusal_rules_json,
+        "eval_seed_cases": row.eval_seed_cases_json,
+        "evidence": row.evidence_json,
+        "reviewer_id": row.reviewer_id,
+        "review_notes": row.review_notes,
+        "reviewed_at": row.reviewed_at.isoformat() if row.reviewed_at else None,
+        "created_at": row.created_at.isoformat(),
+        "updated_at": row.updated_at.isoformat(),
+    }
+
+
 @router.post("/feedback", status_code=status.HTTP_201_CREATED)
 def capture_feedback(
     body: FeedbackRequest,
@@ -269,6 +366,188 @@ def list_feedback(
         )
     rows = session.scalars(stmt).all()
     return {"feedback": [_serialize_feedback(row) for row in rows]}
+
+
+@router.post("/workflow-traces", status_code=status.HTTP_201_CREATED)
+def capture_workflow_trace(
+    body: WorkflowTraceRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, Any]:
+    trace = record_workflow_trace(
+        session,
+        workspace_id=body.workspace_id,
+        actor_id=body.actor_id,
+        workflow_type=body.workflow_type,
+        starter_question=body.starter_question,
+        topic_id=body.topic_id,
+        source_ids=body.source_ids,
+        required_identifiers=body.required_identifiers,
+        steps=[step.model_dump(exclude_none=True) for step in body.steps],
+        accepted_evidence=body.accepted_evidence,
+        rejected_evidence=body.rejected_evidence,
+        human_edits=body.human_edits,
+        outcome=body.outcome,
+        final_artifact_ref=body.final_artifact_ref,
+        duration_seconds=body.duration_seconds,
+        metadata=body.metadata,
+        private=body.private,
+    )
+    add_audit_event(
+        session,
+        category="learning",
+        action="workflow_trace_capture",
+        outcome="success",
+        request=request,
+        target_type="workflow_trace",
+        target_id=trace.trace_id,
+        metadata={
+            "workflow_type": trace.workflow_type,
+            "workspace_id": trace.workspace_id,
+            "source_ids": trace.source_ids_json,
+            "step_count": len(trace.steps_json),
+            "private": trace.private,
+            "starter_question_sha256": trace.starter_question_hash,
+        },
+    )
+    session.commit()
+    return {"trace": _serialize_workflow_trace(trace)}
+
+
+@router.get("/workflow-traces")
+def list_workflow_traces(
+    workspace_id: str | None = None,
+    workflow_type: str | None = None,
+    include_private: bool = False,
+    session: Session = Depends(get_db_session),
+) -> dict[str, list[dict[str, Any]]]:
+    stmt = select(WorkflowTrace).order_by(desc(WorkflowTrace.created_at)).limit(100)
+    if workspace_id is not None:
+        stmt = stmt.where(WorkflowTrace.workspace_id == workspace_id)
+    if workflow_type is not None:
+        stmt = stmt.where(WorkflowTrace.workflow_type == normalize_workflow_type(workflow_type))
+    if not include_private:
+        stmt = stmt.where(WorkflowTrace.private.is_(False))
+    rows = session.scalars(stmt).all()
+    return {"traces": [_serialize_workflow_trace(row) for row in rows]}
+
+
+@router.post("/skill-candidates/generate", status_code=status.HTTP_201_CREATED)
+def create_skill_candidates(
+    body: GenerateSkillCandidatesRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, list[dict[str, Any]]]:
+    candidates = generate_skill_candidates(
+        session,
+        workspace_id=body.workspace_id,
+        min_trace_count=body.min_trace_count,
+        window_days=body.window_days,
+    )
+    add_audit_event(
+        session,
+        category="learning",
+        action="skill_candidate_generate",
+        outcome="success",
+        request=request,
+        target_type="skill_candidates",
+        target_id="batch",
+        metadata={
+            "candidate_count": len(candidates),
+            "candidate_ids": [candidate.candidate_id for candidate in candidates],
+            "workspace_id": body.workspace_id,
+            "min_trace_count": body.min_trace_count or get_settings().dreamfi_skill_mining_min_traces,
+        },
+    )
+    session.commit()
+    return {"candidates": [_serialize_skill_candidate(candidate) for candidate in candidates]}
+
+
+@router.get("/skill-candidates")
+def list_skill_candidates(
+    workspace_id: str | None = None,
+    status_value: SkillCandidateStatus | None = None,
+    session: Session = Depends(get_db_session),
+) -> dict[str, list[dict[str, Any]]]:
+    stmt = select(SkillCandidate).order_by(desc(SkillCandidate.created_at)).limit(100)
+    if workspace_id is not None:
+        stmt = stmt.where(SkillCandidate.workspace_id == workspace_id)
+    if status_value is not None:
+        stmt = stmt.where(SkillCandidate.status == status_value)
+    rows = session.scalars(stmt).all()
+    return {"candidates": [_serialize_skill_candidate(row) for row in rows]}
+
+
+def _review_skill_candidate(
+    *,
+    candidate_id: str,
+    body: SkillCandidateReviewRequest,
+    request: Request,
+    session: Session,
+    next_status: str,
+) -> dict[str, Any]:
+    candidate = session.get(SkillCandidate, candidate_id)
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="skill candidate not found")
+    try:
+        reviewed = review_skill_candidate(
+            session,
+            candidate=candidate,
+            status=next_status,
+            reviewer_id=body.reviewer_id,
+            review_notes=body.review_notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    add_audit_event(
+        session,
+        category="learning",
+        action=f"skill_candidate_{next_status}",
+        outcome="success" if next_status == "approved" else "blocked",
+        request=request,
+        target_type="skill_candidate",
+        target_id=reviewed.candidate_id,
+        metadata={
+            "workflow_type": reviewed.workflow_type,
+            "workspace_id": reviewed.workspace_id,
+            "reviewer_id": body.reviewer_id,
+            "source_trace_count": reviewed.source_trace_count,
+        },
+    )
+    session.commit()
+    return {"candidate": _serialize_skill_candidate(reviewed)}
+
+
+@router.post("/skill-candidates/{candidate_id}/approve")
+def approve_skill_candidate(
+    candidate_id: str,
+    body: SkillCandidateReviewRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, Any]:
+    return _review_skill_candidate(
+        candidate_id=candidate_id,
+        body=body,
+        request=request,
+        session=session,
+        next_status="approved",
+    )
+
+
+@router.post("/skill-candidates/{candidate_id}/reject")
+def reject_skill_candidate(
+    candidate_id: str,
+    body: SkillCandidateReviewRequest,
+    request: Request,
+    session: Session = Depends(get_db_session),
+) -> dict[str, Any]:
+    return _review_skill_candidate(
+        candidate_id=candidate_id,
+        body=body,
+        request=request,
+        session=session,
+        next_status="rejected",
+    )
 
 
 @router.post("/feedback/{feedback_id}/gold", status_code=status.HTTP_201_CREATED)

@@ -45,7 +45,7 @@ describe('AskPage', () => {
 
     const generateLink = screen.getByRole('link', { name: 'Compose' })
     const generateUrl = new URL(generateLink.getAttribute('href') ?? '', 'https://dreamfi.test')
-    expect(generateUrl.pathname).toBe('/console/generate/business-prd')
+    expect(generateUrl.pathname).toBe('/console/generate/technical-prd')
     expect(generateUrl.searchParams.get('q')).toBe('What should Product know from Klaviyo?')
     expect(generateUrl.searchParams.get('source')).toBe('klaviyo')
 

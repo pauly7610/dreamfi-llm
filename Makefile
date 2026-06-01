@@ -1,4 +1,4 @@
-.PHONY: help bootstrap onyx-up dreamfi-up test test-live test-go build-go run-go templ-generate lint format migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay backup-db ops-status run-round console
+.PHONY: help bootstrap onyx-up dreamfi-up test test-live test-go build-go run-go templ-generate lint format verify migrate seed seed-local seed-demo setup-env-check setup-docsets validate-connectors run-replay backup-db ops-status run-round console
 
 help:
 	@echo "bootstrap        - one-shot: bring up Onyx + DreamFi"
@@ -22,6 +22,7 @@ help:
 	@echo "ops-status       - print operational readiness payload"
 	@echo "run-round        - SKILL=... [N=10] run one eval round"
 	@echo "lint / format    - ruff"
+	@echo "verify           - lint, Python tests, Go tests, and Go build"
 
 bootstrap: onyx-up dreamfi-up migrate seed
 
@@ -92,3 +93,5 @@ lint:
 
 format:
 	ruff format dreamfi scripts tests
+
+verify: lint test test-go build-go

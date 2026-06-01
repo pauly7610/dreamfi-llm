@@ -39,7 +39,7 @@ def session(tmp_path: Path) -> Session:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     session = Session(engine)
-    seed_registry(session, repo_root=REPO_ROOT)
+    seed_registry(session, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     session.add(
         PromptVersion(
             skill_id="meeting_summary",
@@ -198,7 +198,14 @@ def test_console_api_returns_live_summary(client: TestClient, session: Session) 
     assert blocked_artifact['policy_checks']['checks'][0]['passed'] is False
     assert len(body['alerts']) == 1
     assert body['alerts'][0]['id'] == 'blocked-artifacts'
-    assert len(body['quick_actions']) == 6
+    assert len(body['quick_actions']) == 5
+    assert {action['id'] for action in body['quick_actions']} == {
+        'weekly-brief',
+        'technical-prd',
+        'risk-brd',
+        'review-blocked',
+        'trust-dashboard',
+    }
     assert body['quick_actions'][0]['id'] == 'weekly-brief'
     assert len(body['domain_health']) == 4
     assert {item['domain'] for item in body['domain_health']} == {'planning', 'metrics', 'generation', 'publish'}

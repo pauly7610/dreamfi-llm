@@ -72,6 +72,9 @@ func TestAskSearchesOnyxWithScopeAndAudits(t *testing.T) {
 	if len(body.Citations) != 1 || body.Citations[0].DocumentID != "doc-1" {
 		t.Fatalf("citations = %#v", body.Citations)
 	}
+	if body.SourcePlan.Scope != "scoped" || len(body.SourcePlan.AuthoritativeSources) != 1 || body.SourcePlan.AuthoritativeSources[0] != "socure" {
+		t.Fatalf("source plan = %#v", body.SourcePlan)
+	}
 	if !strings.Contains(body.Answer, "KYC funnel report") {
 		t.Fatalf("answer = %q", body.Answer)
 	}
@@ -90,6 +93,24 @@ func TestAskSearchesOnyxWithScopeAndAudits(t *testing.T) {
 	}
 	if auditCount != 1 {
 		t.Fatalf("auditCount = %d, want 1", auditCount)
+	}
+}
+
+func TestWorkflowCatalogExcludesArchivedBusinessPRD(t *testing.T) {
+	router := NewRouter(workflowTestSettings(), onyx.NewClient("http://onyx.invalid", ""))
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/workflows", nil)
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "business-prd") || strings.Contains(rec.Body.String(), "landing_page_copy") {
+		t.Fatalf("catalog exposed archived workflow: %s", rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "technical-prd") || !strings.Contains(rec.Body.String(), "risk-brd") {
+		t.Fatalf("catalog missed active workflows: %s", rec.Body.String())
 	}
 }
 

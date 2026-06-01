@@ -235,11 +235,12 @@ func topicHref(topic ConsoleTopic) string {
 templ ConsoleShell(data ConsoleData) {
 	<!doctype html>
 	<html lang="en">
-		<head>
-			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ data.ProductName }</title>
-			<style>
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1"/>
+		<title>{ data.ProductName }</title>
+		<link rel="icon" type="image/svg+xml" href="/static/dreamfi-logo.svg"/>
+		<style>
 				@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap');
 
 				:root {
@@ -318,25 +319,21 @@ templ ConsoleShell(data ConsoleData) {
 					display: flex;
 					align-items: center;
 					gap: 7px;
-					min-height: 26px;
+					min-height: 32px;
 					padding: 0 5px 9px;
 					border-bottom: 1px solid rgba(38, 40, 46, 0.7);
 				}
 
-				.brand-mark {
-					width: 16px;
-					height: 16px;
-					display: grid;
-					place-items: center;
-					border-radius: 4px;
+				.brand-logo {
+					width: 46px;
+					height: 32px;
+					flex: 0 0 auto;
+					object-fit: contain;
+					padding: 2px;
+					border-radius: 5px;
 					background: var(--ink-0);
-					color: var(--bg-0);
-					font-family: var(--font-serif);
-					font-size: 12px;
-					font-style: italic;
 				}
 
-				.brand-name { font-size: 10px; font-weight: 700; }
 				.version { margin-left: auto; color: var(--ink-3); font-family: var(--font-mono); font-size: 8.5px; }
 
 				.nav-section { display: grid; gap: 2px; margin-top: 10px; }
@@ -893,8 +890,7 @@ templ ConsoleShell(data ConsoleData) {
 templ ConsoleSidebar(data ConsoleData) {
 	<aside class="sidebar">
 		<a class="brand" href="/console" aria-label="DreamFi home">
-			<span class="brand-mark">D</span>
-			<span class="brand-name">DreamFi</span>
+			<img class="brand-logo" src="/static/dreamfi-logo.svg" alt="DreamFi"/>
 			<span class="version">{ data.Version }</span>
 		</a>
 		<nav class="nav-section" aria-label="Primary">

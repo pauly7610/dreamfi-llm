@@ -250,7 +250,6 @@ func consoleQuickActions() []consoleQuickAction {
 	return []consoleQuickAction{
 		{ID: "weekly-brief", Label: "Run weekly PM brief", Href: "/console/generate/weekly-brief", Kind: "primary"},
 		{ID: "technical-prd", Label: "Create Technical PRD", Href: "/console/generate/technical-prd", Kind: "secondary"},
-		{ID: "business-prd", Label: "Create Business PRD", Href: "/console/generate/business-prd", Kind: "secondary"},
 		{ID: "risk-brd", Label: "Create Risk BRD", Href: "/console/generate/risk-brd", Kind: "secondary"},
 		{ID: "review-blocked", Label: "Review blocked artifacts", Href: "/console/review?status=blocked", Kind: "secondary"},
 		{ID: "trust-dashboard", Label: "Open trust dashboard", Href: "/console/trust", Kind: "secondary"},

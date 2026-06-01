@@ -22,7 +22,7 @@ def _client(tmp_path: Path) -> tuple[TestClient, Session]:
     engine = create_engine(f"sqlite:///{tmp_path}/dreamfi.db")
     Base.metadata.create_all(engine)
     session = Session(engine)
-    seed_registry(session, repo_root=REPO_ROOT)
+    seed_registry(session, repo_root=REPO_ROOT, enforce_regression_minimum=False)
     for skill in session.query(Skill).all():
         skill.onyx_persona_id = 100
     session.commit()
@@ -73,10 +73,26 @@ def test_live_ask_searches_onyx_with_scope(tmp_path: Path) -> None:
     body = response.json()
     assert body["confidence"] > 0
     assert body["citations"][0]["document_id"] == "doc-1"
+    assert body["source_plan"]["scope"] == "scoped"
+    assert body["source_plan"]["authoritative_sources"] == ["socure"]
     assert "KYC funnel report" in body["answer"]
     assert route.calls.last.request is not None
     assert b"kyc-conversion" in route.calls.last.request.content
     assert b"socure" in route.calls.last.request.content
+
+
+def test_workflow_catalog_excludes_archived_business_prd(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+
+    response = client.get("/api/workflows")
+
+    assert response.status_code == 200
+    workflows = response.json()["workflows"]
+    slugs = {workflow["slug"] for workflow in workflows}
+    skill_ids = {workflow["skill_id"] for workflow in workflows}
+    assert "business-prd" not in slugs
+    assert "landing_page_copy" not in skill_ids
+    assert {"weekly-brief", "technical-prd", "risk-brd"}.issubset(slugs)
 
 
 @respx.mock
